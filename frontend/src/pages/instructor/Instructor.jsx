@@ -7,7 +7,7 @@ const Instructor = () => {
         <div class="grid grid-cols-6 h-screen">
             <Sidebar>
                 <Link
-                    href="#"
+                    to="#"
                     class="text-start bg-secondary-color text-black rounded-l-3xl w-full p-3 "
                 >
                     Course
@@ -15,7 +15,7 @@ const Instructor = () => {
                 <Link href="#" class="p-3">
                     Questions
                 </Link>
-                <Link href="#" class="p-3">
+                <Link to='instructor-students' class="p-3">
                     Candidates
                 </Link>
             </Sidebar>

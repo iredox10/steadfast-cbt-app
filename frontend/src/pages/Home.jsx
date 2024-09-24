@@ -54,6 +54,7 @@ const Home = () => {
                     <img src={exam_img} alt="class exam image" />
                 </div>
             </div>
+
         </div>
     );
 };

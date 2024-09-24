@@ -1,7 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 
 const Student = () => {
+    const [activeButton, setActiveButton] = useState(null); // State to track the active button
+    const [clickedBtns, setClickedBtns] = useState([]);
+
+    const [timeRemaining, setTimeRemaining] = useState({
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+    });
+
+    const targetDate = new Date("2024-12-31T23:11:59").getTime();
+    // const date = new Date() 
+    // const time = date.setMinutes(60)  
+    // const targetDate = new Date(time).getTime()
+
+    useEffect(() => {
+        // Update the timer every second
+        const interval = setInterval(() => {
+            const now = new Date();
+            const difference = targetDate - now;
+
+            if (difference <= 0) {
+                clearInterval(interval);
+                setTimeRemaining({ hours: 0, minutes: 0, seconds: 0 });
+            } else {
+                const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((difference / 1000 / 60) % 60);
+                const seconds = Math.floor((difference / 1000) % 60);
+
+                setTimeRemaining({ hours, minutes, seconds });
+            }
+        }, 1000);
+
+        // Clean up the interval on component unmount
+        return () => clearInterval(interval);
+    }, [targetDate]);
+
+    const handleClick = (index) => {
+        setActiveButton(index); // Update the active button index on click
+        if (!clickedBtns.includes(index)) {
+            setClickedBtns((prev) => [...prev, index]);
+        }
+
+        console.log(clickedBtns);
+    };
+
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -17,7 +62,7 @@ const Student = () => {
                                 type="button"
                                 class="bg-black text-white p-2 font-bold"
                             >
-                                1:30:00 Remaining
+                                {`${timeRemaining.hours}h : ${timeRemaining.minutes}m : ${timeRemaining.seconds}s`}
                             </button>
                         </div>
                     </div>
@@ -108,195 +153,27 @@ const Student = () => {
                     </button>
                 </div>
                 <div class="bg-white p-4 mr-4">
-                    <div
-                        class="grid grid-cols-[repeat(20,1fr)] gap-5"
-                        hover:bg-black
-                        hover:text-white
-                    >
-                        <button onClick={(e) =>{
-                        }} class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            1
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            2
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            3
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            4
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            5
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            6
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            7
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            8
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            9
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            10
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            11
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            12
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            13
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            14
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            15
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            16
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            17
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            18
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            19
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            20
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            21
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            22
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            23
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            24
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            25
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            26
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            27
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            28
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            29
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            30
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            31
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            32
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            33
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            34
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            35
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            36
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            37
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            38
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            39
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            40
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            41
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            42
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            43
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            44
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            45
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            46
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            47
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            48
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            49
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            50
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            51
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            52
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            53
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            54
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            55
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            56
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            57
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            58
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            59
-                        </button>
-                        <button class="bg-primary-color rounded-full hover:bg-black hover:text-white">
-                            60
-                        </button>
+                    <div className="grid grid-cols-[repeat(20,1fr)] gap-5">
+                        {[...Array(60)].map((_, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleClick(index)} // Update state on button click
+                                className={`bg-primary-color rounded-full hover:bg-black hover:text-white 
+                        ${
+                            activeButton === index
+                                ? "text-white bg-green-600 font-bold text-xl"
+                                : ""
+                        } ${
+                                    clickedBtns.includes(index)
+                                        ? "bg-red-500"
+                                        : ""
+                                } `} // Conditionally change the class if active
+                            >
+                                {index + 1}
+                            </button>
+                        ))}
                     </div>
                 </div>
-
                 <div class="my-3 flex justify-center">
                     <button class="px-14 py-2 bg-black text-white">
                         Submit

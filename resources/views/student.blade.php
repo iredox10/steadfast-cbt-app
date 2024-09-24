@@ -1,13 +1,14 @@
 @vite('resources/css/app.css')
 
 <div class="grid grid-cols-6 gap-4 min-h-screen">
-    <div class="flex flex-col justify-between p-5">
+    {{-- <div class="flex flex-col justify-between p-5">
         <h1>Logo</h1>
         <div class="flex flex-col">
             <a href="">Log out</a>
             <a href="">Help Center</a>
         </div>
-    </div>
+    </div> --}}
+    <x-sidebar />
     <div class="col-start-2  col-end-7 ">
         <div class="divide-y-2  p-4">
             <div class="flex items-center justify-between capitalize py-4">
