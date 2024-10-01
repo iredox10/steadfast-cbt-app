@@ -38,21 +38,24 @@ class UserController extends Controller
 
     public function login(Request $request)
     {
-        $user = User::where('username', $request->input('username'))->first();
+        $user = User::where('email', $request->input('email'))->first();
         if (!$user) {
-            return redirect()->back()->with('message', 'user not found!!');
+            // return redirect()->back()->with('message', 'user not found!!');
+            return response()->json('user not found',404);
         }
         if (Hash::check($request->input('password'), $user->password)) {
+            return response()->json($user);
             // $request->session()->put('loggedUser', $user);
-            if ($user->role == 'admin') {
-                return redirect('/admin');
-            } elseif ($user->role == 'lecture') {
-                return redirect('/lecturer');
-            } else {
-                return redirect('/');
-            }
+            // if ($user->role == 'admin') {
+            //     return redirect('/admin');
+            // } elseif ($user->role == 'lecture') {
+            //     return redirect('/lecturer');
+            // } else {
+            //     return redirect('/');
+            // }
         } else {
-            return redirect()->back()->with('message', 'wrong password!!');
+            // return redirect()->back()->with('message', 'wrong password!!');
+            return response()->json('wrong password!!');
         }
     }
 

@@ -10,6 +10,7 @@ import CourseQuestions from './pages/instructor/CourseQuestions.jsx'
 import AdminDashboard from './pages/admin/Dashboard.jsx'
 import AdminLogin from './pages/admin/Login.jsx'
 import Footer from './components/Footer.jsx'
+import AcdSession from './pages/admin/AcdSession.jsx'
 
 function App() {
   useEffect(() =>{
@@ -35,9 +36,9 @@ function App() {
 
         <Route path='/admin-dashboard' element={<AdminDashboard />} />
         <Route path='/admin-login' element={<AdminLogin />} />
+        <Route path='/acd-session' element={<AcdSession />} />
       </Routes>
     </Router>
-    <Footer />
     </div>
   )
 }

@@ -11,13 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('students', function (Blueprint $table) {
-            $table->id();
-            $table->string('candidate_no');
-            $table->string('full_name');
-            $table->string('programme');
-            $table->string('department');
-            $table->timestamps();
+        Schema::table('exams', function (Blueprint $table) {
+            //
+            $table->string('exam_duration')->change();
         });
     }
 
@@ -26,6 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('students');
+        Schema::table('exams', function (Blueprint $table) {
+            //
+            $table->tinyInteger('exam_duration')->change();
+        });
     }
 };

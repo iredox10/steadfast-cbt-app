@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('semesters', function (Blueprint $table) {
-             $table->id();
+            $table->id();
             $table->foreignId('acd_session_id')->constrained('acd_sessions')->onDelete('cascade');
             $table->enum('semester', ['first', 'second', 'third', 'fourth'])->default('first');
             $table->enum('status', ['active', 'inactive'])->default('inactive');

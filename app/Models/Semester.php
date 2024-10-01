@@ -10,11 +10,12 @@ class Semester extends Model
     use HasFactory;
 
     protected $fillable = [
+        'acd_session_id',
         'semester',
         'status'
     ];
 
-    public function acSession()
+    public function acd_session()
     {
         return $this->belongsTo(Acd_Session::class);
     }

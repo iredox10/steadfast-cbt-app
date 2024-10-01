@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 const Student = () => {
     const [activeButton, setActiveButton] = useState(null); // State to track the active button
     const [clickedBtns, setClickedBtns] = useState([]);
+    const [showModel, setShowModel] = useState(false)
 
     const [timeRemaining, setTimeRemaining] = useState({
         hours: 0,
@@ -180,6 +181,9 @@ const Student = () => {
                     </button>
                 </div>
             </div>
+            {showModel && <div className="absolute bg-black">
+                
+                </div>}
         </div>
     );
 };

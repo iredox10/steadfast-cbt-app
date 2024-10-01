@@ -10,18 +10,18 @@ class Course extends Model
     use HasFactory;
 
     protected $fillable = [
-        'acd_session_id',
-        'semester',
-        'status'
+        'semester_id',
+        'code',
+        'title',
+        'credit_unit'
     ];
-
-    public function acSession()
-    {
-        return $this->belongsTo(Acd_Session::class);
-    }
 
     public function semester()
     {
         return $this->belongsTo(Semester::class);
+    }
+
+    public function exam (){
+        return $this->hasMany(Exam::class);
     }
 }

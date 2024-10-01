@@ -11,17 +11,14 @@ class Question extends Model
 
     protected $fillable = [
         'question',
+        'exam_id',
+        'user_id',
         'correct_answer',
         'option_a',
         'option_b',
         'option_c',
         'option_d',
-        'file_img',
-        'std_a',
-        'std_b',
-        'std_c',
-        'std_d',
-    ]
+    ];
 
     public function question()
     {

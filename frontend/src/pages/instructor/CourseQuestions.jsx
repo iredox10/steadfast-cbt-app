@@ -9,136 +9,44 @@ const CourseQuestions = () => {
             <Sidebar />
             <div className="col-start-2 col-end-7 p-5">
                 <div>
-                   <Header title={'Course Name'} subtitle={'Instructor'} /> 
+                    <Header title={"Course Name"} subtitle={"Instructor"} />
                     <div className="flex flex-col gap-5 relative">
-                        <Link to='/add-question' className="bg-black text-white p-2 capitalize absolute -bottom-20 right-0">
+                        <Link
+                            to="/add-question"
+                            className="bg-black text-white p-2 capitalize absolute -bottom-0 right-0"
+                        >
                             add question
                         </Link>
-                        <div className="flex gap-5">
-                            <div id="questionsWrapper">
-                                <div class="bg-white/70 p-5">
-                                    <p class="my-2">
-                                        Discuss the role of nonverbal
-                                        communication in public speaking. How
-                                        can a speaker effectively use body
-                                        language, facial expressions, and eye
-                                        contact to enhance their message
-                                    </p>
+                        <div className="grid grid-cols-2 gap-5">
+                            {[...Array(6)].map((i, question) =>(
+                                <div id="questionsWrapper">
+                                    <div class="bg-white/70 p-5">
+                                        <p class="my-2">
+                                            Discuss the role of nonverbal
+                                            communication in public speaking.
+                                            How can a speaker effectively use
+                                            body language, facial expressions,
+                                            and eye contact to enhance their
+                                            message
+                                        </p>
 
-                                    <div class="flex justify-end gap-5">
-                                        <button id="view-question">
-                                            <FaEye />
-                                        </button>
-                                        <button id="edit-question">
-                                            <FaPenToSquare />
-                                        </button>
+                                        <div class="flex justify-end gap-5">
+                                            <button id="view-question">
+                                                <FaEye />
+                                            </button>
+                                            <button id="edit-question">
+                                                <FaPenToSquare />
+                                            </button>
+                                        </div>
                                     </div>
+                                    
                                 </div>
-                            </div>
-                            <div id="questionsWrapper">
-                                <div class="bg-white/70 p-5">
-                                    <p class="my-2">
-                                        Discuss the role of nonverbal
-                                        communication in public speaking. How
-                                        can a speaker effectively use body
-                                        language, facial expressions, and eye
-                                        contact to enhance their message
-                                    </p>
-
-                                    <div class="flex justify-end gap-5">
-                                        <button id="view-question">
-                                            <FaEye />
-                                        </button>
-                                        <button id="edit-question">
-                                            <FaPenToSquare />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            ))}
+                            
                         </div>
-                        <div className="flex gap-5">
-                            <div id="questionsWrapper">
-                                <div class="bg-white/70 p-5">
-                                    <p class="my-2">
-                                        Discuss the role of nonverbal
-                                        communication in public speaking. How
-                                        can a speaker effectively use body
-                                        language, facial expressions, and eye
-                                        contact to enhance their message
-                                    </p>
+                        <div className="flex justify-center">
 
-                                    <div class="flex justify-end gap-5">
-                                        <button id="view-question">
-                                            <FaEye />
-                                        </button>
-                                        <button id="edit-question">
-                                            <FaPenToSquare />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="questionsWrapper">
-                                <div class="bg-white/70 p-5">
-                                    <p class="my-2">
-                                        Discuss the role of nonverbal
-                                        communication in public speaking. How
-                                        can a speaker effectively use body
-                                        language, facial expressions, and eye
-                                        contact to enhance their message
-                                    </p>
-
-                                    <div class="flex justify-end gap-5">
-                                        <button id="view-question">
-                                            <FaEye />
-                                        </button>
-                                        <button id="edit-question">
-                                            <FaPenToSquare />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex gap-5">
-                            <div id="questionsWrapper">
-                                <div class="bg-white/70 p-5">
-                                    <p class="my-2">
-                                        Discuss the role of nonverbal
-                                        communication in public speaking. How
-                                        can a speaker effectively use body
-                                        language, facial expressions, and eye
-                                        contact to enhance their message
-                                    </p>
-
-                                    <div class="flex justify-end gap-5">
-                                        <button id="view-question">
-                                            <FaEye />
-                                        </button>
-                                        <button id="edit-question">
-                                            <FaPenToSquare />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="questionsWrapper">
-                                <div class="bg-white/70 p-5">
-                                    <p class="my-2">
-                                        Discuss the role of nonverbal
-                                        communication in public speaking. How
-                                        can a speaker effectively use body
-                                        language, facial expressions, and eye
-                                        contact to enhance their message
-                                    </p>
-
-                                    <div class="flex justify-end gap-5">
-                                        <button id="view-question">
-                                            <FaEye />
-                                        </button>
-                                        <button id="edit-question">
-                                            <FaPenToSquare />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <button>1 2 3 4 5</button>
                         </div>
                     </div>
                 </div>

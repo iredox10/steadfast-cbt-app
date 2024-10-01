@@ -11,13 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('students', function (Blueprint $table) {
-            $table->id();
-            $table->string('candidate_no');
-            $table->string('full_name');
-            $table->string('programme');
-            $table->string('department');
-            $table->timestamps();
+        Schema::table('questions', function (Blueprint $table) {
+            //
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
         });
     }
 
@@ -26,6 +22,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('students');
+        Schema::table('questions', function (Blueprint $table) {
+            //
+            $table->dropForeign(['user_id']);
+        });
     }
 };
