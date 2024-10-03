@@ -25,7 +25,7 @@ const AdminLogin = () => {
             if (user.role == "admin") {
                 navigate("/admin-dashboard");
             } else if (user.role == "lecturer") {
-                navigate("/instructor");
+                navigate(`/instructor/${res.data.id}`);
             }
             console.log(res.data);
         } catch (err) {

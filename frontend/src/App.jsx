@@ -11,15 +11,9 @@ import AdminDashboard from './pages/admin/Dashboard.jsx'
 import AdminLogin from './pages/admin/Login.jsx'
 import Footer from './components/Footer.jsx'
 import AcdSession from './pages/admin/AcdSession.jsx'
+import Exams from './pages/instructor/Exams.jsx'
 
 function App() {
-  useEffect(() =>{
-    const fetch = async  () =>{
-      const res = await  axios(`${path}/hello`)
-      console.log(res.data)
-    }
-    fetch()
-  },[])
   return (
     <div className=''>
     <Router>
@@ -28,15 +22,17 @@ function App() {
         <Route path='/student' element={<Student />} />
 
 
-        <Route path='/instructor' element={<Instructor />} />
-        <Route path='/course-questions' element={<CourseQuestions />} />
-        <Route path='/add-question' element={<AddQuestion />} />
+        <Route path='/instructor/:id' element={<Instructor />} />
+        <Route path='/exams/:userId/:courseId' element={<Exams />} />
+        <Route path='/exam-questions/:userId/:examId' element={<CourseQuestions />} />
+        <Route path='/add-question/:userId/:examId' element={<AddQuestion />} />
         <Route path='/instructor-student' element={<AddQuestion />} />
 
 
         <Route path='/admin-dashboard' element={<AdminDashboard />} />
         <Route path='/admin-login' element={<AdminLogin />} />
         <Route path='/acd-session' element={<AcdSession />} />
+
       </Routes>
     </Router>
     </div>

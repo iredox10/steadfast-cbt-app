@@ -24,7 +24,13 @@ class User extends Authenticatable
         'status',
     ];
 
-    public 
+    public function courses(){
+        return $this->hasMany(LecturerCourse::class);
+    }
+
+    public function exams() {
+        return $this->hasMany(Exam::class);
+    }
     /**
      * The attributes that should be hidden for serialization.
      *

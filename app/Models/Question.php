@@ -20,10 +20,10 @@ class Question extends Model
         'option_d',
     ];
 
-    public function question()
-    {
-        return $this->belongsTo(Question::class);
-    }
+    // public function question()
+    // {
+    //     return $this->belongsTo(Question::class);
+    // }
 
     public function exam()
     {

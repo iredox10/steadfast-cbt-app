@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -13,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('lecturer_courses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('instructor_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('title');
             $table->string('code');
             $table->string('credit_unit');
@@ -29,3 +30,4 @@ return new class extends Migration
         Schema::dropIfExists('lecturer_courses');
     }
 };
+

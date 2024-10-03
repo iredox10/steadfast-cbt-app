@@ -10,13 +10,14 @@ class LecturerCourse extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'instructor_id',
+        'user_id',
+        'course_id',
         'title',
         'code',
         'credit_unit'
     ];
 
-    public function instructor(){
+    public function courses(){
         return $this->belongsTo(User::class);
     }
 }

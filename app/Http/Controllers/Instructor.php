@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\LecturerCourse;
 use App\Models\Question;
 use App\Models\question_bank;
 use App\Models\User;
@@ -93,7 +94,6 @@ class Instructor extends Controller
             'max_score' => 'numeric | required',
             'exam_duration' => 'string | required',
         ]);
-        // return response()->json($validate);
         try {
 
             $user = User::find($user_id);
@@ -110,6 +110,15 @@ class Instructor extends Controller
                 'exam_duration' => $validate['exam_duration'],
             ]);
             return response()->json($exam,201);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function get_exams($user_id){
+        try {
+            $exams = User::findOrFail($user_id)->exams;
+            return response()->json($exams);
         } catch (\Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -160,6 +169,8 @@ class Instructor extends Controller
         }
     }
 
+    
+
     public function get_questions(Request $request, $exam_id)
     {
         $exam = Exam::findOrFail($exam_id)->questions;
@@ -170,5 +181,14 @@ class Instructor extends Controller
     {
         $question = Question::findOrFail($question_id);
         return response()->json($question, 200);
+    }
+
+    public function get_courses(Request $request, $user_id){
+        try{
+            $courses = User::findOrFail($user_id)->courses;
+            return response()->json($courses);
+        }catch(\Exception $err){
+            return response()->json($err->getMessage());
+        }
     }
 }

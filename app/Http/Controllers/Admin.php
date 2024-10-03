@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Acd_session;
 use App\Models\Course;
+use App\Models\LecturerCourse;
 use App\Models\Semester;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -92,15 +93,27 @@ class Admin extends Controller
     }
 
     public function activate_exam(Request $request, $exam_id){
-        // $exam = Exam::
+        // $exam = Exam::findOrFail($exam_id);
+
     }
 
     public function add_lecturer_course(Request $request, $user_id, $course_id){
         try{
             $course = Course::findOrFail($course_id);
             $user = User::findOrFail($user_id);
+            $lecturerCourses = LecturerCourse::all();
             
-            
+            $lecturerCourse = LecturerCourse::create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'title' => $course->title,
+                'code' => $course->code,
+                'credit_unit' => $course->credit_unit,
+                'status' => $course->status,
+            ]);
+            return response()->json($lecturerCourse);
+        }catch(\Exception $err){
+            return response()->json($err->getMessage());
         }
     }
 

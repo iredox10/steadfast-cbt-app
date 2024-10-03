@@ -1,8 +1,19 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import useFetch from "../../hooks/useFetch";
 
 const Instructor = () => {
+    const { id } = useParams();
+    const { data: courses, loading, err } = useFetch(`/get-lecturer-courses/5`);
+    const {
+        data: user,
+        loading: userLoading,
+        err: userErr,
+    } = useFetch(`/get-user/${id}`);
+
+    console.log(user);
+    console.log(courses);
     return (
         <div class="grid grid-cols-6 h-screen">
             <Sidebar>
@@ -15,7 +26,7 @@ const Instructor = () => {
                 <Link href="#" class="p-3">
                     Questions
                 </Link>
-                <Link to='instructor-students' class="p-3">
+                <Link to="instructor-students" class="p-3">
                     Candidates
                 </Link>
             </Sidebar>
@@ -23,22 +34,18 @@ const Instructor = () => {
                 <div class="capitalize">
                     <h1>
                         Course by -{" "}
-                        <span class="font-bold">Instructor name</span>
+                        <span class="font-bold">{user.full_name}</span>
                     </h1>
                 </div>
                 <div class="grid grid-cols-4 gap-20 my-10 w-full ">
-                    <div class="bg-white drop-shadow-lg flex justify-center p-12">
-                        <Link to="/course-questions">Course One</Link>
-                    </div>
-                    <div class="bg-white drop-shadow-lg flex justify-center p-12">
-                        <Link to="/course-questions">Course Two</Link>
-                    </div>
-                    <div class="bg-white drop-shadow-lg flex justify-center p-12">
-                        <Link to="/course-questions">Course Three</Link>
-                    </div>
-                    <div class="bg-white drop-shadow-lg flex justify-center p-12">
-                        <Link to="/course-questions">Course Four</Link>
-                    </div>
+                    {courses &&
+                        courses.map((course) => (
+                            <div>
+                                <div class="bg-white drop-shadow-lg flex justify-center p-12">
+                                    <Link to={`/exams/${course.user_id}/${course.course_id}`}>{course.title}</Link>
+                                </div>
+                            </div>
+                        ))}
                 </div>
             </div>
         </div>
