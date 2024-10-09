@@ -9,7 +9,7 @@ class Student extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['candidate_no','full_name', 'programme', 'department'];
+    protected $fillable = ['candidate_no', 'full_name', 'programme', 'department', 'password', 'is_logged_on'];
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -25,8 +25,8 @@ class Student extends Model
         return $this->belongsTo(Student::class, 'lecturer_id'); // Specify foreign key name
     }
 
-    // public function mentees() // Optional relationship (one-to-many)
-    // {
-    //     return $this->hasMany(Student::class, 'lecturer_id'); // Specify foreign key name
-    // }
+    public function mentees() // Optional relationship (one-to-many)
+    {
+        return $this->hasMany(Student::class, 'lecturer_id'); // Specify foreign key name
+    }
 }

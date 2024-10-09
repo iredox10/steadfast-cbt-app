@@ -44,18 +44,9 @@ class UserController extends Controller
             return response()->json('user not found',404);
         }
         if (Hash::check($request->input('password'), $user->password)) {
-            return response()->json($user);
-            // $request->session()->put('loggedUser', $user);
-            // if ($user->role == 'admin') {
-            //     return redirect('/admin');
-            // } elseif ($user->role == 'lecture') {
-            //     return redirect('/lecturer');
-            // } else {
-            //     return redirect('/');
-            // }
+            return response()->json($user,200);
         } else {
-            // return redirect()->back()->with('message', 'wrong password!!');
-            return response()->json('wrong password!!');
+            return response()->json('wrong password!!', 400);
         }
     }
 

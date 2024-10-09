@@ -24,6 +24,7 @@ class Exam extends Model
         'activated_date',
         'start_time',
         'finished',
+        'activated'
     ];
 
     public function user(){

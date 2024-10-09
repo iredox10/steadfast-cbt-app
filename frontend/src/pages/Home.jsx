@@ -5,26 +5,32 @@ import axios from "axios";
 import { path } from "../../utils/path";
 import { useState } from "react";
 import ErrMsg from "../components/ErrMsg";
+import { useNavigate } from "react-router-dom";
 const Home = () => {
-    const [candidateNumber, setCandidateNumber] = useState('')
-    const [password, setpassword] = useState('')
-    const [errMsg, setErrMsg] = useState('')
+    const [candidateNumber, setCandidateNumber] = useState("");
+    const [password, setpassword] = useState("");
+    const [errMsg, setErrMsg] = useState("");
 
-    const handleSubmit = e =>{
-        e.preventDefault()
-        if(!candidateNumber || !password){
-            setErrMsg('fields are empty')
-            return
+    const navigate = useNavigate()
+    const handleSubmit =async (e) => {
+        e.preventDefault();
+        if (!candidateNumber || !password) {
+            setErrMsg("fields are empty");
+            return;
         }
-
         try {
-        const res = axios.post(`${path}/student-login`) 
-        console.log(res.data)
+            const res = await axios.post(`${path}/student-login`, {
+                candidate_no: candidateNumber,
+                password,
+            });
+            if(res.status == 200){
+                navigate(`student/${res.data.id}`)
+            }
+            console.log(res);
         } catch (err) {
-           console.log(err) 
+            console.log(err);
         }
-
-    }
+    };
     return (
         <div>
             <div className="flex justify-center">
@@ -50,18 +56,24 @@ const Home = () => {
                     <form onSubmit={handleSubmit} method="POST">
                         {errMsg && <ErrMsg msg={errMsg} />}
                         <div className="flex flex-col my-4">
+                            <form onSubmit={handleSubmit}></form>
                             <FormInput
                                 labelFor={"candidateNo"}
                                 label={"Candidate Number"}
                                 name={"candidateNo"}
                                 placeholder={"Enter Your Candidate Number"}
+                                onchange={(e) =>
+                                    setCandidateNumber(e.target.value)
+                                }
                             />
-                            
+
                             <FormInput
+                                type={"password"}
                                 labelFor={"password"}
                                 label={"password"}
                                 name={"password"}
                                 placeholder={"Enter Your Password "}
+                                onchange={(e) => setpassword(e.target.value)}
                             />
                             <button
                                 type="submit"
@@ -78,7 +90,6 @@ const Home = () => {
                     <img src={exam_img} alt="className exam image" />
                 </div>
             </div>
-
         </div>
     );
 };

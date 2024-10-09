@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Acd_session;
 use App\Models\Course;
+use App\Models\Exam;
 use App\Models\LecturerCourse;
 use App\Models\Semester;
+use App\Models\Student;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class Admin extends Controller
@@ -92,17 +95,14 @@ class Admin extends Controller
         return response()->json($courses);
     }
 
-    public function activate_exam(Request $request, $exam_id){
-        // $exam = Exam::findOrFail($exam_id);
 
-    }
-
-    public function add_lecturer_course(Request $request, $user_id, $course_id){
-        try{
+    public function add_lecturer_course(Request $request, $user_id, $course_id)
+    {
+        try {
             $course = Course::findOrFail($course_id);
             $user = User::findOrFail($user_id);
             $lecturerCourses = LecturerCourse::all();
-            
+
             $lecturerCourse = LecturerCourse::create([
                 'user_id' => $user->id,
                 'course_id' => $course->id,
@@ -112,7 +112,56 @@ class Admin extends Controller
                 'status' => $course->status,
             ]);
             return response()->json($lecturerCourse);
-        }catch(\Exception $err){
+        } catch (\Exception $err) {
+            return response()->json($err->getMessage());
+        }
+    }
+
+    public function get_exams()
+    {
+        try {
+            $exams = Exam::all();
+            return response()->json($exams);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function activate_exam(Request $request, $exam_id)
+    {
+        $validate = request()->validate([]);
+        try {
+            $exam = Exam::findOrFail($exam_id);
+            $exam_duration = $exam->exam_duration;
+
+            $exam->activated = 'yes';
+            $exam->activated_date = Carbon::now();
+            // $exam->start_time = Carbon::
+            $exam->save();
+            return response()->json($exam);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function register_student(Request $request, $user_id)
+    {
+        $validate = request()->validate([
+            'candidate_no' => 'string | required',
+            'full_name' => 'string | required',
+            'programme' => 'string | required',
+            'department' => 'string | required',
+            'password' => 'string | required',
+            'is_logged_on' => 'string | required',
+        ]);
+
+        try {
+            $user = User::findOrFail($user_id);
+            // if($user->admin){
+            $student = Student::create($validate);
+            return response()->json($student);
+            // }
+        } catch (\Exception $err) {
             return response()->json($err->getMessage());
         }
     }

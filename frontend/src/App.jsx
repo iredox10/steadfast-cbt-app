@@ -12,6 +12,7 @@ import AdminLogin from './pages/admin/Login.jsx'
 import Footer from './components/Footer.jsx'
 import AcdSession from './pages/admin/AcdSession.jsx'
 import Exams from './pages/instructor/Exams.jsx'
+import EditQuestion from './pages/instructor/EditQuestion.jsx'
 
 function App() {
   return (
@@ -19,19 +20,22 @@ function App() {
     <Router>
       <Routes>
         <Route path='/' element={<Home />} />
-        <Route path='/student' element={<Student />} />
+        <Route path='/student/:studentId' element={<Student />} />
 
 
         <Route path='/instructor/:id' element={<Instructor />} />
         <Route path='/exams/:userId/:courseId' element={<Exams />} />
         <Route path='/exam-questions/:userId/:examId' element={<CourseQuestions />} />
-        <Route path='/add-question/:userId/:examId' element={<AddQuestion />} />
+        <Route path='/add-question/:questionId/:userId/:examId' element={<AddQuestion />} />
+        <Route path='/edit-question/:userId/:questionId' element={<EditQuestion />} />
         <Route path='/instructor-student' element={<AddQuestion />} />
 
 
         <Route path='/admin-dashboard' element={<AdminDashboard />} />
         <Route path='/admin-login' element={<AdminLogin />} />
-        <Route path='/acd-session' element={<AcdSession />} />
+        <Route path='/admin-session' element={<AcdSession />} />
+        <Route path='/admin-courses' element={<AcdSession />} />
+        <Route path='/admin-instructors' element={<AcdSession />} />
 
       </Routes>
     </Router>

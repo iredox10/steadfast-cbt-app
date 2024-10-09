@@ -9,10 +9,11 @@ import Header from "../../components/Header";
 import useFetch from "../../hooks/useFetch";
 import axios from "axios";
 import { path } from "../../../utils/path";
+import { FaTimes } from "react-icons/fa";
 
 const AddQuestion = () => {
-    const { userId, examId } = useParams();
-    console.log(userId)
+    const {questionId, userId, examId } = useParams();
+    // console.log(userId)
     // const { data: exam, loading, err } = useFetch(`/add-question`);
     const modules = {
         toolbar: [
@@ -54,6 +55,11 @@ const AddQuestion = () => {
         setOptionEditor("");
     };
 
+    const removeOption =(i) =>{
+        const newValue = options.filter((option,index) => index !== i)
+        setOptions(newValue)
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!question || !correctAnswer || !options) {
@@ -64,7 +70,7 @@ const AddQuestion = () => {
             setError("options can't be less than or more than 4");
             return;
         }
-
+        setError('')
         const keys = ["option_a", "option_b", "option_c", "option_d"];
 
         const optionToSend = keys.reduce((acc, key, index) => {
@@ -74,7 +80,7 @@ const AddQuestion = () => {
         console.log(optionToSend.option_a)
         try {
             const res = await axios.post(
-                `${path}/add-question/${userId}/${examId}`,
+                `${path}/add-question/${questionId}/${userId}/${examId}`,
                 {
                     user_id: userId,
                     exam_id: examId,
@@ -180,13 +186,14 @@ const AddQuestion = () => {
                             <div className="my-4">
                                 {options &&
                                     options.map((option, i) => (
-                                        <div key={i} className="my-2">
+                                        <div key={i} className="flex items-center justify-between gap-5 bg-primary-color capitalize p-2 box-border my-2">
                                             <div
-                                                className="bg-primary-color capitalize p-2 box-border"
+                                                className=""
                                                 dangerouslySetInnerHTML={{
                                                     __html: option,
                                                 }}
                                             />
+                                            <button onClick={() => removeOption(i)}><FaTimes /></button>
                                         </div>
                                     ))}
                             </div>

@@ -1,7 +1,31 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import useFetch from "../hooks/useFetch";
+import { path } from "../../utils/path";
+import axios from "axios";
+import { useParams } from "react-router-dom";
 
 const Student = () => {
+    const {studentId}= useParams()
+    const {data,loading,err} = useFetch(`/get-exam`)
+    const {data:student,loading:stdLoading,err:stdErr} = useFetch(`/get-student/${studentId}`)
+    console.log(student)
+
+    const [course, setCourse] = useState()
+
+    useEffect(() =>{
+        const fetch = async ()=>{
+            try {
+                const res = await axios(`${path}/get-course/${data.exam.course_id}`)
+                setCourse(res.data)
+                console.log(course)
+            } catch (err) {
+               console.log(err) 
+            }
+        }
+        fetch()
+    },[data])
+
     const [activeButton, setActiveButton] = useState(null); // State to track the active button
     const [clickedBtns, setClickedBtns] = useState([]);
     const [showModel, setShowModel] = useState(false)
@@ -12,32 +36,33 @@ const Student = () => {
         seconds: 0,
     });
 
+
     const targetDate = new Date("2024-12-31T23:11:59").getTime();
     // const date = new Date() 
     // const time = date.setMinutes(60)  
     // const targetDate = new Date(time).getTime()
 
-    useEffect(() => {
-        // Update the timer every second
-        const interval = setInterval(() => {
-            const now = new Date();
-            const difference = targetDate - now;
+    // useEffect(() => {
+    //     // Update the timer every second
+    //     const interval = setInterval(() => {
+    //         const now = new Date();
+    //         const difference = targetDate - now;
 
-            if (difference <= 0) {
-                clearInterval(interval);
-                setTimeRemaining({ hours: 0, minutes: 0, seconds: 0 });
-            } else {
-                const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-                const minutes = Math.floor((difference / 1000 / 60) % 60);
-                const seconds = Math.floor((difference / 1000) % 60);
+    //         if (difference <= 0) {
+    //             clearInterval(interval);
+    //             setTimeRemaining({ hours: 0, minutes: 0, seconds: 0 });
+    //         } else {
+    //             const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+    //             const minutes = Math.floor((difference / 1000 / 60) % 60);
+    //             const seconds = Math.floor((difference / 1000) % 60);
 
-                setTimeRemaining({ hours, minutes, seconds });
-            }
-        }, 1000);
+    //             setTimeRemaining({ hours, minutes, seconds });
+    //         }
+    //     }, 1000);
 
-        // Clean up the interval on component unmount
-        return () => clearInterval(interval);
-    }, [targetDate]);
+    //     // Clean up the interval on component unmount
+    //     return () => clearInterval(interval);
+    // }, []);
 
     const handleClick = (index) => {
         setActiveButton(index); // Update the active button index on click
@@ -55,8 +80,8 @@ const Student = () => {
                 <div class="divide-y-2  p-4">
                     <div class="flex items-center justify-between capitalize py-4">
                         <h1 class="">
-                            idris adam idris{" "}
-                            <span class="block">Hnd/com/21/0109</span>
+                            {student && student.full_name}
+                            <span class="block">{student.candidate_no}</span>
                         </h1>
                         <div>
                             <button
@@ -71,9 +96,7 @@ const Student = () => {
                     <div>
                         <div class="">
                             <div class="my-4">
-                                <h1 class="font-bold text-2xl">
-                                    Course: Com 211
-                                </h1>
+                                <h1 class="font-bold text-2xl">{}</h1>
                                 <p>Date: Jan 20, 2024</p>
                             </div>
                             <div class="bg-white/75 p-4">
@@ -155,7 +178,7 @@ const Student = () => {
                 </div>
                 <div class="bg-white p-4 mr-4">
                     <div className="grid grid-cols-[repeat(20,1fr)] gap-5">
-                        {[...Array(60)].map((_, index) => (
+                        {data&& data.questions.map((_, index) => (
                             <button
                                 key={index}
                                 onClick={() => handleClick(index)} // Update state on button click

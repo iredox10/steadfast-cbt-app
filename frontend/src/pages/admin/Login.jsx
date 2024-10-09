@@ -27,9 +27,9 @@ const AdminLogin = () => {
             } else if (user.role == "lecturer") {
                 navigate(`/instructor/${res.data.id}`);
             }
-            console.log(res.data);
         } catch (err) {
             console.log(err);
+            setErr(err.response.data)
         }
     };
     return (

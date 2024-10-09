@@ -18,7 +18,22 @@ const Exams = () => {
         err: courseErr,
     } = useFetch(`/get-course/${courseId}`);
 
-    console.log(exams, course);
+    const [maxScore, setMaxScore] = useState("");
+    const [instruction, setInstruction] = useState('')
+    const [noOfQuestion, setnoOfQuestion] = useState()
+    const [acutualQuestion, setAcutualQuestion] = useState()
+    
+    const [examType, setExamType] = useState()
+    const handleSubmit = async (e) => {
+        try {
+            const res = await axios.post(
+                `${path}/add-exam/${userId}/${exam.id}`
+            );
+            console.log(res.data)
+        } catch (err) { 
+            console.log(err)
+        }
+    };
 
     return (
         <GridLayout>
@@ -97,34 +112,79 @@ const Exams = () => {
             </div>
             {showModel && (
                 <div className="absolute top-0 left-0 bg-black/40 w-full h-screen">
-                    <div className="bg-primary-color absolute w-2/4 top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] ">
-                        <div className="flex items-center justify-between p-4 font-bold">
-                            <h1 className="">Add New Exam</h1>
-                            <button onClick={() => setshowModel(false)}>
-                                <FaTimes />
-                            </button>
-                        </div>
-                        <div className="p-4">
-                            <FormInput
-                                type={"text"}
-                                label={"exam type"}
-                                labelFor={"exam type"}
-                                placeholder={"input exam type"}
-                            />
+                    <form onSubmit={handleSubmit}>
+                        <div className="bg-primary-color absolute w-2/4 top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] ">
+                            <div className="flex items-center justify-between p-4 font-bold">
+                                <h1 className="">Add New Exam</h1>
+                                <button onClick={() => setshowModel(false)}>
+                                    <FaTimes />
+                                </button>
+                            </div>
+                            <div className="p-4">
+                                <div className="mb-3">
+                                    <label
+                                        for="examtype"
+                                        class="m-0 capitalize"
+                                    >
+                                        Exam Type
+                                    </label>
+                                    <select
+                                        className="w-full p-4"
+                                        name="examtype"
+                                        id=""
+                                    >
+                                        <option selected disabled>
+                                            Select Exam
+                                        </option>
+                                        <option value="school">School</option>
+                                        <option value="external">
+                                            External
+                                        </option>
+                                    </select>
+                                </div>
                                 <FormInput
-                                    type={"number"}
-                                    label={"max score"}
-                                    labelFor={"max score"}
-                                    placeholder={"enter max score"}
+                                    type={"text"}
+                                    label={"instruction"}
+                                    labelFor={"instruction"}
+                                    placeholder={"Instruction ..."}
                                 />
+                                <div className="flex items-center gap-4">
+                                    <FormInput
+                                        type={"number"}
+                                        label={"max score"}
+                                        labelFor={"max score"}
+                                        placeholder={"enter max score"}
+                                    />
+                                    <FormInput
+                                        type={"number"}
+                                        label={"max score"}
+                                        labelFor={"max score"}
+                                        placeholder={"enter max score"}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <FormInput
+                                        type={"number"}
+                                        label={"Number of questions"}
+                                        labelFor={"Number of questions"}
+                                        placeholder={"Number of questions"}
+                                    />
+                                    <FormInput
+                                        type={"number"}
+                                        label={"actual question"}
+                                        labelFor={"actual question"}
+                                        placeholder={"actual question"}
+                                    />
+                                </div>
                                 <FormInput
-                                    type={"number"}
-                                    label={"max score"}
-                                    labelFor={"max score"}
-                                    placeholder={"enter max score"}
+                                    type={"text"}
+                                    label={"duration"}
+                                    labelFor={"duration"}
+                                    placeholder={"duration"}
                                 />
+                            </div>
                         </div>
-                    </div>
+                    </form>{" "}
                 </div>
             )}
         </GridLayout>

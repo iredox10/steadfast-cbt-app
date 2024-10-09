@@ -38,72 +38,69 @@ const CourseQuestions = () => {
                 <div>
                     <div className="sticky top-0 bg-primary-color z-10 flex items-center justify-between">
                         <Header title={"Course Name"} subtitle={"Instructor"} />
-                        <Link
-                            to={`/add-question/${userId}/${examId}`}
-                            className="bg-black text-white p-2 capitalize"
-                        >
-                            add question
-                        </Link>
                     </div>
                     <div className="flex flex-col gap-5 relative">
-                        <div className="grid grid-cols-2 gap-5">
+                        <div className="">
                             {loading && <p>loading...</p>}
-                            {questions &&
-                                questions.map((q) => (
-                                    <div id="questionsWrapper">
-                                        <div class="bg-white/70 p-5">
-                                            <div
-                                                dangerouslySetInnerHTML={{
-                                                    __html: q.question,
-                                                }}
-                                                class="my-2"
-                                            ></div>
-                                            <div class="flex justify-end gap-5">
+                            {/* <div className="grid grid-cols-[repeat(20,1fr)] gap-5"> */}
+                            <div className="flex gap-5 flex-wrap w-full">
+                                {questions &&
+                                    questions.map((q) => (
+                                        <div
+                                            key={q.id}
+                                            className={`p-4 rounded-full  text-center ${
+                                                q.question
+                                                    ? "bg-green-500"
+                                                    : "bg-white"
+                                            }`}
+                                        >
+                                            {!q.question ? (
+                                                <Link
+                                                    to={`/add-question/${q.id}/${userId}/${examId}`}
+                                                >
+                                                    {q.serial_number}
+                                                </Link>
+                                            ) : (
                                                 <button
-                                                    id="view-question"
                                                     onClick={() =>
                                                         showQuestionDetail(q.id)
                                                     }
                                                 >
-                                                    <FaEye />
+                                                    {q.serial_number}
                                                 </button>
-                                                <button id="edit-question">
-                                                    <FaPenToSquare />
-                                                </button>
-                                            </div>
+                                            )}
                                         </div>
-                                        <div className="flex justify-center">
-                                            {/* <button>1 2 3 4 5</button> */}
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             {showModel && (
                 <Model>
                     {question ? (
                         <div className="p-5 relative">
                             <button
-                                className="absolute top-4 right-4 bg-black rounded text-white p-1"
+                                className="absolute top-4 right-4 bg-black rounded-full text-white p-1"
                                 onClick={() => setShowModel(!showModel)}
                             >
                                 <FaTimes />
                             </button>
-                            <div>
+                            <div className="my-5">
                                 <div>
-                                    <h1 className="font-bold text-2xl">
+                                    <h1 className="font-bold text-xl my-2">
                                         Question
                                     </h1>
                                     <div
                                         dangerouslySetInnerHTML={{
                                             __html: question.question,
                                         }}
+                                        className="my-2"
                                     ></div>
                                 </div>
                                 <div>
-                                    <h1 className="font-bold text-2xl">
+                                    <h1 className="font-bold text-xl ">
                                         Correct Answer
                                     </h1>
                                     <div
@@ -111,7 +108,9 @@ const CourseQuestions = () => {
                                             __html: question.correct_answer,
                                         }}
                                     ></div>
-                                    <h1 className="font-bold text-2xl">Options</h1>
+                                    <h1 className="font-bold text-xl my-2">
+                                        Options
+                                    </h1>
                                     <div
                                         dangerouslySetInnerHTML={{
                                             __html: question.option_a,
@@ -119,20 +118,23 @@ const CourseQuestions = () => {
                                     ></div>
                                     <div
                                         dangerouslySetInnerHTML={{
-                                            __html: question.option_a,
+                                            __html: question.option_b,
                                         }}
                                     ></div>
                                     <div
                                         dangerouslySetInnerHTML={{
-                                            __html: question.option_a,
+                                            __html: question.option_c,
                                         }}
                                     ></div>
                                     <div
                                         dangerouslySetInnerHTML={{
-                                            __html: question.option_a,
+                                            __html: question.option_d,
                                         }}
                                     ></div>
                                 </div>
+                            </div>
+                            <div className="flex justify-end text-xl">
+                                <Link to={`/edit-question/${userId}/${question.id}`}><FaPenToSquare /></Link>
                             </div>
                         </div>
                     ) : (

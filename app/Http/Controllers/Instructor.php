@@ -109,13 +109,24 @@ class Instructor extends Controller
                 'actual_questions' => $validate['actual_questions'],
                 'exam_duration' => $validate['exam_duration'],
             ]);
-            return response()->json($exam,201);
+
+            // ! $question is not an error but a warning
+            $questions;
+            for ($i = 0; $i < $exam->no_of_questions; $i++) {
+                $questions = Question::insert([
+                    'exam_id' => $exam->id,
+                    'user_id' => $user->id,
+                    'serial_number' => $i+1
+                ]);
+            }
+            return response()->json($exam, 201);
         } catch (\Exception $e) {
             return response()->json($e->getMessage());
         }
     }
 
-    public function get_exams($user_id){
+    public function get_exams($user_id)
+    {
         try {
             $exams = User::findOrFail($user_id)->exams;
             return response()->json($exams);
@@ -124,7 +135,7 @@ class Instructor extends Controller
         }
     }
 
-    public function add_question(Request $request, string $user_id, string $exam_id)
+    public function add_question(Request $request,$question_id, string $user_id, string $exam_id)
     {
         $validate = request()->validate([
             'question' => 'string | required',
@@ -139,16 +150,17 @@ class Instructor extends Controller
             $user = User::findOrFail($user_id);
             $exam = Exam::findOrFail($exam_id);
 
-            $question = Question::create([
-                'exam_id' => $exam->id,
-                'user_id' => $user->id,
-                'question' => $validate['question'],
-                'correct_answer' => $validate['correct_answer'],
-                'option_a' => $validate['option_a'],
-                'option_b' => $validate['option_b'],
-                'option_c' => $validate['option_c'],
-                'option_d' => $validate['option_d'],
-            ]);
+            $question = Question::findOrFail($question_id);
+
+            $question->question = $validate['question'];
+            $question->correct_answer = $validate['correct_answer'];
+            $question->option_a = $validate['option_a'];
+            $question->option_b = $validate['option_b'];
+            $question->option_c = $validate['option_c'];
+            $question->option_d = $validate['option_d'];
+
+            $question->save();
+
             return response()->json($question, 201);
             // Todo: implement question bank
             // if ($question) {
@@ -169,7 +181,17 @@ class Instructor extends Controller
         }
     }
 
-    
+    public function submitExam(Request $request, $exam_id)
+    {
+        try {
+            $exam = Exam::findOrFail($exam_id);
+            $exam->submission_status = 'submitted';
+            $exam->save();
+            return response()->json($exam);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
 
     public function get_questions(Request $request, $exam_id)
     {
@@ -183,11 +205,12 @@ class Instructor extends Controller
         return response()->json($question, 200);
     }
 
-    public function get_courses(Request $request, $user_id){
-        try{
+    public function get_courses(Request $request, $user_id)
+    {
+        try {
             $courses = User::findOrFail($user_id)->courses;
             return response()->json($courses);
-        }catch(\Exception $err){
+        } catch (\Exception $err) {
             return response()->json($err->getMessage());
         }
     }

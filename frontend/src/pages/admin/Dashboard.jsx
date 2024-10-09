@@ -2,12 +2,36 @@ import { FaEye, FaPenToSquare } from "react-icons/fa6";
 import Sidebar from "../../components/Sidebar";
 import Student from "../Student";
 import { Link } from "react-router-dom";
+import useFetch from "../../hooks/useFetch";
+import { path } from "../../../utils/path";
+import axios from "axios";
+import { useEffect, useState } from "react";
 
 const AdminDashboard = () => {
+    const { data: exams, loading, err } = useFetch(`/get-exams`);
+    console.log(exams);
+    const [course, setCourse] = useState();
+    useEffect(() => {
+        exams &&
+            exams.map(async (exam) => {
+                try {
+                    const res = await axios(
+                        `${path}/get-course/${exam.course_id}`
+                    );
+                    setCourse(res.data);
+                    console.log(course);
+                } catch (err) {
+                    console.log(err);
+                }
+            });
+    }, [exams]);
+
     return (
         <div className="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar>
-                <Link to={'/acd-session'}>Sessions</Link>
+                <Link to={"/admin-session"}>Sessions</Link>
+                <Link to={"/admin-courses"}>Courses</Link>
+                <Link to={"/admin-instructors"}>instructors</Link>
             </Sidebar>
             <div className="col-span-5 p-5">
                 <div className="flex justify-between  w-full my-5">
@@ -53,58 +77,63 @@ const AdminDashboard = () => {
                                         Id
                                     </th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        FullName
+                                        Course
                                     </th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Department
+                                        Number Of Questions
                                     </th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Programme
+                                        Acutal Question
                                     </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Matriculation Number
-                                    </th>
+                                    
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Max score</th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Marks Per Question</th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Exam Type</th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Exam Duration</th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Is Activated</th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {[...Array(10)].map((student, index) => (
-                                    <tr className="border-b">
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {index + 1}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            Idris Adam Idris
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            Computer Science
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            Computer Science
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            UGC/COM/21/001{index+1}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            <button
-                                                id="show_detail"
-                                                className="p-2 "
-                                            >
-                                                {" "}
-                                                <FaEye />
-                                            </button>
-                                            <button
-                                                id="show_detail"
-                                                className="p-2"
-                                            >
-                                                {" "}
-                                                <FaPenToSquare />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {exams &&
+                                    exams.map((exam, index) => (
+                                        <tr className="border-b">
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {index + 1}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {course &&
+                                                course.id == exam.course_id
+                                                    ? course.title
+                                                    : ""}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.no_of_questions}</td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.actual_questions}</td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.max_score}</td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.marks_per_question}</td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.exam_type}</td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.exam_duration}</td>
+                                            <td className="py-3 px-4 text-gray-700">{exam.activated}</td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                <button
+                                                    id="show_detail"
+                                                    className="p-2 "
+                                                >
+                                                    {" "}
+                                                    <FaEye />
+                                                </button>
+                                                <button
+                                                    id="show_detail"
+                                                    className="p-2"
+                                                >
+                                                    {" "}
+                                                    <FaPenToSquare />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
                             </tbody>
                         </table>
                         <div className="mt-4 flex justify-between items-center">

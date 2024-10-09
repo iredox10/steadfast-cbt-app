@@ -12,7 +12,6 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // user
-
 Route::post('/login', [UserController::class, 'login']);
 
 
@@ -23,6 +22,10 @@ Route::post('/student-login', [Student::class, 'login']);
 Route::post('/student-reg', [Student::class, 'store']);
 
 Route::get('/get-students', [Student::class, 'index']);
+
+Route::get('/get-student/{student_id}', [Student::class, 'get_student']);
+
+Route::get('/get-exam', [Student::class, 'exam']);
 
 // instructor
 Route::get('/get-users', [Instructor::class, 'index']);
@@ -37,7 +40,9 @@ Route::post('/add-exam/{user_id}/{course_id}',[Instructor::class, 'add_exam']);
 
 Route::get('/get-exams/{user_id}',[Instructor::class, 'get_exams']);
 
-Route::post('/add-question/{user_id}/{exam_id}',[Instructor::class, 'add_question']);
+Route::post('/submit-exam/{exam_id}',[Instructor::class, 'submitExam']);
+
+Route::post('/add-question/{question_id}/{user_id}/{exam_id}',[Instructor::class, 'add_question']);
 
 Route::get('/get-questions/{exam_id}', [Instructor::class, 'get_questions']);
 
@@ -60,6 +65,15 @@ Route::get('/get-courses/{semester_id}', [Admin::class, 'get_courses']);
 Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
 
 Route::post('/add-lecturer-course/{user_id}/{course_id}', [Admin::class, 'add_lecturer_course']);
+
+Route::get('/get-exams', [Admin::class,'get_exams']);
+
+Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam']);
+
+Route::post('/register-student/{user_id}', [Admin::class, 'register_student']);
+
+
+// TODO: populate student answer table with question that the student answer
 
 
 
