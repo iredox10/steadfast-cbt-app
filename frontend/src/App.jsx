@@ -13,6 +13,7 @@ import Footer from './components/Footer.jsx'
 import AcdSession from './pages/admin/AcdSession.jsx'
 import Exams from './pages/instructor/Exams.jsx'
 import EditQuestion from './pages/instructor/EditQuestion.jsx'
+import InstructorStudents from './pages/instructor/InstructorStudents.jsx'
 
 function App() {
   return (
@@ -28,7 +29,7 @@ function App() {
         <Route path='/exam-questions/:userId/:examId' element={<CourseQuestions />} />
         <Route path='/add-question/:questionId/:userId/:examId' element={<AddQuestion />} />
         <Route path='/edit-question/:userId/:questionId' element={<EditQuestion />} />
-        <Route path='/instructor-student' element={<AddQuestion />} />
+        <Route path='/instructor-student/:userId/:courseId' element={<InstructorStudents />} />
 
 
         <Route path='/admin-dashboard' element={<AdminDashboard />} />

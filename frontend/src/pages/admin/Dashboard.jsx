@@ -6,11 +6,19 @@ import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { FaCheck, FaTimes } from "react-icons/fa";
+import Model from "../../components/Model";
 
 const AdminDashboard = () => {
     const { data: exams, loading, err } = useFetch(`/get-exams`);
     console.log(exams);
     const [course, setCourse] = useState();
+
+    const [showModel, setshowModel] = useState(false);
+    const [showDeleteModel, setShowDeleteModel] = useState(false);
+    const [showSubmitModel, setShowSubmitModel] = useState(false);
+    const [examId, setexamId] = useState();
+
     useEffect(() => {
         exams &&
             exams.map(async (exam) => {
@@ -26,6 +34,23 @@ const AdminDashboard = () => {
             });
     }, [exams]);
 
+    const showModelAndSetExamId = (id) => {
+        setShowSubmitModel(true);
+        setexamId(id);
+    };
+
+    const handleActivateExam = async (id) => {
+        console.log(id);
+        try {
+            const res = await axios.post(`${path}/activate-exam/${id}`);
+            if (res.status == 200) {
+                setShowSubmitModel(false);
+            }
+            console.log(res);
+        } catch (err) {
+            console.log(err);
+        }
+    };
     return (
         <div className="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar>
@@ -36,8 +61,8 @@ const AdminDashboard = () => {
             <div className="col-span-5 p-5">
                 <div className="flex justify-between  w-full my-5">
                     <div>
-                        <h1 className="text-2xl font-bold">Students</h1>
-                        <p>student details</p>
+                        <h1 className="text-2xl font-bold">Exams</h1>
+                        <p>exam details</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="bg-white flex items-center gap-3 p-2 rounded-full">
@@ -85,12 +110,22 @@ const AdminDashboard = () => {
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold">
                                         Acutal Question
                                     </th>
-                                    
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Max score</th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Marks Per Question</th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Exam Type</th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Exam Duration</th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">Is Activated</th>
+
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                        Max score
+                                    </th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                        Marks Per Question
+                                    </th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                        Exam Type
+                                    </th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                        Exam Duration
+                                    </th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                        Is Activated
+                                    </th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
                                         Actions
                                     </th>
@@ -109,27 +144,55 @@ const AdminDashboard = () => {
                                                     ? course.title
                                                     : ""}
                                             </td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.no_of_questions}</td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.actual_questions}</td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.max_score}</td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.marks_per_question}</td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.exam_type}</td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.exam_duration}</td>
-                                            <td className="py-3 px-4 text-gray-700">{exam.activated}</td>
                                             <td className="py-3 px-4 text-gray-700">
+                                                {exam.no_of_questions}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {exam.actual_questions}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {exam.max_score}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {exam.marks_per_question}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {exam.exam_type}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {exam.exam_duration}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {exam.activated == "yes" ? (
+                                                    <button className="p-1 bg-green-700 rounded-full">
+                                                        <FaCheck className="text-white" />
+                                                    </button>
+                                                ) : (
+                                                    <button className="p-1 bg-red-500 rounded-full">
+                                                        <FaTimes className="text-white" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-4 flex items-center text-gray-700 gap-2">
                                                 <button
                                                     id="show_detail"
-                                                    className="p-2 "
+                                                    className="p-2 bg-green-600"
+                                                    onClick={() =>
+                                                        showModelAndSetExamId(
+                                                            exam.id
+                                                        )
+                                                    }
                                                 >
-                                                    {" "}
-                                                    <FaEye />
+                                                    {/* <FaCheck /> */}
+                                                    Activate
                                                 </button>
                                                 <button
                                                     id="show_detail"
-                                                    className="p-2"
+                                                    className="p-2 bg-red-500"
+                                                    onClick={() => {}}
                                                 >
-                                                    {" "}
-                                                    <FaPenToSquare />
+                                                    {/* <FaCheck /> */}
+                                                    Deactivate
                                                 </button>
                                             </td>
                                         </tr>
@@ -138,56 +201,36 @@ const AdminDashboard = () => {
                         </table>
                         <div className="mt-4 flex justify-between items-center">
                             <span className="text-sm text-gray-600">
-                                Showing 6-21 of 1000
+                                {/* Showing 6-21 of 1000 */}
                             </span>
                             <div className="flex space-x-1 text-gray-600">
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    1
-                                </a>
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    2
-                                </a>
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    3
-                                </a>
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    4
-                                </a>
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    5
-                                </a>
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    6
-                                </a>
-                                <a
-                                    href="#"
-                                    className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                                >
-                                    7
-                                </a>
+                                {[...Array(10)].map((a, i) => {
+                                    <div className="flex space-x-1 text-gray-600">
+                                        i
+                                    </div>;
+                                })}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            {showSubmitModel && (
+                <Model>
+                    <div className="p-4 text-center">
+                        <h1 className="text-2xl font-bold">
+                            Did you want to activate{" "}
+                        </h1>
+                        <div className="flex justify-center items-center gap-10">
+                            <button onClick={() => handleActivateExam(examId)}>
+                                Yes
+                            </button>
+                            <button onClick={() => setShowSubmitModel(false)}>
+                                No
+                            </button>
+                        </div>
+                    </div>
+                </Model>
+            )}
         </div>
     );
 };

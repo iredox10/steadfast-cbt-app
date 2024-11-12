@@ -10,7 +10,9 @@ use App\Models\Semester;
 use App\Models\Student;
 use App\Models\User;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
+use PhpParser\Node\Stmt\TryCatch;
 
 class Admin extends Controller
 {
@@ -25,6 +27,7 @@ class Admin extends Controller
     /**
      * Store a newly created resource in storage.
      */
+    
     public function add_acd_session(Request $request)
     {
         $validate = request()->validate([
@@ -34,10 +37,19 @@ class Admin extends Controller
         try {
             $acd_session = Acd_session::create($validate);
             return response()->json($acd_session);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
+
+     public function get_acd_sessions(){
+        try{
+            $sessions = Acd_session::all();
+            return response()->json($sessions);;
+        }catch(Exception $e){
+            return response()->json($e->getMessage());
+        }
+     }
 
     public function add_semester(Request $request, $session_id)
     {
@@ -52,7 +64,7 @@ class Admin extends Controller
                 'status' => $validate['status']
             ]);
             return response()->json($semester);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
@@ -79,7 +91,7 @@ class Admin extends Controller
                 'credit_unit' => $validate['credit_unit']
             ]);
             return response()->json($course);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
@@ -112,7 +124,7 @@ class Admin extends Controller
                 'status' => $course->status,
             ]);
             return response()->json($lecturerCourse);
-        } catch (\Exception $err) {
+        } catch (Exception $err) {
             return response()->json($err->getMessage());
         }
     }
@@ -120,9 +132,9 @@ class Admin extends Controller
     public function get_exams()
     {
         try {
-            $exams = Exam::all();
+            $exams = Exam::where('submission_status','submitted')->get();
             return response()->json($exams);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
@@ -131,6 +143,7 @@ class Admin extends Controller
     {
         $validate = request()->validate([]);
         try {
+            $exams = Exam::query()->update(['activated' =>'no']);
             $exam = Exam::findOrFail($exam_id);
             $exam_duration = $exam->exam_duration;
 
@@ -139,8 +152,18 @@ class Admin extends Controller
             // $exam->start_time = Carbon::
             $exam->save();
             return response()->json($exam);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
+        }
+    }
+
+    public function deactivate_exam ($exam_id){
+        try{
+            $exam = Exam::findOrFail($exam_id);
+            $exam->activated = 'no'; 
+            $exam->save();
+        }catch(Exception $e){
+            return response()->json($e);
         }
     }
 
@@ -161,7 +184,7 @@ class Admin extends Controller
             $student = Student::create($validate);
             return response()->json($student);
             // }
-        } catch (\Exception $err) {
+        } catch (Exception $err) {
             return response()->json($err->getMessage());
         }
     }

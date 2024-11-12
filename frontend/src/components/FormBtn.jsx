@@ -18,4 +18,17 @@ const FormBtn = ({ text, href }) => {
     );
 };
 
+// const FormBtn = ({ text, href }) => {
+//     if (href) {
+//         return <Link to={href}>{text}</Link>;
+//     } else {
+//         <button
+//             type="submit"
+//             className="bg-black px-4 py-2 text-white w-full text-lg capitalize "
+//         >
+//             {text}
+//         </button>;
+//     }
+// };
+
 export default FormBtn;

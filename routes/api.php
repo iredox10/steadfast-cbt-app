@@ -25,7 +25,11 @@ Route::get('/get-students', [Student::class, 'index']);
 
 Route::get('/get-student/{student_id}', [Student::class, 'get_student']);
 
-Route::get('/get-exam', [Student::class, 'exam']);
+Route::get('/get-student-exam', [Student::class, 'exam']);
+
+Route::post('/student-add-course/{student_id}', [Student::class, 'add_course']);
+
+Route::post('/get-question/{question_id?}', [Student::class, 'get_question']);
 
 // instructor
 Route::get('/get-users', [Instructor::class, 'index']);
@@ -40,7 +44,16 @@ Route::post('/add-exam/{user_id}/{course_id}',[Instructor::class, 'add_exam']);
 
 Route::get('/get-exams/{user_id}',[Instructor::class, 'get_exams']);
 
+Route::get('/get-courses/{user_id}',[Instructor::class, 'get_courses']);
+
 Route::post('/submit-exam/{exam_id}',[Instructor::class, 'submitExam']);
+
+// Route::get('/get-exam/{exam_id}',[Instructor::class, 'get_exam']);
+Route::get('/get-exam',[Instructor::class, 'get_exam']);
+
+Route::get('/get-exam-by-id',[Instructor::class, 'get_exam_by_id']);
+
+Route::get('/delete-exam/{exam_id}',[Instructor::class, 'delete_exam']);
 
 Route::post('/add-question/{question_id}/{user_id}/{exam_id}',[Instructor::class, 'add_question']);
 
@@ -50,9 +63,14 @@ Route::get('/get-question/{question_id}', [Instructor::class, 'get_question']);
 
 Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
 
+// ! I add the course_id so that I can easily search the db with the course Id
+Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_students']);
+
 // admin
 
 Route::post('/add-acd-session', [Admin::class, 'add_acd_session']);
+
+Route::get('/get-acd-sessions', [Admin::class, 'get_acd_sessions']);
 
 Route::get('/get-semesters/{acd_sesssion_id}', [Admin::class, 'get_semesters']);
 

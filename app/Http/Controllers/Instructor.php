@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\LecturerCourse;
 use App\Models\Question;
 use App\Models\question_bank;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -93,6 +94,7 @@ class Instructor extends Controller
             // 'marks_per_question' => 'numeric | required',
             'max_score' => 'numeric | required',
             'exam_duration' => 'string | required',
+            'exam_type' => 'string | required',
         ]);
         try {
 
@@ -108,6 +110,7 @@ class Instructor extends Controller
                 'no_of_questions' => $validate['no_of_questions'],
                 'actual_questions' => $validate['actual_questions'],
                 'exam_duration' => $validate['exam_duration'],
+                'exam_type' => $validate['exam_type'],
             ]);
 
             // ! $question is not an error but a warning
@@ -116,7 +119,7 @@ class Instructor extends Controller
                 $questions = Question::insert([
                     'exam_id' => $exam->id,
                     'user_id' => $user->id,
-                    'serial_number' => $i+1
+                    'serial_number' => $i + 1
                 ]);
             }
             return response()->json($exam, 201);
@@ -135,7 +138,7 @@ class Instructor extends Controller
         }
     }
 
-    public function add_question(Request $request,$question_id, string $user_id, string $exam_id)
+    public function add_question(Request $request, $question_id, string $user_id, string $exam_id)
     {
         $validate = request()->validate([
             'question' => 'string | required',
@@ -167,7 +170,7 @@ class Instructor extends Controller
             //     $question_bank = question_bank::create([
             //         'exam_id' => $question->exam_id,
             //         'user_id' => $question->user_id,
-            //         'question' => $question->question,
+            //         'curl -sS https://getcomposer.org/installer | phpquestion' => $question->question,
             //         'correct_answer' => $question->correct_answer,
             //         'option_a' => $question->option_a,
             //         'option_b' => $question->option_b,
@@ -192,7 +195,35 @@ class Instructor extends Controller
             return response()->json($e->getMessage());
         }
     }
+    public function get_exam()
+    {
+        try {
+            $exam = Exam::where('activated', 'yes')->get();
+            return response()->json($exam, 200);
+        } catch (\Exception $e) {
+            return response()->json($e);
+        }
+    }
 
+    public function get_exam_by_id($exam_id)
+    {
+        try {
+            $exam = Exam::where('id', $exam_id);
+            return response()->json($exam);
+        } catch (\Exception $e) {
+            return response()->json($e);
+        }
+    }
+
+    public function delete_exam($exam_id)
+    {
+        try {
+            $exam = Exam::destroy($exam_id);
+            return response()->json($exam);
+        } catch (\Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
     public function get_questions(Request $request, $exam_id)
     {
         $exam = Exam::findOrFail($exam_id)->questions;
@@ -212,6 +243,111 @@ class Instructor extends Controller
             return response()->json($courses);
         } catch (\Exception $err) {
             return response()->json($err->getMessage());
+        }
+    }
+
+
+    // public function get_students(Request $request, $user_id, $course_id)
+    // {
+    //     try {
+
+    //         $students_courses;
+    //         $courses;
+    //         $student;
+
+    //         $students = Student::all();
+
+    //         $instructor_courses = User::findOrFail($user_id)->courses;
+
+    //         foreach ($students as $course_id => $value) {
+    //             $students_courses = Student::findOrFail($value->id)->courses;
+    //             // $student = Student::findOrFail($value->id)->courses;
+    //         }
+    //         foreach ($students_courses as $std) {
+
+    //             return response()->json($std->course_id);
+    //         }
+    //         // foreach ($students_courses as $std) {
+    //         //     if ($std->student_id == $course_id) {
+    //         //         $student = Student::findOrFail($std->student_id);
+    //         //         return response()->json($student);
+    //         //     }
+    //         // }
+
+    //         $d;
+    //         $c;
+
+    //         foreach ($instructor_courses as $course) {
+    //             $c = $course->id;
+    //         }
+    //         // return response()->json($students_courses);
+    //     } catch (\Exception $err) {
+    //         return  response()->json($err->getMessage());
+    //     }
+    // }
+
+    //     public function get_students(Request $request, $user_id, $course_id)
+    // {
+    //     try {
+    //         // Find the instructor and their courses
+    //         $instructor_courses = User::findOrFail($user_id)->courses;
+
+    //         // Check if the course_id exists in the instructor's courses
+    //         $course = $instructor_courses->where('id', $course_id)->first();
+
+    //         $course_students = $course->students;
+
+    //         if (!$course) {
+    //             return response()->json(['message' => 'Course not found for this instructor'], 404);
+    //         }
+
+    //         // Retrieve students for the specific course
+    //         $students = $course->students; // Assuming the relationship is set up in your Course model
+
+    //         if (!$students) {
+    //             return response()->json(['message' => 'No students found for this course'], 404);
+    //         }
+
+    //         // Return the students in JSON format
+    //         return response()->json($course_students, 200);
+
+    //     } catch (\Exception $err) {
+    //         return response()->json(['error' => $err->getMessage()], 500);
+    //     }
+    // }
+
+
+    public function get_students(Request $request, $user_id, $course_id)
+    {
+        try {
+            // Find the instructor and their courses
+            $instructor_courses = User::findOrFail($user_id)->courses;
+
+            // Check if the course_id exists in the instructor's courses
+            // $course = $instructor_courses->where('id', $course_id)->first();
+            $course = Course::findOrFail($course_id);
+
+            if (!$course) {
+                return response()->json(['message' => 'Course not found for this instructor'], 404);
+            }
+
+            // Retrieve students for the specific course
+            $students = Course::findOrFail($course_id)->studentCourses;
+
+            $student_list = [];
+
+            foreach ($students as $student) {
+                $std = Student::findOrFail($student->student_id);
+                $student_list[] = $std;
+            }
+
+            if (!$students) {
+                return response()->json(['message' => 'No students found for this course'], 404);
+            }
+
+            return response()->json($student_list, 200);
+        } catch (\Exception $err) {
+            return response()->json(['error' => $err->getMessage()], 500);
         }
     }
 }

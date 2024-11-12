@@ -23,12 +23,8 @@ const Instructor = () => {
                 >
                     Course
                 </Link>
-                <Link href="#" class="p-3">
-                    Questions
-                </Link>
-                <Link to="instructor-students" class="p-3">
-                    Candidates
-                </Link>
+                
+                
             </Sidebar>
             <div class="p-5  col-span-5 ">
                 <div class="capitalize">
