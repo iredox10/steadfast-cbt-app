@@ -54,8 +54,8 @@ const AdminDashboard = () => {
     return (
         <div className="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar>
-                <Link to={"/admin-session"}>Sessions</Link>
-                <Link to={"/admin-courses"}>Courses</Link>
+                <Link to={"/admin-sessions"}>Sessions</Link>
+                {/* <Link to={"/admin-courses"}>Courses</Link> */}
                 <Link to={"/admin-instructors"}>instructors</Link>
             </Sidebar>
             <div className="col-span-5 p-5">
@@ -192,7 +192,7 @@ const AdminDashboard = () => {
                                                     onClick={() => {}}
                                                 >
                                                     {/* <FaCheck /> */}
-                                                    Deactivate
+                                                    Terminate
                                                 </button>
                                             </td>
                                         </tr>

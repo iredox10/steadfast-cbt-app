@@ -12,9 +12,8 @@ import { path } from "../../../utils/path";
 import { FaTimes } from "react-icons/fa";
 
 const AddQuestion = () => {
-    const {questionId, userId, examId } = useParams();
-    // console.log(userId)
-    // const { data: exam, loading, err } = useFetch(`/add-question`);
+    const { questionId, userId, examId } = useParams();
+
     const modules = {
         toolbar: [
             [{ header: [1, 2, false] }], // Header options
@@ -24,11 +23,12 @@ const AddQuestion = () => {
             [{ color: [] }, { background: [] }], // Color options
             ["clean"], // Clear formatting
             ["blockquote", "code-block"], // Blockquote and code
+            // [{ image: imageHandler }, "clean"],
             // Add more tools here
         ],
     };
 
-    const navigate = useNavigate()
+    const navigate = useNavigate();
 
     const [question, setQuestion] = useState("");
     const [correctAnswer, setCorrectAnswer] = useState("");
@@ -55,10 +55,10 @@ const AddQuestion = () => {
         setOptionEditor("");
     };
 
-    const removeOption =(i) =>{
-        const newValue = options.filter((option,index) => index !== i)
-        setOptions(newValue)
-    }
+    const removeOption = (i) => {
+        const newValue = options.filter((option, index) => index !== i);
+        setOptions(newValue);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -66,18 +66,17 @@ const AddQuestion = () => {
             setError("fields can't be empty");
             return;
         }
-        if (!options.length === 4 || options.length < 4) {
-            setError("options can't be less than or more than 4");
+        if (!options || options.length < 2) {
+            setError("options can't be less than or more than 2");
             return;
         }
-        setError('')
+        setError("");
         const keys = ["option_a", "option_b", "option_c", "option_d"];
-
         const optionToSend = keys.reduce((acc, key, index) => {
             acc[key] = options[index];
             return acc;
         }, {});
-        console.log(optionToSend.option_a)
+        console.log(optionToSend.option_a);
         try {
             const res = await axios.post(
                 `${path}/add-question/${questionId}/${userId}/${examId}`,
@@ -92,8 +91,8 @@ const AddQuestion = () => {
                     option_d: optionToSend.option_d,
                 }
             );
-            if(res.status == 201){
-                navigate(-1)
+            if (res.status == 201) {
+                navigate(-1);
             }
             console.log(res.data);
         } catch (err) {
@@ -149,6 +148,7 @@ const AddQuestion = () => {
                         <div className="relative">
                             <h2 className="font-bold text-xl my-2">Options</h2>
                             <button
+                                type="button"
                                 onClick={addOption}
                                 className="absolute right-10 top-5  z-1 bg-black text-white rounded-full p-3"
                             >
@@ -161,14 +161,13 @@ const AddQuestion = () => {
                                 modules={modules}
                             />
                         </div>
-                        <button className="bg-black text-white w-full my-5 py-3 text-xl ">
+                        <button
+                            type="submit"
+                            className="bg-black text-white w-full my-5 py-3 text-xl "
+                        >
                             Add
                         </button>
                     </form>
-                    {/* <div>  
-                <h3>Content from Editor 1:</h3>  
-                <div dangerouslySetInnerHTML={{ __html: editor1Content }} />  
-            </div>   */}
                 </div>
             </div>{" "}
             <div className="mr-4">
@@ -186,14 +185,21 @@ const AddQuestion = () => {
                             <div className="my-4">
                                 {options &&
                                     options.map((option, i) => (
-                                        <div key={i} className="flex items-center justify-between gap-5 bg-primary-color capitalize p-2 box-border my-2">
+                                        <div
+                                            key={i}
+                                            className="flex items-center justify-between gap-5 bg-primary-color capitalize p-2 box-border my-2"
+                                        >
                                             <div
                                                 className=""
                                                 dangerouslySetInnerHTML={{
                                                     __html: option,
                                                 }}
                                             />
-                                            <button onClick={() => removeOption(i)}><FaTimes /></button>
+                                            <button
+                                                onClick={() => removeOption(i)}
+                                            >
+                                                <FaTimes />
+                                            </button>
                                         </div>
                                     ))}
                             </div>

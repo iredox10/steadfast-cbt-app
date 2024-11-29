@@ -5,7 +5,7 @@ import useFetch from "../../hooks/useFetch";
 
 const Instructor = () => {
     const { id } = useParams();
-    const { data: courses, loading, err } = useFetch(`/get-lecturer-courses/5`);
+    const { data: courses, loading, err } = useFetch(`/get-lecturer-courses/${id}`);
     const {
         data: user,
         loading: userLoading,
@@ -13,7 +13,6 @@ const Instructor = () => {
     } = useFetch(`/get-user/${id}`);
 
     console.log(user);
-    console.log(courses);
     return (
         <div class="grid grid-cols-6 h-screen">
             <Sidebar>
@@ -23,13 +22,11 @@ const Instructor = () => {
                 >
                     Course
                 </Link>
-                
-                
             </Sidebar>
             <div class="p-5  col-span-5 ">
                 <div class="capitalize">
                     <h1>
-                        Course by -{" "}
+                        Courses of -{" "}
                         <span class="font-bold">{user.full_name}</span>
                     </h1>
                 </div>
@@ -38,7 +35,7 @@ const Instructor = () => {
                         courses.map((course) => (
                             <div>
                                 <div class="bg-white drop-shadow-lg flex justify-center p-12">
-                                    <Link to={`/exams/${course.user_id}/${course.course_id}`}>{course.title}</Link>
+                                    <Link to={`/exams/${id}/${course.course_id}`}>{course.title}</Link>
                                 </div>
                             </div>
                         ))}

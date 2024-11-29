@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import useFetch from "../hooks/useFetch";
 import { path } from "../../utils/path";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import Timer from "../components/Timer";
+import { parseDuration } from "../../utils/parseDuration";
 
 const Student = () => {
     const { studentId } = useParams();
-    const { data, loading, err } = useFetch(`/get-student-exam`);
-    // console.log(data);
-    const {
-        data: student,
-        loading: stdLoading,
-        err: stdErr,
-    } = useFetch(`/get-student/${studentId}`);
-    // console.log(student)
+    const { data } = useFetch(`/get-student-exam`);
+    const [answers, setAnswers] = useState([]);
+    console.log(data);
+
+    const time = parseDuration(data && data.exam.exam_duration);
+
+    const { data: student } = useFetch(`/get-student/${studentId}`);
 
     const [course, setCourse] = useState();
 
@@ -22,13 +23,10 @@ const Student = () => {
         const fetch = async () => {
             try {
                 const res = await axios(
-                    `${path}/get-course/${data.exam.course_id}`
+                    `${path}/get-course-exam-questions/${data.exam.course_id}`
                 );
                 setCourse(res.data);
-                // console.log(course);
-            } catch (err) {
-                // console.log(err);
-            }
+            } catch (err) {}
         };
         fetch();
     }, [data]);
@@ -38,31 +36,80 @@ const Student = () => {
     const [showModel, setShowModel] = useState(false);
     const [questionToShow, setQuestionToShow] = useState();
     const [questionIndexToShow, setQuestionIndexToShow] = useState(0);
+    // const [selectedAnswer, setSelectedAnswer] = useState();
+    const [studentAnswers, setStudentAnswers] = useState([]);
 
-    console.log(data && data.questions[0]);
+    const selectedAnswerRef = useRef();
 
     useEffect(() => {
         const set = () => {
-            const c = data && data.questions[0];
             data && setQuestionToShow(data.questions[0]);
-            console.log(c);
+            // console.log(c);
         };
         set();
     }, [questionToShow]);
 
     const handleClick = (index) => {
         setActiveButton(index); // Update the active button index on click
-        if (index == 0) {
+        if (index === 0) {
             setQuestionIndexToShow(0);
         } else {
-            setQuestionIndexToShow((prev) => index + 1);
+            setQuestionIndexToShow(() => index + 1);
+            // console.log("hello");
         }
-        console.log(questionIndexToShow, index);
+        // console.log(questionIndexToShow, index);
         if (!clickedBtns.includes(index)) {
             setClickedBtns((prev) => [...prev, index]);
         }
         // console.log(clickedBtns);
     };
+    const [selectedOption, setSelectedOption] = useState();
+    const [question, setQuestion] = useState();
+
+    const handleAnswer = (option, questionId, question, answer) => {
+        selectedAnswerRef.current = { questionId, question, answer };
+        setQuestion(question);
+        setSelectedOption(answer);
+    };
+
+    const getPlainText = (html) => {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return doc.body.textContent || "";
+    };
+
+    const handleNext = async (questionId, question) => {
+        if (questionIndexToShow > data.questions.length) {
+            setQuestionIndexToShow(data.questions.length - 1);
+        }
+        setQuestionIndexToShow((prev) => prev + 1);
+        if (selectedOption) {
+            // console.log(getPlainText(selectedOption))
+            const res = await axios.post(
+                `${path}/answer-question/${studentId}/${questionId}/${data.exam.course_id}`,
+                {
+                    selected_answer: getPlainText(selectedOption),
+                    question: getPlainText(question),
+                    course_id: data.exam.course_Id
+                }
+            );
+            console.log(res.data);
+        }
+    };
+
+    const handlePrev = () => {
+        if (questionIndexToShow === 0) {
+            return;
+        } else {
+            setQuestionIndexToShow((prev) => prev - 1);
+        }
+    };
+
+    const getDivStyle = (option) =>
+        // selectedAnswerRef.current.answer === option
+        selectedOption == option
+            ? "bg-green-500 text-white"
+            : "bg-primary-color text-black";
+
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -70,7 +117,7 @@ const Student = () => {
                 <div class="divide-y-2  p-4">
                     <div class="flex items-center justify-between capitalize py-4">
                         <h1 class="">
-                            {questionToShow}
+                            {/* {questionToShow} */}
                             {student && student.full_name}
                             <span class="block">{student.candidate_no}</span>
                         </h1>
@@ -79,7 +126,7 @@ const Student = () => {
                                 type="button"
                                 class="bg-black text-white p-2 font-bold"
                             >
-                                0: 0: 0
+                                {data && <Timer initialTime={time} onTimeUp={() => alert('times up')} />}
                             </button>
                         </div>
                     </div>
@@ -105,10 +152,23 @@ const Student = () => {
                                                         }}
                                                     />
                                                     <div>
-                                                        <div class="flex items-center gap-5 w-[35rem] hover:bg-primary-color/50 cursor-pointer my-4 p-2">
+                                                        <div
+                                                            onClick={() =>
+                                                                handleAnswer(
+                                                                    "option_a",
+                                                                    question.id,
+                                                                    question.question,
+                                                                    question.option_a
+                                                                )
+                                                            }
+                                                            class={`${getDivStyle(
+                                                                question.option_a
+                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
+                                                        >
                                                             <button
                                                                 type="btn"
                                                                 class="bg-primary-color px-2 rounded-full text-xl"
+                                                                onClick={() => {}}
                                                             >
                                                                 a
                                                             </button>
@@ -118,7 +178,19 @@ const Student = () => {
                                                                 }}
                                                             ></div>
                                                         </div>
-                                                        <div class="flex items-center gap-5 w-[35rem] hover:bg-primary-color/50 cursor-pointer my-4 p-2">
+                                                        <div
+                                                            onClick={() => {
+                                                                handleAnswer(
+                                                                    "option_b",
+                                                                    question.id,
+                                                                    question.question,
+                                                                    question.option_b
+                                                                );
+                                                            }}
+                                                            class={`${getDivStyle(
+                                                                question.option_b
+                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
+                                                        >
                                                             <button
                                                                 type="btn"
                                                                 class="bg-primary-color px-2 rounded-full text-xl"
@@ -131,7 +203,19 @@ const Student = () => {
                                                                 }}
                                                             ></div>
                                                         </div>
-                                                        <div class="flex items-center gap-5 w-[35rem] hover:bg-primary-color/50 cursor-pointer my-4 p-2">
+                                                        <div
+                                                            onClick={() =>
+                                                                handleAnswer(
+                                                                    "option_c",
+                                                                    question.id,
+                                                                    question.question,
+                                                                    question.option_c
+                                                                )
+                                                            }
+                                                            class={`${getDivStyle(
+                                                                question.option_c
+                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
+                                                        >
                                                             <button
                                                                 type="btn"
                                                                 class="bg-primary-color px-2 rounded-full text-xl"
@@ -144,7 +228,19 @@ const Student = () => {
                                                                 }}
                                                             ></div>
                                                         </div>
-                                                        <div class="flex items-center gap-5 w-[35rem] hover:bg-primary-color/50 cursor-pointer my-4 p-2">
+                                                        <div
+                                                            onClick={() =>
+                                                                handleAnswer(
+                                                                    "option_c",
+                                                                    question.id,
+                                                                    question.question,
+                                                                    question.option_d
+                                                                )
+                                                            }
+                                                            class={`${getDivStyle(
+                                                                question.option_d
+                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
+                                                        >
                                                             <button
                                                                 type="btn"
                                                                 class="bg-primary-color px-2 rounded-full text-xl"
@@ -158,6 +254,25 @@ const Student = () => {
                                                             ></div>
                                                         </div>
                                                     </div>
+                                                    <div class="flex justify-center my-5 gap-5">
+                                                        <button
+                                                            onClick={handlePrev}
+                                                            class="capitalize bg-black text-white px-4 py-2"
+                                                        >
+                                                            previous
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleNext(
+                                                                    question.id,
+                                                                    question.question
+                                                                )
+                                                            }
+                                                            class="capitalize bg-black text-white px-4 py-2"
+                                                        >
+                                                            Next
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             );
                                         }
@@ -166,31 +281,7 @@ const Student = () => {
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-center my-5 gap-5">
-                    <button
-                        onClick={() => {
-                            if (questionIndexToShow == 0) {
-                                return;
-                            } else {
-                                setQuestionIndexToShow((prev) => prev - 1);
-                            }
-                        }}
-                        class="capitalize bg-black text-white px-4 py-2"
-                    >
-                        previous
-                    </button>
-                    <button
-                        onClick={() => {
-                            if(questionIndexToShow > data.questions.length){
-                                setQuestionIndexToShow(prev => data.questions.length -1)
-                            }
-                            setQuestionIndexToShow((prev) => prev + 1);
-                        }}
-                        class="capitalize bg-black text-white px-4 py-2"
-                    >
-                        Next
-                    </button>
-                </div>
+
                 <div class="bg-white p-4 mr-4">
                     <div className="grid grid-cols-[repeat(20,1fr)] gap-5">
                         {data &&
@@ -198,7 +289,7 @@ const Student = () => {
                                 <button
                                     key={index}
                                     onClick={() => handleClick(index)} // Update state on button click
-                                    className={`bg-primary-color rounded-full hover:bg-black hover:text-white 
+                                    className={`bg-primary-color rounded-full hover:bg-black hover:text-white
                         ${
                             activeButton === index
                                 ? "text-white bg-green-600 font-bold text-xl"

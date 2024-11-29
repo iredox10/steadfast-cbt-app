@@ -13,7 +13,7 @@ import Model from "../../components/Model";
 
 const Exams = () => {
     const { userId, courseId } = useParams();
-    const { data, loading, err } = useFetch(`/get-exams/${userId}`);
+    // const { data, loading, err } = useFetch(`/get-exams/${userId}`);
 
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
@@ -24,6 +24,7 @@ const Exams = () => {
         loading: courseLoading,
         err: courseErr,
     } = useFetch(`/get-course/${courseId}`);
+    console.log(course)
 
     const [maxScore, setMaxScore] = useState("");
     const [instruction, setInstruction] = useState("");
@@ -37,19 +38,20 @@ const Exams = () => {
     const [exam, setExam] = useState();
     const fetch = async () => {
         try {
-            const res = await axios(`${path}/get-exams/${userId}`);
+            const res = await axios(`${path}/get-exams/${userId}/${courseId}`);
             setExams(res.data);
+            console.log(exams);
         } catch (err) {
             console.log(err);
         }
     };
     useEffect(() => {
         fetch();
-    }, []);
+    }, [exam]);
 
-    useEffect(() => {
-        fetch();
-    }, [exams]);
+    // useEffect(() => {
+    //     fetch();
+    // }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -78,7 +80,7 @@ const Exams = () => {
     const handleShowSubmitModel = async (examId) => {
         setShowSubmitModel(true);
         try {
-            const res = await axios(`${path}/get-exam/${examId}`);
+            const res = await axios(`${path}/get-exam-by-id/${examId}`);
             setExam(res.data);
             console.log(exam.id);
         } catch (error) {

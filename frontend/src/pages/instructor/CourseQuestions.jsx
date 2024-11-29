@@ -18,7 +18,19 @@ const CourseQuestions = () => {
         loading,
         err,
     } = useFetch(`/get-questions/${examId}`);
-    console.log(questions);
+
+    const {
+        data: exam,
+        loading: examLoading,
+        err: errLoading,
+    } = useFetch(`/get-exam-by-id/${examId}`);
+
+    const {
+        data: user,
+        loading: userLoading,
+        err: userErr,
+    } = useFetch(`/get-user/${userId}`);
+    console.log(exam,user);
 
     const showQuestionDetail = async (questionId) => {
         setShowModel(true);
@@ -134,7 +146,11 @@ const CourseQuestions = () => {
                                 </div>
                             </div>
                             <div className="flex justify-end text-xl">
-                                <Link to={`/edit-question/${userId}/${question.id}`}><FaPenToSquare /></Link>
+                                <Link
+                                    to={`/edit-question/${userId}/${question.id}`}
+                                >
+                                    <FaPenToSquare />
+                                </Link>
                             </div>
                         </div>
                     ) : (
