@@ -85,7 +85,7 @@ const AddQuestion = () => {
                     exam_id: examId,
                     question,
                     correct_answer: correctAnswer,
-                    option_a: optionToSend.option_a,
+                    // option_a: optionToSend.option_a, //! I remove this to let user select correct answer
                     option_b: optionToSend.option_b,
                     option_c: optionToSend.option_c,
                     option_d: optionToSend.option_d,
@@ -177,6 +177,7 @@ const AddQuestion = () => {
                 <div className="sticky top-0 bg-white  p-2 min-h-36 flex flex-col gap-5">
                     <div>
                         <h1>Correct Answer</h1>
+                        <div dangerouslySetInnerHTML={{__html:correctAnswer}}></div>
                     </div>
                     <div>
                         <div>
@@ -195,6 +196,7 @@ const AddQuestion = () => {
                                                     __html: option,
                                                 }}
                                             />
+                                            <button onClick={() => setCorrectAnswer(option)}>correct</button>
                                             <button
                                                 onClick={() => removeOption(i)}
                                             >

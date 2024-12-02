@@ -6,6 +6,8 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import Timer from "../components/Timer";
 import { parseDuration } from "../../utils/parseDuration";
+import Model from "../components/Model";
+import { FaTimes, FaTimesCircle } from "react-icons/fa";
 
 const Student = () => {
     const { studentId } = useParams();
@@ -105,11 +107,15 @@ const Student = () => {
     };
 
     const getDivStyle = (option) =>
-        // selectedAnswerRef.current.answer === option
         selectedOption == option
             ? "bg-green-500 text-white"
             : "bg-primary-color text-black";
 
+
+const [sumbitModel, setSubmitModel] = useState() 
+    const handleSubmit  = () =>{
+
+    }
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -155,14 +161,14 @@ const Student = () => {
                                                         <div
                                                             onClick={() =>
                                                                 handleAnswer(
-                                                                    "option_a",
+                                                                    "correct_answer",
                                                                     question.id,
                                                                     question.question,
-                                                                    question.option_a
+                                                                    question.correct_answer
                                                                 )
                                                             }
                                                             class={`${getDivStyle(
-                                                                question.option_a
+                                                                question.correct_answer
                                                             )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
                                                         >
                                                             <button
@@ -174,7 +180,8 @@ const Student = () => {
                                                             </button>
                                                             <div
                                                                 dangerouslySetInnerHTML={{
-                                                                    __html: question.option_a,
+                                                                    // __html: question.option_a,
+                                                                    __html: question.correct_answer,
                                                                 }}
                                                             ></div>
                                                         </div>
@@ -302,12 +309,23 @@ const Student = () => {
                     </div>
                 </div>
                 <div class="my-3 flex justify-center">
-                    {/* <button onClick={handleSubmitExam} class="px-14 py-2 bg-black text-white">
+                    <button onClick={() => setSubmitModel(true)} class="px-14 py-2 bg-black text-white">
                         Submit
-                    </button> */}
+                    </button>
                 </div>
             </div>
             {showModel && <div className="absolute bg-black"></div>}
+            {sumbitModel && <Model>
+                <div className="bg-white text-center p-4 shadow-lg rounded-sm capitalize">
+                    <div className="">
+                        <h1 className="font-bold text-xl">Are you sure you want to submit</h1>
+                <div className="flex justify-center my-4 gap-3">
+                    <button className="bg-black px-12 py-2 text-white">Yes</button>
+                    <button className="bg-red-500 px-12 py-2 text-white" onClick={() => setSubmitModel(false)}>No</button>
+                </div>
+                    </div>
+                </div>
+                </Model>}
         </div>
     );
 };
