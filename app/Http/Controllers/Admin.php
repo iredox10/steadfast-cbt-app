@@ -27,7 +27,7 @@ class Admin extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    
+
     public function add_acd_session(Request $request)
     {
         $validate = request()->validate([
@@ -42,14 +42,24 @@ class Admin extends Controller
         }
     }
 
-     public function get_acd_sessions(){
-        try{
+    public function get_acd_sessions()
+    {
+        try {
             $sessions = Acd_session::all();
             return response()->json($sessions);;
-        }catch(Exception $e){
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
-     }
+    }
+    public function get_acd_session($session_id)
+    {
+        try {
+            $session = Acd_session::findOrFail($session_id);
+            return response()->json($session);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
 
     public function add_semester(Request $request, $session_id)
     {
@@ -63,7 +73,18 @@ class Admin extends Controller
                 'semester' => $validate['semester'],
                 'status' => $validate['status']
             ]);
-            return response()->json($semester);
+            return response()->json($semester,201);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function get_semester($semester_id)
+    {
+        try {
+            $semester = Semester::findOrFail($semester_id);
+            $semester_courses = Semester::findOrFail($semester_id)->courses;
+            return response()->json(['semester' => $semester, 'courses' => $semester_courses]);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -71,8 +92,12 @@ class Admin extends Controller
 
     public function get_semesters($acd_session_id)
     {
-        $semesters = Acd_session::find($acd_session_id)->semesters;
-        return response()->json($semesters);
+        try {
+            $semesters = Acd_session::find($acd_session_id)->semesters;
+            return response()->json($semesters);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
     }
 
     public function add_course(Request $request, $semester_id)
@@ -90,7 +115,7 @@ class Admin extends Controller
                 'code' => $validate['code'],
                 'credit_unit' => $validate['credit_unit']
             ]);
-            return response()->json($course);
+            return response()->json($course, 201);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -101,19 +126,30 @@ class Admin extends Controller
         $course = Course::find($course_id);
         return response()->json($course);
     }
-    public function get_courses($semester_id)
+    public function get_semester_courses($semester_id)
     {
         $courses = Semester::find($semester_id)->courses;
         return response()->json($courses);
     }
 
+    public function get_courses()
+    {
+        try {
+
+            $courses = Course::all();
+            return response()->json($courses);
+        } catch (Exception $e) {
+            return response()->json($e);
+        }
+    }
 
     public function add_lecturer_course(Request $request, $user_id, $course_id)
     {
         try {
+            // $course = Course::findOrFail($course_id);
             $course = Course::findOrFail($course_id);
             $user = User::findOrFail($user_id);
-            $lecturerCourses = LecturerCourse::all();
+            // $lecturerCourses = LecturerCourse::all();
 
             $lecturerCourse = LecturerCourse::create([
                 'user_id' => $user->id,
@@ -123,7 +159,7 @@ class Admin extends Controller
                 'credit_unit' => $course->credit_unit,
                 'status' => $course->status,
             ]);
-            return response()->json($lecturerCourse);
+            return response()->json($lecturerCourse, 201);
         } catch (Exception $err) {
             return response()->json($err->getMessage());
         }
@@ -132,7 +168,7 @@ class Admin extends Controller
     public function get_exams()
     {
         try {
-            $exams = Exam::where('submission_status','submitted')->get();
+            $exams = Exam::where('submission_status', 'submitted')->get();
             return response()->json($exams);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -143,7 +179,7 @@ class Admin extends Controller
     {
         $validate = request()->validate([]);
         try {
-            $exams = Exam::query()->update(['activated' =>'no']);
+            $exams = Exam::query()->update(['activated' => 'no']);
             $exam = Exam::findOrFail($exam_id);
             $exam_duration = $exam->exam_duration;
 
@@ -157,12 +193,13 @@ class Admin extends Controller
         }
     }
 
-    public function deactivate_exam ($exam_id){
-        try{
+    public function deactivate_exam($exam_id)
+    {
+        try {
             $exam = Exam::findOrFail($exam_id);
-            $exam->activated = 'no'; 
+            $exam->activated = 'no';
             $exam->save();
-        }catch(Exception $e){
+        } catch (Exception $e) {
             return response()->json($e);
         }
     }
@@ -188,5 +225,4 @@ class Admin extends Controller
             return response()->json($err->getMessage());
         }
     }
-
 }

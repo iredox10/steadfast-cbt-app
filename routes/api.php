@@ -31,6 +31,10 @@ Route::post('/student-add-course/{student_id}', [Student::class, 'add_course']);
 
 Route::post('/get-question/{question_id?}', [Student::class, 'get_question']);
 
+Route::post('/answer-question/{student_id}/{question_id}/{course_id}',[Student::class, 'answer_question']);
+
+Route::get('/submit-exam/{student_id}/{course_id}', [Student::class,'submit_exam']);
+
 // instructor
 Route::get('/get-users', [Instructor::class, 'index']);
 
@@ -42,7 +46,7 @@ Route::patch('/update-user/{id}',[Instructor::class, 'update']);
 
 Route::post('/add-exam/{user_id}/{course_id}',[Instructor::class, 'add_exam']);
 
-Route::get('/get-exams/{user_id}',[Instructor::class, 'get_exams']);
+Route::get('/get-exams/{user_id}/{course_id}',[Instructor::class, 'get_exams']);
 
 Route::get('/get-courses/{user_id}',[Instructor::class, 'get_courses']);
 
@@ -51,7 +55,7 @@ Route::post('/submit-exam/{exam_id}',[Instructor::class, 'submitExam']);
 // Route::get('/get-exam/{exam_id}',[Instructor::class, 'get_exam']);
 Route::get('/get-exam',[Instructor::class, 'get_exam']);
 
-Route::get('/get-exam-by-id',[Instructor::class, 'get_exam_by_id']);
+Route::get('/get-exam-by-id/{exam_id}',[Instructor::class, 'get_exam_by_id']);
 
 Route::get('/delete-exam/{exam_id}',[Instructor::class, 'delete_exam']);
 
@@ -72,15 +76,24 @@ Route::post('/add-acd-session', [Admin::class, 'add_acd_session']);
 
 Route::get('/get-acd-sessions', [Admin::class, 'get_acd_sessions']);
 
+Route::get('/get-acd-session/{session_Id}', [Admin::class, 'get_acd_session']);
+
 Route::get('/get-semesters/{acd_sesssion_id}', [Admin::class, 'get_semesters']);
 
 Route::post('/add-semester/{session_id}', [Admin::class, 'add_semester']);
 
+Route::get('/get-semester/{semester_id}', [Admin::class, 'get_semester']);
+
 Route::post('/add-course/{semester_id}', [Admin::class, 'add_course']);
 
-Route::get('/get-courses/{semester_id}', [Admin::class, 'get_courses']);
+Route::get('/get-semester-courses/{id}', [Admin::class, 'get_semester_courses']);
+
+Route::get('/get-all-courses', [Admin::class, 'get_courses']);
+
+Route::get('/get-course-exam-questions/{course_id}', [Admin::class, 'get_course']);
 
 Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
+// Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
 
 Route::post('/add-lecturer-course/{user_id}/{course_id}', [Admin::class, 'add_lecturer_course']);
 

@@ -302,9 +302,9 @@ const Student = () => {
                     </div>
                 </div>
                 <div class="my-3 flex justify-center">
-                    <button class="px-14 py-2 bg-black text-white">
+                    {/* <button onClick={handleSubmitExam} class="px-14 py-2 bg-black text-white">
                         Submit
-                    </button>
+                    </button> */}
                 </div>
             </div>
             {showModel && <div className="absolute bg-black"></div>}

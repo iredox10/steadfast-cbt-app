@@ -88,6 +88,7 @@ const Home = () => {
                     <div className="absolute -z-10 w-[18rem] h-[18rem] rounded-full bg-black/20"></div>
                     <div className="absolute top-[5rem] right-0 -z-10 w-[20rem] h-[20rem] rounded-full bg-black/40"></div>
                     <img src={exam_img} alt="className exam image" />
+                    <p className="text-4xl">this is the build file for the virtualmin</p>
                 </div>
             </div>
         </div>

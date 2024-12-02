@@ -9,6 +9,7 @@ use App\Models\Question;
 use App\Models\question_bank;
 use App\Models\Student;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -20,9 +21,13 @@ class Instructor extends Controller
 
     public function index(Request $request)
     {
-        //
-        $users = User::all();
-        return response()->json($users);
+        try {
+
+            $users = User::all();
+            return response()->json($users);
+        } catch (Exception $e) {
+            return response()->json($e);
+        }
     }
     /**
      * Store a newly created resource in storage.
@@ -50,8 +55,13 @@ class Instructor extends Controller
      */
     public function show(string $id)
     {
-        $user = User::find($id);
-        return response()->json($user);
+        try {
+            $user = User::findOrFail($id);
+            // $courses = LecturerCourse::where('user_id', $id);
+            return response()->json($user);
+        } catch (Exception $e) {
+            return response()->json($e);
+        }
     }
 
     /**
@@ -128,12 +138,16 @@ class Instructor extends Controller
         }
     }
 
-    public function get_exams($user_id)
+    public function get_exams($user_id, $course_id)
     {
         try {
-            $exams = User::findOrFail($user_id)->exams;
+            // $exams = User::findOrFail($user_id)->exams;
+            // $exams = Exam::where(['user_id' => $user_id]);
+            $exams = Exam::where('user_id', $user_id)
+                ->where('course_id', $course_id)
+                ->get();
             return response()->json($exams);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
@@ -208,7 +222,7 @@ class Instructor extends Controller
     public function get_exam_by_id($exam_id)
     {
         try {
-            $exam = Exam::where('id', $exam_id);
+            $exam = Exam::findOrFail($exam_id);
             return response()->json($exam);
         } catch (\Exception $e) {
             return response()->json($e);
@@ -346,7 +360,7 @@ class Instructor extends Controller
             }
 
             return response()->json($student_list, 200);
-        } catch (\Exception $err) {
+        } catch (Exception $err) {
             return response()->json(['error' => $err->getMessage()], 500);
         }
     }

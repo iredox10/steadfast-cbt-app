@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Answers;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\StudentCourse;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -103,9 +105,10 @@ class Student extends Controller
         }
     }
 
-    public function get_question($question_id){
+    public function get_question($question_id)
+    {
         $question;
-        if($question_id){
+        if ($question_id) {
             $question = Question::findOrFail($question_id);
         }
         $question = \App\Models\Question::inRandomOrder()->first();
@@ -121,7 +124,7 @@ class Student extends Controller
             foreach ($student_courses as $key => $value) {
                 if ($validate['course_id'] == $value->course_id) {
                     return response()->json('course already exist', 400);
-                } 
+                }
             }
             $student_course = StudentCourse::create([
                 'course_id' => $validate['course_id'],
@@ -131,5 +134,66 @@ class Student extends Controller
         } catch (\Exception $e) {
             return response()->json($e->getMessage());
         }
+    }
+
+    public function answer_question($student_id, $question_Id, $course_id)
+    {
+        try {
+            $question = Question::findOrFail($question_Id);
+            $answeredQuestion = strip_tags($question->question);
+            $correct_answer = strip_tags($question->correct_answer);
+            $answer;
+
+            if (html_entity_decode($correct_answer) === request('selected_answer')) {
+                $answer = Answers::updateOrCreate(
+                    [
+                        'question_id' => $question_Id,
+                        'candidate_id' => $student_id,
+                    ],
+                    [
+                        'is_correct' => true, // Assume you're getting these from the request as boolean  
+                        'question' => request('question'),
+                        'choice' => request('selected_answer'),
+                        'course_id' => request('course_id'),
+                        'answered' => true,     // Adjust if necessary based on your input names  
+                    ]
+                );
+                return response()->json($answer);
+            }
+            $answer = Answers::updateOrCreate(
+                [
+                    'question_id' => $question_Id,
+                    'candidate_id' => $student_id,
+                ],
+                [
+                    'is_correct' => false, // Assume you're getting these from the request as boolean  
+                    'question' => request('question'),
+                    'choice' => request('selected_answer'),
+                    'course_id' => request('course_id'),
+                    'answered' => true,     // Adjust if necessary based on your input names  
+                ]
+            );
+            return response()->json($answer);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function submit_exam(Request $request, $student_id, $course_id)
+    {
+        try {
+            $student_answered_questions = Answers::where('candidate_id', $student_id)->where('course_id', $course_id)->get();
+            // $student_answered_questions = Answers::where('candidate_id', $student_id)->get();
+            $marks = Answers::where('is_correct', true)->count();
+            return response()->json([$student_answered_questions, $marks]);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function get_courses($user_id)
+    {
+        $courses = StudentCourse::findOrFail($user_id);
+        return response()->json($courses);
     }
 }
