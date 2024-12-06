@@ -73,7 +73,7 @@ class Admin extends Controller
                 'semester' => $validate['semester'],
                 'status' => $validate['status']
             ]);
-            return response()->json($semester,201);
+            return response()->json($semester, 201);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -121,17 +121,6 @@ class Admin extends Controller
         }
     }
 
-    public function get_course($course_id)
-    {
-        $course = Course::find($course_id);
-        return response()->json($course);
-    }
-    public function get_semester_courses($semester_id)
-    {
-        $courses = Semester::find($semester_id)->courses;
-        return response()->json($courses);
-    }
-
     public function get_courses()
     {
         try {
@@ -139,8 +128,24 @@ class Admin extends Controller
             $courses = Course::all();
             return response()->json($courses);
         } catch (Exception $e) {
-            return response()->json($e);
+            return response()->json($e->getMessage());
         }
+    }
+    public function get_course($course_id)
+    {
+        try {
+
+            $course = Course::findOrFail($course_id);
+            return response()->json($course);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function get_semester_courses($semester_id)
+    {
+        $courses = Semester::find($semester_id)->courses;
+        return response()->json($courses);
     }
 
     public function add_lecturer_course(Request $request, $user_id, $course_id)
@@ -223,6 +228,17 @@ class Admin extends Controller
             // }
         } catch (Exception $err) {
             return response()->json($err->getMessage());
+        }
+    }
+
+    public function get_course_students($course_id)
+    {
+        try {
+            $course = Course::find($course_id);
+            $students = $course->students;
+            return response()->json($students);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
         }
     }
 }

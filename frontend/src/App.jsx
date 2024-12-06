@@ -17,6 +17,9 @@ import AdminInstructiors from './pages/admin/AdminInstructiors.jsx'
 import InstructorsCourses from './pages/admin/InstructorsCourses.jsx'
 import Session from './pages/admin/Session.jsx'
 import Semester from './pages/admin/Semester.jsx'
+import StudentSubmission from './pages/StudentSubmission.jsx'
+import AdminStudents from './pages/admin/AdminStudents.jsx'
+import CourseStudents from './pages/admin/CourseStudents.jsx'
 
 function App() {
   return (
@@ -25,6 +28,7 @@ function App() {
       <Routes>
         <Route path='/' element={<Home />} />
         <Route path='/student/:studentId' element={<Student />} />
+        <Route path='/student-submission/:studentId' element={<StudentSubmission />} />
 
 
         <Route path='/instructor/:id' element={<Instructor />} />
@@ -34,14 +38,17 @@ function App() {
         <Route path='/edit-question/:userId/:questionId' element={<EditQuestion />} />
         <Route path='/instructor-student/:userId/:courseId' element={<InstructorStudents />} />
 
-        <Route path='/admin-dashboard' element={<AdminDashboard />} />
+        <Route path='/admin-dashboard/:id' element={<AdminDashboard />} />
         <Route path='/admin-login' element={<AdminLogin />} />
         <Route path='/admin-sessions' element={<AcdSession />} />
         <Route path='/session/:id' element={<Session />} />
         <Route path='/semester/:id' element={<Semester />} />
+        <Route path='/admin-students/:id' element={<AdminStudents />} />
         {/* <Route path='/admin-courses' element={<AdminCourses />} /> */}
+
         <Route path='/admin-instructors' element={<AdminInstructiors />} />
         <Route path='/admin-instructor-courses/:id' element={<InstructorsCourses />} />
+        <Route path='/add-student-to-course/:id' element={<CourseStudents />} />
 
       </Routes>
     </Router>

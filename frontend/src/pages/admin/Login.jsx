@@ -4,7 +4,7 @@ import FormBtn from "../../components/FormBtn";
 import FormInput from "../../components/FormInput";
 import { path } from "../../../utils/path";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 const AdminLogin = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -23,7 +23,7 @@ const AdminLogin = () => {
             const res = await axios.post(`${path}/login`, { email, password });
             const user = res.data;
             if (user.role == "admin") {
-                navigate("/admin-dashboard");
+                navigate(`/admin-dashboard/${user.id}`);
             } else if (user.role == "lecturer") {
                 navigate(`/instructor/${res.data.id}`);
             }

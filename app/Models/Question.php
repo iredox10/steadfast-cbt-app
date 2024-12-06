@@ -20,6 +20,16 @@ class Question extends Model
         'option_d',
     ];
 
+    // protected $fillable = [
+    //     'question',
+    //     'exam_id',
+    //     'user_id',
+    //     'correct_answer',
+    //     'option_b',
+    //     'option_c',
+    //     'option_d',
+    // ];
+
     // public function question()
     // {
     //     return $this->belongsTo(Question::class);

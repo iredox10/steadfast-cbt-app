@@ -27,7 +27,7 @@ const Exams = () => {
     console.log(course)
 
     const [maxScore, setMaxScore] = useState("");
-    const [instruction, setInstruction] = useState("");
+    const [instructions, setInstructions] = useState("");
     const [noOfQuestions, setNoOfQuestions] = useState();
     const [acutualQuestions, setAcutualQuestions] = useState();
     const [examType, setExamType] = useState();
@@ -59,7 +59,7 @@ const Exams = () => {
             const res = await axios.post(
                 `${path}/add-exam/${userId}/${courseId}`,
                 {
-                    instruction,
+                    instructions,
                     max_score: maxScore,
                     no_of_questions: noOfQuestions,
                     actual_questions: acutualQuestions,
@@ -266,11 +266,11 @@ const Exams = () => {
                                 </div>
                                 <FormInput
                                     type={"text"}
-                                    label={"instruction"}
-                                    labelFor={"instruction"}
-                                    placeholder={"Instruction ..."}
+                                    label={"instructions"}
+                                    labelFor={"instructions"}
+                                    placeholder={"Instructions ..."}
                                     onchange={(e) =>
-                                        setInstruction(e.target.value)
+                                        setInstructions(e.target.value)
                                     }
                                 />
                                 <div className="flex items-center gap-4">

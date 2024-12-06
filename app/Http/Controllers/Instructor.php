@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Answer;
+use App\Models\Answers;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\LecturerCourse;
 use App\Models\Question;
 use App\Models\question_bank;
 use App\Models\Student;
+use App\Models\StudentCourse;
+use App\Models\StudentExamScore;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
@@ -97,7 +101,7 @@ class Instructor extends Controller
     public function add_exam(Request $request, string $user_id, string $course_id)
     {
         $validate = request()->validate([
-            'instruction' => 'string | required',
+            'instructions' => 'string | required',
             'no_of_questions' => 'numeric | required',
             'actual_questions' => 'numeric | required',
             'marks_per_question' => 'required|regex:/^\d+(\.\d{1,2})?$/',
@@ -114,7 +118,7 @@ class Instructor extends Controller
             $exam = Exam::create([
                 'course_id' => $course->id,
                 'user_id' => $user->id,
-                'instruction' => $validate['instruction'],
+                'instructions' => $validate['instructions'],
                 'max_score' => $validate['max_score'],
                 'marks_per_question' => $validate['marks_per_question'],
                 'no_of_questions' => $validate['no_of_questions'],
@@ -157,7 +161,7 @@ class Instructor extends Controller
         $validate = request()->validate([
             'question' => 'string | required',
             'correct_answer' => 'string | required',
-            'option_a' => 'string | required',
+            // 'option_a' => 'string | required',
             'option_b' => 'string | required',
             'option_c' => 'string | required',
             'option_d' => 'string | required',
@@ -171,7 +175,7 @@ class Instructor extends Controller
 
             $question->question = $validate['question'];
             $question->correct_answer = $validate['correct_answer'];
-            $question->option_a = $validate['option_a'];
+            // $question->option_a = $validate['option_a'];
             $question->option_b = $validate['option_b'];
             $question->option_c = $validate['option_c'];
             $question->option_d = $validate['option_d'];
@@ -193,7 +197,7 @@ class Instructor extends Controller
             //     ]);
             //     return response()->json(data:[$question,$question_bank]);
             // }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage(), 400);
         }
     }
@@ -344,7 +348,6 @@ class Instructor extends Controller
             if (!$course) {
                 return response()->json(['message' => 'Course not found for this instructor'], 404);
             }
-
             // Retrieve students for the specific course
             $students = Course::findOrFail($course_id)->studentCourses;
 
@@ -362,6 +365,36 @@ class Instructor extends Controller
             return response()->json($student_list, 200);
         } catch (Exception $err) {
             return response()->json(['error' => $err->getMessage()], 500);
+        }
+    }
+
+    public function student_submit_exam($course_id, $candidate_id)
+    {
+        try {
+            $score = Answers::where('course_id', $course_id)->where('candidate_id', $candidate_id)->where('is_correct', true)->count();
+            $course = Course::findOrFail($course_id);
+            $exam = StudentExamScore::updateOrCreate(
+                [
+                    'student_id' => $candidate_id, // Condition for finding  
+                    'course_id' => $course_id               // Condition for finding  
+                ],
+                [
+                    'score' => $score,                       // Attributes to update or create  
+                    'course_name' => $course->title
+                ]
+            );
+            return response()->json(['score' => $score, 'exam' => $exam]);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+    public function get_students_score($course_id)
+    {
+        try {
+            $scores = StudentExamScore::where('course_id', $course_id)->get();
+            return response()->json($scores);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
         }
     }
 }

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->text('question');
             $table->text('correct_answer');
-            $table->text('option_a');
+            // $table->text('option_a');
             $table->text('option_b');
             $table->text('option_c');
             $table->text('option_d');

@@ -1,7 +1,7 @@
 import { FaEye, FaPenToSquare } from "react-icons/fa6";
 import Sidebar from "../../components/Sidebar";
 import Student from "../Student";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
@@ -10,29 +10,29 @@ import { FaCheck, FaTimes } from "react-icons/fa";
 import Model from "../../components/Model";
 
 const AdminDashboard = () => {
+    const { id } = useParams();
     const { data: exams, loading, err } = useFetch(`/get-exams`);
     console.log(exams);
     const [course, setCourse] = useState();
-
+    console.log(course);
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
     const [showSubmitModel, setShowSubmitModel] = useState(false);
     const [examId, setexamId] = useState();
 
+    const [courses, setCourses] = useState();
     useEffect(() => {
-        exams &&
-            exams.map(async (exam) => {
-                try {
-                    const res = await axios(
-                        `${path}/get-course/${exam.course_id}`
-                    );
-                    setCourse(res.data);
-                    console.log(course);
-                } catch (err) {
-                    console.log(err);
-                }
-            });
+        const fetch = async () => {
+            try {
+                const res = await axios(`${path}/get-courses`);
+                setCourses(res.data);
+            } catch (err) {
+                console.log(err);
+            }
+        };
+        fetch();
     }, [exams]);
+    console.log(courses);
 
     const showModelAndSetExamId = (id) => {
         setShowSubmitModel(true);
@@ -57,6 +57,8 @@ const AdminDashboard = () => {
                 <Link to={"/admin-sessions"}>Sessions</Link>
                 {/* <Link to={"/admin-courses"}>Courses</Link> */}
                 <Link to={"/admin-instructors"}>instructors</Link>
+                <Link to={`/admin-students/${id}`}>students</Link>
+                <Link to={`/admin-courses/${id}`}>courses</Link>
             </Sidebar>
             <div className="col-span-5 p-5">
                 <div className="flex justify-between  w-full my-5">
@@ -139,10 +141,23 @@ const AdminDashboard = () => {
                                                 {index + 1}
                                             </td>
                                             <td className="py-3 px-4 text-gray-700">
-                                                {course &&
-                                                course.id == exam.course_id
-                                                    ? course.title
-                                                    : ""}
+                                                {courses &&
+                                                    courses.map((course) => {
+                                                        if (
+                                                            course.id ==
+                                                            exam.course_id
+                                                        ) {
+                                                            return (
+                                                                <p>
+                                                                    {
+                                                                        course.title
+                                                                    }
+                                                                </p>
+                                                            );
+                                                        } else {
+                                                            return "";
+                                                        }
+                                                    })}
                                             </td>
                                             <td className="py-3 px-4 text-gray-700">
                                                 {exam.no_of_questions}

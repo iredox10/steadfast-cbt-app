@@ -1,25 +1,41 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import GridLayout from "../../components/GridLayout";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import useFetch from "../../hooks/useFetch";
 import { Link, useParams } from "react-router-dom";
+import axios from "axios";
+import { path } from "../../../utils/path";
 
 const InstructorStudents = () => {
     const { userId, courseId } = useParams();
     const {
-        data: students,
+        data: scores,
         loading,
         error,
-    } = useFetch(`/get-students/${userId}/${courseId}`);
+    } = useFetch(`/get-students-score/${courseId}`);
+    console.log(scores);
+    const [students, setStudents] = useState();
     console.log(students);
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const res = await axios(`${path}/get-students`);
+                setStudents(res.data);
+            } catch (err) {
+                console.log(err);
+            }
+        };
+        fetch();
+    }, []);
+
     return (
         <div>
             <GridLayout>
                 <Sidebar></Sidebar>
-                <div className="p-5">
+                <div className="p-5 col-start-2 col-end-7">
                     <Header title={"Candidate"} subtitle={"List of Student"} />
-                    <div>
+                    <div className="bg-white rounded-lg shadow-md p-4">
                         <table className="min-w-full border-collapse overflow-hidden rounded-lg">
                             <thead>
                                 <tr className="bg-gray-100 ">
@@ -37,35 +53,82 @@ const InstructorStudents = () => {
                                     </th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold">
                                         department
-                                    </th><th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                    </th>
+                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
                                         Marks
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {students &&
-                                    students.map((student, index) => (
+                                {scores &&
+                                    scores.map((score, index) => (
                                         <tr className="border-b">
                                             <td className="py-3 px-4 text-gray-700">
                                                 {index + 1}
                                             </td>
-                                            <Link
+                                            {/* <Link
                                                 to={`/exam-questions/${userId}/${student.id}`}
                                             >
                                                 <td className="py-3 px-4 text-gray-700">
                                                     {student.full_name}
                                                 </td>
-                                            </Link>
+                                            </Link> */}
                                             <td className="py-3 px-4 text-gray-700">
-                                                {student.candidate_number}
+                                                {students &&
+                                                    students.map((student) => {
+                                                        if (
+                                                            student.id ===
+                                                            score.student_id
+                                                        ) {
+                                                            return student.full_name;
+                                                        }
+                                                    })}
                                             </td>
                                             <td className="py-3 px-4 text-gray-700">
-                                                {student.programme}
+                                                {students &&
+                                                    students.map((student) => {
+                                                        if (
+                                                            student.id ===
+                                                            score.student_id
+                                                        ) {
+                                                            return student.candidate_no;
+                                                        }
+                                                    })}
                                             </td>
                                             <td className="py-3 px-4 text-gray-700">
-                                                {student.department}
+                                                {students &&
+                                                    students.map((student) => {
+                                                        if (
+                                                            student.id ===
+                                                            score.student_id
+                                                        ) {
+                                                            return student.programme;
+                                                        }
+                                                    })}
                                             </td>
-                                            
+
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {students &&
+                                                    students.map((student) => {
+                                                        if (
+                                                            student.id ===
+                                                            score.student_id
+                                                        ) {
+                                                            return student.department;
+                                                        }
+                                                    })}
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-700">
+                                                {students &&
+                                                    students.map((student) => {
+                                                        if (
+                                                            student.id ===
+                                                            score.student_id
+                                                        ) {
+                                                            return score.score;
+                                                        }
+                                                    })}
+                                            </td>
                                         </tr>
                                     ))}
                             </tbody>

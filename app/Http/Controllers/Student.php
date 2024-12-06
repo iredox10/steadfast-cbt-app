@@ -100,7 +100,7 @@ class Student extends Controller
                 'questions' => $questions
             ];
             return response()->json($data, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
@@ -116,10 +116,10 @@ class Student extends Controller
     }
     public function add_course(Request $request, $student_id)
     {
+        $validate = request()->validate([
+            'course_id' => 'string | required',
+        ]);
         try {
-            $validate = request()->validate([
-                'course_id' => 'string | required',
-            ]);
             $student_courses = \App\Models\Student::findOrFail($student_id)->courses;
             foreach ($student_courses as $key => $value) {
                 if ($validate['course_id'] == $value->course_id) {
@@ -131,7 +131,7 @@ class Student extends Controller
                 'student_id' => $student_id
             ]);
             return response()->json($student_course, 201);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
@@ -191,9 +191,13 @@ class Student extends Controller
         }
     }
 
-    public function get_courses($user_id)
+    public function get_courses($student_id)
     {
-        $courses = StudentCourse::findOrFail($user_id);
-        return response()->json($courses);
+        try {
+            $courses = StudentCourse::findOrFail($student_id);
+            return response()->json($courses);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
     }
 }

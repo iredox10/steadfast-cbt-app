@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor;
 use App\Http\Controllers\Student;
 use App\Http\Controllers\UserController;
@@ -35,6 +36,10 @@ Route::post('/answer-question/{student_id}/{question_id}/{course_id}',[Student::
 
 Route::get('/submit-exam/{student_id}/{course_id}', [Student::class,'submit_exam']);
 
+Route::get('/student-courses/{student_id}', [Student::class, 'get_courses']);
+
+
+
 // instructor
 Route::get('/get-users', [Instructor::class, 'index']);
 
@@ -67,8 +72,15 @@ Route::get('/get-question/{question_id}', [Instructor::class, 'get_question']);
 
 Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
 
+Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_students_score']);
+
+
 // ! I add the course_id so that I can easily search the db with the course Id
 Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_students']);
+
+Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_students_score']);
+
+Route::post('/student-submit-exam/{course_id}/{candidate_id}', [Instructor::class, 'student_submit_exam']);
 
 // admin
 
@@ -92,6 +104,8 @@ Route::get('/get-all-courses', [Admin::class, 'get_courses']);
 
 Route::get('/get-course-exam-questions/{course_id}', [Admin::class, 'get_course']);
 
+Route::get('/get-courses', [Admin::class, 'get_courses']);
+
 Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
 // Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
 
@@ -102,6 +116,8 @@ Route::get('/get-exams', [Admin::class,'get_exams']);
 Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam']);
 
 Route::post('/register-student/{user_id}', [Admin::class, 'register_student']);
+
+Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_students']);
 
 
 // TODO: populate student answer table with question that the student answer

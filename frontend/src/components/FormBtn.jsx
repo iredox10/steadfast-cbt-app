@@ -1,11 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const FormBtn = ({ text, href }) => {
+const FormBtn = ({ text, href , style}) => {
     return (
         <div>
             {href ? (
-                <Link to={href}>{text}</Link>
+                <Link
+                    className={`bg-black px-4 py-2 text-white w-full text-lg capitalize ${style}`}
+                    to={href}
+                >
+                    {text}
+                </Link>
             ) : (
                 <button
                     type="submit"

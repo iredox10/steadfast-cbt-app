@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
 import useFetch from "../../hooks/useFetch";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Model from "../../components/Model";
 import { path } from "../../../utils/path";
 import { FaTimes } from "react-icons/fa";
@@ -13,6 +13,7 @@ const CourseQuestions = () => {
     const { userId, examId } = useParams();
     const [showModel, setShowModel] = useState(false);
     const [question, setQuestion] = useState(null);
+
     const {
         data: questions,
         loading,
@@ -30,8 +31,22 @@ const CourseQuestions = () => {
         loading: userLoading,
         err: userErr,
     } = useFetch(`/get-user/${userId}`);
-    console.log(exam,user);
 
+    console.log(exam, user);
+
+    const [course, setCourse] = useState();
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const res = await axios(`${path}/get-course/${exam.course_id}`);
+                setCourse(res.data);
+            } catch (err) {
+                console.log(err);
+            }
+        };
+        fetch();
+    }, [exam]);
+    console.log(questions);
     const showQuestionDetail = async (questionId) => {
         setShowModel(true);
         try {
@@ -49,12 +64,14 @@ const CourseQuestions = () => {
             <div className="col-start-2 col-end-7 p-5">
                 <div>
                     <div className="sticky top-0 bg-primary-color z-10 flex items-center justify-between">
-                        <Header title={"Course Name"} subtitle={"Instructor"} />
+                        <Header
+                            title={`${course && course.title}`}
+                            subtitle={"List of Question"}
+                        />
                     </div>
                     <div className="flex flex-col gap-5 relative">
                         <div className="">
                             {loading && <p>loading...</p>}
-                            {/* <div className="grid grid-cols-[repeat(20,1fr)] gap-5"> */}
                             <div className="flex gap-5 flex-wrap w-full">
                                 {questions &&
                                     questions.map((q) => (

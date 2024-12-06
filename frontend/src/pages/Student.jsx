@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import useFetch from "../hooks/useFetch";
 import { path } from "../../utils/path";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Timer from "../components/Timer";
 import { parseDuration } from "../../utils/parseDuration";
 import Model from "../components/Model";
@@ -33,6 +33,21 @@ const Student = () => {
         fetch();
     }, [data]);
 
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const res = await axios.get(
+                    `${path}/get-course/${data.exam.course_id}`
+                );
+                setCourse(res.data);
+                console.log(res);
+            } catch (err) {
+                console.log(err);
+            }
+        };
+        fetch();
+    }, [data]);
+
     const [activeButton, setActiveButton] = useState(null); // State to track the active button
     const [clickedBtns, setClickedBtns] = useState([]);
     const [showModel, setShowModel] = useState(false);
@@ -52,19 +67,17 @@ const Student = () => {
     }, [questionToShow]);
 
     const handleClick = (index) => {
-        setActiveButton(index); // Update the active button index on click
+        // setActiveButton(index); // Update the active button index on click
         if (index === 0) {
             setQuestionIndexToShow(0);
         } else {
-            setQuestionIndexToShow(() => index + 1);
-            // console.log("hello");
+            setQuestionIndexToShow((prev) => index);
         }
-        // console.log(questionIndexToShow, index);
-        if (!clickedBtns.includes(index)) {
-            setClickedBtns((prev) => [...prev, index]);
-        }
-        // console.log(clickedBtns);
+        // if (!clickedBtns.includes(index)) {
+        //     setClickedBtns((prev) => [...prev, index]);
+        // }
     };
+
     const [selectedOption, setSelectedOption] = useState();
     const [question, setQuestion] = useState();
 
@@ -80,21 +93,24 @@ const Student = () => {
     };
 
     const handleNext = async (questionId, question) => {
-        if (questionIndexToShow > data.questions.length) {
-            setQuestionIndexToShow(data.questions.length - 1);
+        if (questionIndexToShow == data.questions.length - 1) {
+            return;
         }
         setQuestionIndexToShow((prev) => prev + 1);
+        setActiveButton(questionIndexToShow + 1);
+        setClickedBtns((prev) => [...prev, activeButton]);
         if (selectedOption) {
-            // console.log(getPlainText(selectedOption))
             const res = await axios.post(
                 `${path}/answer-question/${studentId}/${questionId}/${data.exam.course_id}`,
                 {
                     selected_answer: getPlainText(selectedOption),
                     question: getPlainText(question),
-                    course_id: data.exam.course_Id
+                    course_id: data.exam.course_Id,
                 }
             );
             console.log(res.data);
+        } else {
+            return;
         }
     };
 
@@ -111,19 +127,31 @@ const Student = () => {
             ? "bg-green-500 text-white"
             : "bg-primary-color text-black";
 
+    const [sumbitModel, setSubmitModel] = useState();
+    const [msg, setMsg] = useState();
+    const [reminder, setReminder] = useState()
+    const reminderRef = useRef();
+    const navigate = useNavigate();
 
-const [sumbitModel, setSubmitModel] = useState() 
-    const handleSubmit  = () =>{
+    const timeRemain = (data) => {
+        // setReminder(data)
+    };
 
-    }
+    const handleSubmit =async () => {
+       try {
+       const res = await axios.post(`/student-submit-exam/${course.id}/${studentId}`) 
+       console.log(res.data)
+       } catch (err) {
+       console.log(err) 
+       } 
+    };
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
             <div class="col-start-2  col-end-7 ">
                 <div class="divide-y-2  p-4">
                     <div class="flex items-center justify-between capitalize py-4">
-                        <h1 class="">
-                            {/* {questionToShow} */}
+                        <h1 class="font-bold">
                             {student && student.full_name}
                             <span class="block">{student.candidate_no}</span>
                         </h1>
@@ -132,7 +160,13 @@ const [sumbitModel, setSubmitModel] = useState()
                                 type="button"
                                 class="bg-black text-white p-2 font-bold"
                             >
-                                {data && <Timer initialTime={time} onTimeUp={() => alert('times up')} />}
+                                {data && (
+                                    <Timer
+                                        initialTime={time}
+                                        onTimeUp={() => alert("times up")}
+                                        reminder={timeRemain}
+                                    />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -140,17 +174,44 @@ const [sumbitModel, setSubmitModel] = useState()
                     <div>
                         <div class="">
                             <div class="my-4">
-                                <h1 class="font-bold text-2xl">{}</h1>
-                                <p>Date: Jan 20, 2024</p>
+                                <div className=" justify-between text-sm">
+                                    <h1 class="  capitalize">
+                                        <span className="font-bold">
+                                            course:{" "}
+                                        </span>
+                                        {course && course.title}
+                                    </h1>
+                                    <h1 class="  capitalize">
+                                        <span className="font-bold">
+                                            code:{" "}
+                                        </span>
+                                        {course && course.code}
+                                    </h1>
+                                </div>
+                                <div className="flex justify-between w-full capitalize my-4">
+                                    <p className="text-xl ">
+                                        <span className="font-bold">
+                                            Instruction:{" "}
+                                        </span>
+                                        {data && data.exam.instructions}
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            Date:{" "}
+                                        </span>
+                                        {new Date().toLocaleDateString()}
+                                    </p>
+                                </div>
                             </div>
-                            <div class="bg-white/75 p-4">
+                            <div class="bg-white/60 p-4">
                                 {data &&
                                     data.questions.map((question, index) => {
                                         if (index == questionIndexToShow) {
                                             return (
                                                 <div>
                                                     <h3 class="font-poppins font-bold my-2">
-                                                        {question.serialNumber}
+                                                        <span>Question: </span>
+                                                        {index + 1}
                                                     </h3>
                                                     <div
                                                         dangerouslySetInnerHTML={{
@@ -299,7 +360,7 @@ const [sumbitModel, setSubmitModel] = useState()
                                     className={`bg-primary-color rounded-full hover:bg-black hover:text-white
                         ${
                             activeButton === index
-                                ? "text-white bg-green-600 font-bold text-xl"
+                                ? "text-white bg-black font-bold text-xl"
                                 : ""
                         } ${clickedBtns.includes(index) ? "bg-red-500" : ""} `} // Conditionally change the class if active
                                 >
@@ -309,23 +370,40 @@ const [sumbitModel, setSubmitModel] = useState()
                     </div>
                 </div>
                 <div class="my-3 flex justify-center">
-                    <button onClick={() => setSubmitModel(true)} class="px-14 py-2 bg-black text-white">
+                    <button
+                        onClick={() => setSubmitModel(true)}
+                        class="px-14 py-2 bg-black text-white"
+                    >
                         Submit
                     </button>
                 </div>
             </div>
             {showModel && <div className="absolute bg-black"></div>}
-            {sumbitModel && <Model>
-                <div className="bg-white text-center p-4 shadow-lg rounded-sm capitalize">
-                    <div className="">
-                        <h1 className="font-bold text-xl">Are you sure you want to submit</h1>
-                <div className="flex justify-center my-4 gap-3">
-                    <button className="bg-black px-12 py-2 text-white">Yes</button>
-                    <button className="bg-red-500 px-12 py-2 text-white" onClick={() => setSubmitModel(false)}>No</button>
-                </div>
+            {sumbitModel && (
+                <Model>
+                    <div className="bg-white text-center p-4 shadow-lg rounded-sm capitalize">
+                        <div className="">
+                            <h1 className="font-bold text-xl">
+                                Are you sure you want to submit
+                            </h1>
+                            <div className="flex justify-center my-4 gap-3">
+                                <button
+                                    className="bg-black px-12 py-2 text-white"
+                                    onClick={handleSubmit}
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    className="bg-red-500 px-12 py-2 text-white"
+                                    onClick={() => setSubmitModel(false)}
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                </Model>}
+                </Model>
+            )}
         </div>
     );
 };
