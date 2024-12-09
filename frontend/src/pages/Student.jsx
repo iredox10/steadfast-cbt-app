@@ -171,7 +171,7 @@ const Student = () => {
                 },
                 { label: "b", value: question.option_b, type: "option_b" },
                 { label: "c", value: question.option_c, type: "option_c" },
-                { label: "d", value: question.option_d , type: "option_d"}, // Add more options as needed
+                { label: "d", value: question.option_d, type: "option_d" }, // Add more options as needed
             ];
             const values = options.map((option) => option.value);
             const shuffledValues = shuffleArray(values);
@@ -293,6 +293,25 @@ const Student = () => {
                                                             </div>
                                                         )
                                                     )}
+                                                    <div class="flex justify-center my-5 gap-5">
+                                                        <button
+                                                            onClick={handlePrev}
+                                                            class="capitalize bg-black text-white px-4 py-2"
+                                                        >
+                                                            previous
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                handleNext(
+                                                                    question.id,
+                                                                    question.question
+                                                                )
+                                                            }
+                                                            class="capitalize bg-black text-white px-4 py-2"
+                                                        >
+                                                            Next
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             );
                                         }
