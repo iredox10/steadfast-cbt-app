@@ -18,8 +18,16 @@ const Student = () => {
     const time = parseDuration(data && data.exam.exam_duration);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
-    console.log(student)
+    console.log(student);
     const [course, setCourse] = useState();
+
+    const shuffleArray = (array) => {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    };
 
     useEffect(() => {
         const fetch = async () => {
@@ -148,6 +156,37 @@ const Student = () => {
             console.log(err);
         }
     };
+
+    const [shuffledOptions, setShuffledOptions] = useState([]);
+
+    useEffect(() => {
+        // This effect is run when the component mounts and whenever questionIndexToShow changes
+        if (data && data.questions[questionIndexToShow]) {
+            const question = data.questions[questionIndexToShow];
+            const options = [
+                {
+                    label: "a",
+                    value: question.correct_answer,
+                    type: "correct_answer",
+                },
+                { label: "b", value: question.option_b, type: "option_b" },
+                { label: "c", value: question.option_c, type: "option_c" },
+                { label: "d", value: question.option_d , type: "option_d"}, // Add more options as needed
+            ];
+            const values = options.map((option) => option.value);
+            const shuffledValues = shuffleArray(values);
+
+            // Reconstruct options with the shuffled values
+            const newShuffledOptions = shuffledValues.map((value, idx) => ({
+                label: options[idx].label,
+                value: value,
+                type: options[idx].type,
+            }));
+
+            setShuffledOptions(newShuffledOptions);
+        }
+    }, [data, questionIndexToShow]); // Run this effect when the data or questionIndexToShow changes
+
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -209,10 +248,10 @@ const Student = () => {
                             <div class="bg-white/60 p-4">
                                 {data &&
                                     data.questions.map((question, index) => {
-                                        if (index == questionIndexToShow) {
+                                        if (index === questionIndexToShow) {
                                             return (
-                                                <div>
-                                                    <h3 class="font-poppins font-bold my-2">
+                                                <div key={question.id}>
+                                                    <h3 className="font-poppins font-bold my-2">
                                                         <span>Question: </span>
                                                         {index + 1}
                                                     </h3>
@@ -221,132 +260,43 @@ const Student = () => {
                                                             __html: question.question,
                                                         }}
                                                     />
-                                                    <div>
-                                                        <div
-                                                            onClick={() =>
-                                                                handleAnswer(
-                                                                    "correct_answer",
-                                                                    question.id,
-                                                                    question.question,
-                                                                    question.correct_answer
-                                                                )
-                                                            }
-                                                            class={`${getDivStyle(
-                                                                question.correct_answer
-                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
-                                                        >
-                                                            <button
-                                                                type="btn"
-                                                                class="bg-primary-color px-2 rounded-full text-xl"
-                                                                onClick={() => {}}
-                                                            >
-                                                                a
-                                                            </button>
+
+                                                    {shuffledOptions.map(
+                                                        (option, idx) => (
                                                             <div
-                                                                dangerouslySetInnerHTML={{
-                                                                    // __html: question.option_a,
-                                                                    __html: question.correct_answer,
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                        <div
-                                                            onClick={() => {
-                                                                handleAnswer(
-                                                                    "option_b",
-                                                                    question.id,
-                                                                    question.question,
-                                                                    question.option_b
-                                                                );
-                                                            }}
-                                                            class={`${getDivStyle(
-                                                                question.option_b
-                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
-                                                        >
-                                                            <button
-                                                                type="btn"
-                                                                class="bg-primary-color px-2 rounded-full text-xl"
+                                                                key={idx} // Unique key for each option
+                                                                onClick={() =>
+                                                                    handleAnswer(
+                                                                        option.type,
+                                                                        question.id,
+                                                                        question.question,
+                                                                        option.value
+                                                                    )
+                                                                }
+                                                                className={`${getDivStyle(
+                                                                    option.value
+                                                                )} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
                                                             >
-                                                                b
-                                                            </button>
-                                                            <div
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: question.option_b,
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                        <div
-                                                            onClick={() =>
-                                                                handleAnswer(
-                                                                    "option_c",
-                                                                    question.id,
-                                                                    question.question,
-                                                                    question.option_c
-                                                                )
-                                                            }
-                                                            class={`${getDivStyle(
-                                                                question.option_c
-                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
-                                                        >
-                                                            <button
-                                                                type="btn"
-                                                                class="bg-primary-color px-2 rounded-full text-xl"
-                                                            >
-                                                                c
-                                                            </button>
-                                                            <div
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: question.option_c,
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                        <div
-                                                            onClick={() =>
-                                                                handleAnswer(
-                                                                    "option_c",
-                                                                    question.id,
-                                                                    question.question,
-                                                                    question.option_d
-                                                                )
-                                                            }
-                                                            class={`${getDivStyle(
-                                                                question.option_d
-                                                            )}} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
-                                                        >
-                                                            <button
-                                                                type="btn"
-                                                                class="bg-primary-color px-2 rounded-full text-xl"
-                                                            >
-                                                                d
-                                                            </button>
-                                                            <div
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: question.option_d,
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex justify-center my-5 gap-5">
-                                                        <button
-                                                            onClick={handlePrev}
-                                                            class="capitalize bg-black text-white px-4 py-2"
-                                                        >
-                                                            previous
-                                                        </button>
-                                                        <button
-                                                            onClick={() =>
-                                                                handleNext(
-                                                                    question.id,
-                                                                    question.question
-                                                                )
-                                                            }
-                                                            class="capitalize bg-black text-white px-4 py-2"
-                                                        >
-                                                            Next
-                                                        </button>
-                                                    </div>
+                                                                <button
+                                                                    type="button"
+                                                                    className="bg-primary-color px-2 rounded-full text-xl"
+                                                                >
+                                                                    {
+                                                                        option.label
+                                                                    }
+                                                                </button>
+                                                                <div
+                                                                    dangerouslySetInnerHTML={{
+                                                                        __html: option.value,
+                                                                    }}
+                                                                ></div>
+                                                            </div>
+                                                        )
+                                                    )}
                                                 </div>
                                             );
                                         }
+                                        return null; // Return null if not matching index
                                     })}
                             </div>
                         </div>
