@@ -205,11 +205,15 @@ class Instructor extends Controller
     public function submitExam(Request $request, $exam_id)
     {
         try {
+            // TODO: ask if you should cancel the other submission for any submmissio
+            // TODO: Life you so in admin activate_exam controller.
+
+            // Exam::query()->update(['submission_status' => 'not_submitted']);
             $exam = Exam::findOrFail($exam_id);
             $exam->submission_status = 'submitted';
             $exam->save();
             return response()->json($exam);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
     }
