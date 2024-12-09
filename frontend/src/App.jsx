@@ -20,6 +20,7 @@ import Semester from './pages/admin/Semester.jsx'
 import StudentSubmission from './pages/StudentSubmission.jsx'
 import AdminStudents from './pages/admin/AdminStudents.jsx'
 import CourseStudents from './pages/admin/CourseStudents.jsx'
+import LoggedStudent from './pages/LoggedStudent.jsx'
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path='/' element={<Home />} />
         <Route path='/student/:studentId' element={<Student />} />
         <Route path='/student-submission/:studentId' element={<StudentSubmission />} />
+        <Route path='/logged-student' element={<LoggedStudent />} />
 
 
         <Route path='/instructor/:id' element={<Instructor />} />

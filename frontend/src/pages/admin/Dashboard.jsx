@@ -8,6 +8,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import Model from "../../components/Model";
+import FormBtn from "../../components/FormBtn";
 
 const AdminDashboard = () => {
     const { id } = useParams();
@@ -17,6 +18,7 @@ const AdminDashboard = () => {
     console.log(course);
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
+    const [showTerminateModel, setShowTerminateModel] = useState(false);
     const [showSubmitModel, setShowSubmitModel] = useState(false);
     const [examId, setexamId] = useState();
 
@@ -48,6 +50,16 @@ const AdminDashboard = () => {
             }
             console.log(res);
         } catch (err) {
+            console.log(err);
+        }
+    };
+
+    const handleTerminateExam = async (id) => {
+        try {
+            const res = await axios.post(`${path}/terminate-exam/${id}`);
+            console.log(res);
+        } catch (err) {
+            const [showTerminateModel, setShowTerminateModel] = useState(false);
             console.log(err);
         }
     };
@@ -202,9 +214,14 @@ const AdminDashboard = () => {
                                                     Activate
                                                 </button>
                                                 <button
+                                                    type="button"
                                                     id="show_detail"
-                                                    className="p-2 bg-red-500"
-                                                    onClick={() => {}}
+                                                    className="p-2 bg-red-500 text-white"
+                                                    onClick={() =>
+                                                        setShowTerminateModel(
+                                                            true
+                                                        )
+                                                    }
                                                 >
                                                     {/* <FaCheck /> */}
                                                     Terminate
@@ -214,6 +231,15 @@ const AdminDashboard = () => {
                                     ))}
                             </tbody>
                         </table>
+                        {showTerminateModel && <Model>
+                           <div className="p-5 text-center">
+                            <h1 className="text-xl font-bold capitalize my-6">Did you want to terminate this exam</h1>
+                            <div className="flex justify-center gap-5">
+                                <button className="px-4 py-2 bg-green-500 text-white" onClick={() => handleTerminateExam()}>Yes</button>
+                                <button className="px-4 py-2 bg-red-500 text-white" onClick={() => setShowTerminateModel(false)}>No</button>
+                            </div>
+                            </div> 
+                            </Model>}
                         <div className="mt-4 flex justify-between items-center">
                             <span className="text-sm text-gray-600">
                                 {/* Showing 6-21 of 1000 */}

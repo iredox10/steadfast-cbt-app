@@ -11,8 +11,8 @@ const Home = () => {
     const [password, setpassword] = useState("");
     const [errMsg, setErrMsg] = useState("");
 
-    const navigate = useNavigate()
-    const handleSubmit =async (e) => {
+    const navigate = useNavigate();
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!candidateNumber || !password) {
             setErrMsg("fields are empty");
@@ -23,12 +23,16 @@ const Home = () => {
                 candidate_no: candidateNumber,
                 password,
             });
-            if(res.status == 200){
-                navigate(`student/${res.data.id}`)
+            if (res.status == 200 && res.data.is_logged_on == "no") {
+                navigate(`student/${res.data.id}`);
+                console.log(res);
+            } else {
+                navigate("/logged-student");
             }
-            console.log(res);
+            // console.log(res);
         } catch (err) {
             console.log(err);
+            setErrMsg(err.response.data);
         }
     };
     return (
@@ -51,6 +55,7 @@ const Home = () => {
                                 login to your account
                             </p>
                         </div>
+                        {errMsg}
                     </div>
 
                     <form onSubmit={handleSubmit} method="POST">
@@ -88,7 +93,6 @@ const Home = () => {
                     <div className="absolute -z-10 w-[18rem] h-[18rem] rounded-full bg-black/20"></div>
                     <div className="absolute top-[5rem] right-0 -z-10 w-[20rem] h-[20rem] rounded-full bg-black/40"></div>
                     <img src={exam_img} alt="className exam image" />
-                    <p className="text-4xl">this is the build file for the virtualmin</p>
                 </div>
             </div>
         </div>

@@ -18,7 +18,7 @@ const Student = () => {
     const time = parseDuration(data && data.exam.exam_duration);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
-
+    console.log(student)
     const [course, setCourse] = useState();
 
     useEffect(() => {
@@ -129,7 +129,7 @@ const Student = () => {
 
     const [sumbitModel, setSubmitModel] = useState();
     const [msg, setMsg] = useState();
-    const [reminder, setReminder] = useState()
+    const [reminder, setReminder] = useState();
     const reminderRef = useRef();
     const navigate = useNavigate();
 
@@ -137,13 +137,16 @@ const Student = () => {
         // setReminder(data)
     };
 
-    const handleSubmit =async () => {
-       try {
-       const res = await axios.post(`/student-submit-exam/${course.id}/${studentId}`) 
-       console.log(res.data)
-       } catch (err) {
-       console.log(err) 
-       } 
+    const handleSubmit = async () => {
+        try {
+            const res = await axios.post(
+                `${path}/student-submit-exam/${course.id}/${studentId}`
+            );
+            navigate("/student-submission/" + studentId);
+            console.log(res.data);
+        } catch (err) {
+            console.log(err);
+        }
     };
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
