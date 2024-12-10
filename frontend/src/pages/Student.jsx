@@ -13,9 +13,9 @@ const Student = () => {
     const { studentId } = useParams();
     const { data } = useFetch(`/get-student-exam`);
     const [answers, setAnswers] = useState([]);
-    console.log(data);
+    console.log(data &&data.exam.exam_duration);
 
-    const time = parseDuration(data && data.exam.exam_duration);
+    // const time = parseDuration(data && data.exam.exam_duration);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
     console.log(student);
@@ -204,7 +204,7 @@ const Student = () => {
                             >
                                 {data && (
                                     <Timer
-                                        initialTime={time}
+                                        initialTime={data && data.exam.exam_duration}
                                         onTimeUp={() => alert("times up")}
                                         reminder={timeRemain}
                                     />

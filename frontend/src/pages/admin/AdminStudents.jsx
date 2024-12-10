@@ -10,6 +10,7 @@ import FormInput from "../../components/FormInput";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
+import FormCloseBtn from "../../components/FormCloseBtn";
 
 const AdminStudents = () => {
     const { id } = useParams();
@@ -52,7 +53,7 @@ const AdminStudents = () => {
     return (
         <GridLayout>
             <Sidebar>
-                <Link to={''}>Courses</Link>
+                <Link to={""}>Courses</Link>
             </Sidebar>
             <div className="p-4 w-full col-start-2 col-end-7">
                 <div className="flex justify-between items-center">
@@ -126,6 +127,9 @@ const AdminStudents = () => {
             </div>
             {showModel && (
                 <Model>
+                    <div className="flex justify-end p-2">
+                        <FormCloseBtn onclick={() => setShowModel(false)} />
+                    </div>
                     <div className="flex w-full justify-center items-center gap-5 p-2">
                         <Btn
                             text={"add single student"}
@@ -144,7 +148,9 @@ const AdminStudents = () => {
                     </div>
                     <div>
                         {showImport ? (
-                            <div>import students</div>
+                            <div>
+                                <input type="file" name="students" id="" />
+                            </div>
                         ) : (
                             <div className="p-2">
                                 <form onSubmit={handleSubmit}>

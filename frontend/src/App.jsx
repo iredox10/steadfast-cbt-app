@@ -21,6 +21,7 @@ import StudentSubmission from './pages/StudentSubmission.jsx'
 import AdminStudents from './pages/admin/AdminStudents.jsx'
 import CourseStudents from './pages/admin/CourseStudents.jsx'
 import LoggedStudent from './pages/LoggedStudent.jsx'
+import AdminCourses from './pages/admin/AdminCourses.jsx'
 
 function App() {
   return (
@@ -46,7 +47,7 @@ function App() {
         <Route path='/session/:id' element={<Session />} />
         <Route path='/semester/:id' element={<Semester />} />
         <Route path='/admin-students/:id' element={<AdminStudents />} />
-        {/* <Route path='/admin-courses' element={<AdminCourses />} /> */}
+        {/* <Route path='/admin-courses/:id' element={<AdminCourses />} /> */}
 
         <Route path='/admin-instructors' element={<AdminInstructiors />} />
         <Route path='/admin-instructor-courses/:id' element={<InstructorsCourses />} />

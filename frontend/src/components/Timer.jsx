@@ -4,7 +4,6 @@ const Timer = ({ initialTime = 300, onTimeUp, reminder }) => {
     // Default to 5 minutes
     const [timeLeft, setTimeLeft] = useState(initialTime);
     const [isActive, setIsActive] = useState(true);
-
     useEffect(() => {
         let timer = null;
 

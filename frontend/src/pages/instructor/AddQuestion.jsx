@@ -116,7 +116,7 @@ const AddQuestion = () => {
                     Candidates
                 </Link>
             </Sidebar>
-            <div className="  col-span-4">
+            <div className="  col-span-3">
                 <Header title={"Course Name"} subtitle={"Instructor"} />
                 <div className="p-3 bg-white">
                     <div>
@@ -169,8 +169,8 @@ const AddQuestion = () => {
                         </button>
                     </form>
                 </div>
-            </div>{" "}
-            <div className="mr-4">
+            </div>
+            <div className="mr-4 col-start-5 col-end-7">
                 <div className="py-8">
                     <div className="">profile pic and sign out</div>
                 </div>
@@ -183,7 +183,7 @@ const AddQuestion = () => {
                         <div>
                             <h1 className="font-bold text-xl">Options</h1>
                             <p>List of Added Options</p>
-                            <div className="my-4">
+                            <div className="my-4 box-border">
                                 {options &&
                                     options.map((option, i) => (
                                         <div

@@ -12,10 +12,11 @@ import FormBtn from "../../components/FormBtn";
 
 const AdminDashboard = () => {
     const { id } = useParams();
-    const { data: exams, loading, err } = useFetch(`/get-exams`);
-    console.log(exams);
+    // const { data: exams, loading, err } = useFetch(`/get-exams`);
+
     const [course, setCourse] = useState();
     console.log(course);
+    const [exams, setExams] = useState()
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
     const [showTerminateModel, setShowTerminateModel] = useState(false);
@@ -23,6 +24,19 @@ const AdminDashboard = () => {
     const [examId, setexamId] = useState();
 
     const [courses, setCourses] = useState();
+
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const res = await axios(`${path}/get-exams`);
+                setExams(res.data);
+            } catch (err) {
+                console.log(err);
+            }
+        };
+        fetch();
+    }, [exams]);
+
     useEffect(() => {
         const fetch = async () => {
             try {
@@ -33,7 +47,7 @@ const AdminDashboard = () => {
             }
         };
         fetch();
-    }, [exams]);
+    }, [exams,courses]);
     console.log(courses);
 
     const showModelAndSetExamId = (id) => {
@@ -47,6 +61,8 @@ const AdminDashboard = () => {
             const res = await axios.post(`${path}/activate-exam/${id}`);
             if (res.status == 200) {
                 setShowSubmitModel(false);
+                const res  = await axios(`${path}/get-exams`)
+                setExams(res.data)
             }
             console.log(res);
         } catch (err) {
@@ -67,10 +83,9 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar>
                 <Link to={"/admin-sessions"}>Sessions</Link>
-                {/* <Link to={"/admin-courses"}>Courses</Link> */}
                 <Link to={"/admin-instructors"}>instructors</Link>
                 <Link to={`/admin-students/${id}`}>students</Link>
-                <Link to={`/admin-courses/${id}`}>courses</Link>
+                {/* <Link to={`/admin-courses/${id}`}>courses</Link> */}
             </Sidebar>
             <div className="col-span-5 p-5">
                 <div className="flex justify-between  w-full my-5">

@@ -90,7 +90,7 @@ const Semester = () => {
                                             </span>
                                             {course.credit_unit}
                                         </p>
-                                        <FormBtn text={'add student'} href={`/add-student-to-course/${course.id}`} style={'block'}/>
+                                        {/* <FormBtn text={'add student'} href={`/add-student-to-course/${course.id}`} style={'block'}/> */}
                                     </div>
                                 );
                             })}

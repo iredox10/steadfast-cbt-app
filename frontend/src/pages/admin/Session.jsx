@@ -62,11 +62,13 @@ const Session = () => {
         <div>
             <GridLayout>
                 <Sidebar>
-                    <Link to="/admin-dashboard">Dashboard</Link>
+                    <Link to={`/admin-dashboard/${id}`}>Dashboard</Link>
                 </Sidebar>
                 <div className="col-span-5 p-5 grid grid-cols-4 grid-rows-12">
                     <div>
-                        <h1 className="my-4 font-bold">List of ({session && session.title}) semesters</h1>
+                        <h1 className="my-4 font-bold">
+                            List of ({session && session.title}) semesters
+                        </h1>
                         <div className="flex gap-2">
                             {semesters &&
                                 semesters.map((semester) => (
