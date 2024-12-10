@@ -41,13 +41,13 @@ const AdminDashboard = () => {
         const fetch = async () => {
             try {
                 const res = await axios(`${path}/get-courses`);
-                setCourses(res.data);
+                // setCourses(res.data);
             } catch (err) {
                 console.log(err);
             }
         };
         fetch();
-    }, [exams,courses]);
+    }, []);
     console.log(courses);
 
     const showModelAndSetExamId = (id) => {

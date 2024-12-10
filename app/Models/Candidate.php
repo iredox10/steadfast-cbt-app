@@ -13,6 +13,7 @@ class Candidate extends Model
         'full_name',
         'programme',
         'department',
+        'image',
         'password',
         'is_checkout',
         'is_checkout',
