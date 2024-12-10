@@ -68,6 +68,7 @@ const Student = () => {
     useEffect(() => {
         const set = () => {
             data && setQuestionToShow(data.questions[0]);
+            setClickedBtns(prev => [...prev, 0])
             // console.log(c);
         };
         set();
@@ -127,11 +128,8 @@ const Student = () => {
         if (questionIndexToShow <= 0) {
             return;
         }
-        // setQuestionIndexToShow((prev) => prev + 1);
         setQuestionIndexToShow((prev) => prev - 1);
         setActiveButton(questionIndexToShow - 1);
-        // console.log(activeButton, questionIndexToShow);
-        // setClickedBtns((prev) => [...prev, activeButton]);
     };
 
     const getDivStyle = (option) =>
