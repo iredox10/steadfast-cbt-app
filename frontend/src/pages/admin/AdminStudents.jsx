@@ -27,23 +27,34 @@ const AdminStudents = () => {
     const [candidate_no, setCandidate_no] = useState();
     const [department, setDepartment] = useState();
     const [programme, setProgramme] = useState();
-
+    const [image, setImage] = useState();
+    console.log(image);
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!full_name || !candidate_no || !department || !programme) {
             setErr('fields can"t be empty');
             return;
         }
+        const formData = new FormData();
+        formData.append("image", image);
+        formData.append("full_name", full_name);
+        formData.append("candidate_no", candidate_no);
+        formData.append("password", "password");
+        formData.append("is_logged_on", "no");
+        formData.append("programme", programme);
+
+        const formDataJson = JSON.stringify(Object.fromEntries(formData));
+        console.log(formDataJson);
         try {
-            const res = await axios.post(`${path}/register-student/${id}`, {
-                full_name,
-                candidate_no,
-                department,
-                programme,
-                password: "password",
-                is_logged_on: "no",
-            });
+            const res = await axios.post(
+                `${path}/register-student/${id}`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
             console.log(res.data);
         } catch (err) {
             console.log(err);
@@ -192,6 +203,15 @@ const AdminStudents = () => {
                                             placeholder={"Enter programme.."}
                                             onchange={(e) =>
                                                 setProgramme(e.target.value)
+                                            }
+                                        />
+                                        <FormInput
+                                            label={"image"}
+                                            type={"file"}
+                                            labelFor={"image"}
+                                            name={"image"}
+                                            onchange={(e) =>
+                                                setImage(e.target.files[0])
                                             }
                                         />
                                         <FormBtn text={"add student"} />

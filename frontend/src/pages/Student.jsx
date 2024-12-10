@@ -13,7 +13,7 @@ const Student = () => {
     const { studentId } = useParams();
     const { data } = useFetch(`/get-student-exam`);
     const [answers, setAnswers] = useState([]);
-    console.log(data &&data.exam.exam_duration);
+    console.log(data && data.exam.exam_duration);
 
     // const time = parseDuration(data && data.exam.exam_duration);
 
@@ -75,7 +75,7 @@ const Student = () => {
     }, [questionToShow]);
 
     const handleClick = (index) => {
-        // setActiveButton(index); // Update the active button index on click
+        setActiveButton(index); // Update the active button index on click
         if (index === 0) {
             setQuestionIndexToShow(0);
         } else {
@@ -122,12 +122,15 @@ const Student = () => {
         }
     };
 
-    const handlePrev = () => {
-        if (questionIndexToShow === 0) {
+    const handlePrev = (questionId, question) => {
+        if (questionIndexToShow <= 0) {
             return;
-        } else {
-            setQuestionIndexToShow((prev) => prev - 1);
         }
+        // setQuestionIndexToShow((prev) => prev + 1);
+        setQuestionIndexToShow((prev) => prev - 1);
+        setActiveButton(questionIndexToShow - 1);
+        console.log(activeButton, questionIndexToShow);
+        // setClickedBtns((prev) => [...prev, activeButton]);
     };
 
     const getDivStyle = (option) =>
@@ -204,7 +207,9 @@ const Student = () => {
                             >
                                 {data && (
                                     <Timer
-                                        initialTime={data && data.exam.exam_duration}
+                                        initialTime={
+                                            data && data.exam.exam_duration
+                                        }
                                         onTimeUp={() => alert("times up")}
                                         reminder={timeRemain}
                                     />
@@ -295,7 +300,12 @@ const Student = () => {
                                                     )}
                                                     <div class="flex justify-center my-5 gap-5">
                                                         <button
-                                                            onClick={handlePrev}
+                                                            onClick={() =>
+                                                                handlePrev(
+                                                                    question.id,
+                                                                    question.question
+                                                                )
+                                                            }
                                                             class="capitalize bg-black text-white px-4 py-2"
                                                         >
                                                             previous
@@ -332,9 +342,13 @@ const Student = () => {
                                     className={`bg-primary-color rounded-full hover:bg-black hover:text-white
                         ${
                             activeButton === index
-                                ? "text-white bg-black font-bold text-xl"
+                                ? "text-red-600 bg-black font-bold text-2xl"
                                 : ""
-                        } ${clickedBtns.includes(index) ? "bg-red-500" : ""} `} // Conditionally change the class if active
+                        } ${
+                                        clickedBtns.includes(index)
+                                            ? "bg-slate-600 text-white"
+                                            : ""
+                                    } `} // Conditionally change the class if active
                                 >
                                     {index + 1}
                                 </button>
