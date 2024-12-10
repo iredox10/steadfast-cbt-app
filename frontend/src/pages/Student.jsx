@@ -13,12 +13,12 @@ const Student = () => {
     const { studentId } = useParams();
     const { data } = useFetch(`/get-student-exam`);
     const [answers, setAnswers] = useState([]);
-    console.log(data && data.exam.exam_duration);
+    // console.log(data && data.exam.exam_duration);
 
     // const time = parseDuration(data && data.exam.exam_duration);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
-    console.log(student);
+    // console.log(student);
     const [course, setCourse] = useState();
 
     const shuffleArray = (array) => {
@@ -48,7 +48,6 @@ const Student = () => {
                     `${path}/get-course/${data.exam.course_id}`
                 );
                 setCourse(res.data);
-                console.log(res);
             } catch (err) {
                 console.log(err);
             }
@@ -101,9 +100,11 @@ const Student = () => {
     };
 
     const handleNext = async (questionId, question) => {
-        if (questionIndexToShow == data.questions.length - 1) {
+        if (questionIndexToShow === data.questions.length - 1) {
+            setClickedBtns((prev) => [...prev, questionIndexToShow]);
             return;
         }
+        console.log(questionIndexToShow);
         setQuestionIndexToShow((prev) => prev + 1);
         setActiveButton(questionIndexToShow + 1);
         setClickedBtns((prev) => [...prev, activeButton]);
@@ -116,7 +117,7 @@ const Student = () => {
                     course_id: data.exam.course_Id,
                 }
             );
-            console.log(res.data);
+            // console.log(res.data);
         } else {
             return;
         }
@@ -129,7 +130,7 @@ const Student = () => {
         // setQuestionIndexToShow((prev) => prev + 1);
         setQuestionIndexToShow((prev) => prev - 1);
         setActiveButton(questionIndexToShow - 1);
-        console.log(activeButton, questionIndexToShow);
+        // console.log(activeButton, questionIndexToShow);
         // setClickedBtns((prev) => [...prev, activeButton]);
     };
 
@@ -154,7 +155,7 @@ const Student = () => {
                 `${path}/student-submit-exam/${course.id}/${studentId}`
             );
             navigate("/student-submission/" + studentId);
-            console.log(res.data);
+            // console.log(res.data);
         } catch (err) {
             console.log(err);
         }
