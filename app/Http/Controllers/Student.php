@@ -114,6 +114,7 @@ class Student extends Controller
         $question = \App\Models\Question::inRandomOrder()->first();
         return response()->json($question, 200);
     }
+
     public function add_course(Request $request, $student_id)
     {
         $validate = request()->validate([
