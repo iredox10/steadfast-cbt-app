@@ -60,7 +60,6 @@ const Student = () => {
     const [showModel, setShowModel] = useState(false);
     const [questionToShow, setQuestionToShow] = useState();
     const [questionIndexToShow, setQuestionIndexToShow] = useState(0);
-    // const [selectedAnswer, setSelectedAnswer] = useState();
     const [studentAnswers, setStudentAnswers] = useState([]);
 
     const selectedAnswerRef = useRef();
@@ -68,8 +67,7 @@ const Student = () => {
     useEffect(() => {
         const set = () => {
             data && setQuestionToShow(data.questions[0]);
-            setClickedBtns(prev => [...prev, 0])
-            // console.log(c);
+            setClickedBtns((prev) => [...prev, 0]);
         };
         set();
     }, [questionToShow]);
@@ -81,9 +79,6 @@ const Student = () => {
         } else {
             setQuestionIndexToShow((prev) => index);
         }
-        // if (!clickedBtns.includes(index)) {
-        //     setClickedBtns((prev) => [...prev, index]);
-        // }
     };
 
     const [selectedOption, setSelectedOption] = useState();
@@ -118,7 +113,6 @@ const Student = () => {
                     course_id: data.exam.course_Id,
                 }
             );
-            // console.log(res.data);
         } else {
             return;
         }
