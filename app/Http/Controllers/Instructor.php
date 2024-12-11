@@ -401,8 +401,17 @@ class Instructor extends Controller
             return response()->json($e->getMessage());
         }
     }
-    public function edit_question(Request $request, $question_Id){
-        $question = Question::where('id', $question_Id)->update($request);
-        return response()->json($question);
+    public function edit_question(Request $request, $question_Id)
+    {
+        $question = Question::where('id', $question_Id)->update(
+            [
+                'question' => $request->question,
+                'correct_answer' => $request->correct_answer,
+                'option_b' => $request->option_b,
+                'option_c' => $request->option_c,
+                'option_d' => $request->option_d
+            ]
+        );
+        return response()->json($question, 201);
     }
 }

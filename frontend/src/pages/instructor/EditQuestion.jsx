@@ -96,7 +96,7 @@ const EditQuestion = () => {
         }, {});
         console.log(optionToSend.option_a);
         try {
-            const res = await axios.post(
+            const res = await axios.patch(
                 `${path}/edit-question/${questionId}`,
                 {
                     user_id: userId,

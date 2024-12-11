@@ -82,6 +82,8 @@ Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_students_
 
 Route::post('/student-submit-exam/{course_id}/{candidate_id}', [Instructor::class, 'student_submit_exam']);
 
+Route::patch('/edit-question/{question_id}', [Instructor::class, 'edit_question']);
+
 // admin
 
 Route::post('/add-acd-session', [Admin::class, 'add_acd_session']);
