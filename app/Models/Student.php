@@ -9,7 +9,7 @@ class Student extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['candidate_no', 'full_name', 'programme', 'department', 'password', 'is_logged_on'];
+    protected $fillable = ['candidate_no', 'full_name', 'programme', 'department', 'password', 'is_logged_on','checkin_time', 'checkout_time'];
 
     public function courses(){
         return $this->hasMany(StudentCourse::class);

@@ -121,8 +121,11 @@ Route::post('/register-student/{user_id}', [Admin::class, 'register_student']);
 
 Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_students']);
 
+Route::post('/upload-excel', [Admin::class, 'upload_excel']);
+
 
 // TODO: populate student answer table with question that the student answer
+
 
 
 

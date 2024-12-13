@@ -28,7 +28,7 @@ const AdminStudents = () => {
     const [department, setDepartment] = useState();
     const [programme, setProgramme] = useState();
     const [image, setImage] = useState();
-    console.log(image);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!full_name || !candidate_no || !department || !programme) {
@@ -58,6 +58,41 @@ const AdminStudents = () => {
             console.log(res.data);
         } catch (err) {
             console.log(err);
+        }
+    };
+
+    const [file, setFile] = useState(null);
+
+    // Handle file selection
+    const handleFileChange = (e) => {
+        // setFile(e.target.files[0]);
+        console.log("hello");
+    };
+
+    // Handle file upload
+    const handleFileUpload = async (e) => {
+        e.preventDefault();
+        if (!file) {
+            alert("Please select a file to upload");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("excel_file", file); // The key must match the backend's expected parameter
+
+        try {
+            const response = await axios.post(
+                `${path}/upload-excel`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+            console.log("File uploaded successfully:", response.data);
+        } catch (error) {
+            console.error(error.response.data);
         }
     };
 
@@ -136,6 +171,7 @@ const AdminStudents = () => {
                     </table>
                 </div>
             </div>
+
             {showModel && (
                 <Model>
                     <div className="flex justify-end p-2">
@@ -160,7 +196,18 @@ const AdminStudents = () => {
                     <div>
                         {showImport ? (
                             <div>
-                                <input type="file" name="students" id="" />
+                                <form onSubmit={handleFileUpload}>
+                                    <input
+                                        type="file"
+                                        name="excel_file"
+                                        id=""
+                                        onChange={(e) => {
+                                            setFile(e.target.files[0]);
+                                            console.log(file);
+                                        }}
+                                    />
+                                    <FormBtn text={"submit"} />
+                                </form>
                             </div>
                         ) : (
                             <div className="p-2">
