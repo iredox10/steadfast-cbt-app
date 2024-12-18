@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\StudentsImport;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use App\Models\Acd_session;
 use App\Models\Candidate;
@@ -43,8 +44,11 @@ class Admin extends Controller
         ]);
         try {
             $acd_session = Acd_session::create($validate);
-            return response()->json($acd_session);
+            return response()->json($acd_session, 201);
         } catch (Exception $e) {
+            if ($e->errorInfo[0] == 23505) {
+                return response()->json('session already exist', 404);
+            }
             return response()->json($e->getMessage());
         }
     }
@@ -161,7 +165,14 @@ class Admin extends Controller
             // $course = Course::findOrFail($course_id);
             $course = Course::findOrFail($course_id);
             $user = User::findOrFail($user_id);
-            // $lecturerCourses = LecturerCourse::all();
+
+            $lecturerCourses = LecturerCourse::where('user_id', $user_id)->get();
+
+            foreach ($lecturerCourses as $key => $value) {
+                if ($value->course_id == $course_id) {
+                    return response()->json('course already added', 404);
+                }
+            }
 
             $lecturerCourse = LecturerCourse::create([
                 'user_id' => $user->id,
@@ -251,49 +262,64 @@ class Admin extends Controller
     //     }
     // }
 
-    public function register_student(Request $request, $user_id)
+    // public function register_student(Request $request, $user_id)
+    // {
+    //     // TODO: implement adding candidate with image
+
+    //     $candidate_no = $request->input('candidate_no');
+    //     $full_name = $request->input('full_name');
+    //     $programme = $request->input('programme');
+    //     $department = $request->input('department');
+    //     $password = $request->input('password');
+    //     $is_logged_on = $request->input('is_logged_on');
+    //     $image = $request->file('image');
+    //     return response()->json($image);
+    //     // Store the image and get the path  
+    //     // $imagePath = $request->file('image')->store('images', 'public');  
+    //     // $imagePath = $image->store('images', 'public');
+    //     // try {  
+    //     //     // Retrieve the user record  
+    //     //     $user = User::findOrFail($user_id);  
+
+    //     //     // Create the student record  
+    //     //     $student = Candidate::create([  
+    //     //         'candidate_no' => $candidate_no,  
+    //     //         'full_name' => $full_name,  
+    //     //         'programme' => $programme,  
+    //     //         'department' => $department,  
+    //     //         'password' => bcrypt($password), // Hash the password  
+    //     //         'is_logged_on' => $is_logged_on,  
+    //     //         'image' => $imagePath,  
+    //     //     ]);  
+
+    //     //     // Return a successful JSON response  
+    //     //     return response()->json([  
+    //     //         'message' => 'Student registered successfully!',  
+    //     //         'student' => $student  
+    //     //     ], 201); // Return a 201 Created status  
+
+    //     // } catch (ModelNotFoundException $e) {  
+    //     //     // Handle the case where the user is not found   
+    //     //     return response()->json(['error' => 'User not found'], 404);  
+    //     // } catch (Exception $e) {  
+    //     //     // Handle any other exceptions  
+    //     //     return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);  
+    //     // }  
+    // }
+
+    public function register_student(Request $request)
     {
-        // TODO: implement adding candidate with image
+        try {
+            $request->validate([
+                'file' => 'required|mimes:xlsx,csv'
+            ]);
 
-        $candidate_no = $request->input('candidate_no');
-        $full_name = $request->input('full_name');
-        $programme = $request->input('programme');
-        $department = $request->input('department');
-        $password = $request->input('password');
-        $is_logged_on = $request->input('is_logged_on');
-        $image = $request->file('image');
-        return response()->json($image);
-        // Store the image and get the path  
-        // $imagePath = $request->file('image')->store('images', 'public');  
-        // $imagePath = $image->store('images', 'public');
-        // try {  
-        //     // Retrieve the user record  
-        //     $user = User::findOrFail($user_id);  
-
-        //     // Create the student record  
-        //     $student = Candidate::create([  
-        //         'candidate_no' => $candidate_no,  
-        //         'full_name' => $full_name,  
-        //         'programme' => $programme,  
-        //         'department' => $department,  
-        //         'password' => bcrypt($password), // Hash the password  
-        //         'is_logged_on' => $is_logged_on,  
-        //         'image' => $imagePath,  
-        //     ]);  
-
-        //     // Return a successful JSON response  
-        //     return response()->json([  
-        //         'message' => 'Student registered successfully!',  
-        //         'student' => $student  
-        //     ], 201); // Return a 201 Created status  
-
-        // } catch (ModelNotFoundException $e) {  
-        //     // Handle the case where the user is not found   
-        //     return response()->json(['error' => 'User not found'], 404);  
-        // } catch (Exception $e) {  
-        //     // Handle any other exceptions  
-        //     return response()->json(['error' => 'Something went wrong: ' . $e->getMessage()], 500);  
-        // }  
+            // Excel::import(new StudentsImport, $request->file('file'));
+            // return response()->json(['message' => 'File imported']);
+            return response()->json($request);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
     }
 
     public function get_course_students($course_id)
@@ -309,21 +335,17 @@ class Admin extends Controller
 
     public function upload_excel(Request $request)
     {
-        $request->validate([
-            'excel_file' => 'required|mimes:xlsx,csv',
-        ]);
+        try {
+            $request->validate([
+                'excel_file' => 'required|mimes:xlsx,csv'
+            ]);
 
-        $path = $request->file('excel_file')->getRealPath();
-        $data = Excel::toArray([], $path);
+            Excel::import(new StudentsImport, $request->file('excel_file'));
+            return response()->json(['message' => 'File imported']);
+            // return response()->json($request);
 
-        // foreach ($data[0] as $row) {
-        //     YourModel::create([
-        //         'column1' => $row[0],
-        //         'column2' => $row[1],
-        //         // Map other columns...
-        //     ]);
-        // }
-
-        return response()->json(['message' => $data]);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
@@ -8,20 +8,48 @@ import FormInput from "../../components/FormInput";
 import axios from "axios";
 import FormBtn from "../../components/FormBtn";
 import { Link } from "react-router-dom";
+import FormCloseBtn from "../../components/FormCloseBtn";
 
 const AcdSession = () => {
-    const { data: sessions, loading, error } = useFetch(`/get-acd-sessions`);
+    // const { data: sessions, loading, error } = useFetch(`/get-acd-sessions`);
     const [showModel, setshowModel] = useState(false);
     const [title, setTitle] = useState();
-    const [status, setStatus] = useState("unactive");
+    const [activate, setActivate] = useState(false);
+    const [errMsg, setErrMsg] = useState();
+
+    const [sessions, setSessions] = useState();
+
+    const fetch = async () => {
+        try {
+            const res = await axios(`${path}/get-acd-sessions/`);
+            setSessions(res.data);
+        } catch (err) {
+            console.log(err);
+        }
+    };
+    useEffect(() => {
+        fetch();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!title) {
+            setErrMsg("title not set");
+            return;
+        }
         try {
-            const res = axios.post(`/add-acd-session`, { title, status });
-            console.log(res.data);
+            const res = await axios.post(`${path}/add-acd-session`, {
+                title,
+                status: activate ? "active" : "inactive",
+            });
+            if (res.status == 201) {
+                fetch();
+                setshowModel(false);
+            }
+            console.log(res);
         } catch (err) {
-            console.log(err);
+            console.log(err.response.data);
+            setErrMsg(err.response.data);
         }
     };
 
@@ -31,28 +59,32 @@ const AcdSession = () => {
                 <Link to={"/admin-dashboard"}>Dashboard</Link>
             </Sidebar>
             <div className="col-span-5 p-5 grid grid-cols-4 grid-rows-12">
-                <div>
+                <div className="">
                     <h1 className="my-4 font-bold">Academy Sessions List</h1>
-                    {sessions &&
-                        sessions.map((session) => (
-                            <div
-                                key={session._id}
-                                className="bg-white p-4 text-center capitalize"
-                            >
-                                <Link to={`/session/${session.id}`}>
-                                    <p>{session.title}</p>
-                                    <p className="font-bold">
-                                        {session.status}
-                                    </p>
-                                </Link>
-                            </div>
-                        ))}
+                    <div className="flex gap-5">
+                        {sessions &&
+                            sessions.map((session) => (
+                                <div
+                                    key={session._id}
+                                    className="bg-white p-4 text-center capitalize"
+                                >
+                                    <Link to={`/session/${session.id}`}>
+                                        <p>{session.title}</p>
+                                        <p className="font-bold">
+                                            {session.status}
+                                        </p>
+                                    </Link>
+                                </div>
+                            ))}
+                    </div>
                 </div>
                 <PlusBtn onclick={() => setshowModel(!showModel)} />
                 {showModel && (
                     <Model>
                         <div className="p-5 bg-primary-color capitalize">
+                            <FormCloseBtn onclick={() => setshowModel(false)} />
                             <form onSubmit={handleSubmit}>
+                                {errMsg && errMsg}
                                 <h1 className="font-bold text-xl my-4">
                                     Add Academic Session
                                 </h1>
@@ -75,7 +107,7 @@ const AcdSession = () => {
                                             name="status"
                                             id=""
                                             onChange={(e) =>
-                                                setStatus("active")
+                                                setActivate(e.target.checked)
                                             }
                                         />
                                     </div>

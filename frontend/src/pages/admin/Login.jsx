@@ -29,7 +29,7 @@ const AdminLogin = () => {
             }
         } catch (err) {
             console.log(err);
-            setErr(err.response.data)
+            setErr(err.response.data);
         }
     };
     return (

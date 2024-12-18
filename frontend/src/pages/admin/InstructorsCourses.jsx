@@ -9,6 +9,7 @@ import { FaTimes } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import FormBtn from "../../components/FormBtn";
+import Header from "../../components/Header";
 
 const InstructorsCourses = () => {
     const { id } = useParams();
@@ -18,6 +19,7 @@ const InstructorsCourses = () => {
         error: err,
     } = useFetch(`/get-user/${id}`);
 
+    console.log(user);
     const {
         data: allCourses,
         loading: coursesLoading,
@@ -41,7 +43,7 @@ const InstructorsCourses = () => {
     const [showModel, setshowModel] = useState(false);
     const [course, setCourse] = useState();
     const [courseId, setCourseId] = useState();
-
+    const [errMsg, setErrMsg] = useState("");
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!courseId) {
@@ -57,36 +59,48 @@ const InstructorsCourses = () => {
             }
             console.log(res.data);
         } catch (err) {
-            console.log(err);
+            setErrMsg(err.response.data);
         }
     };
     return (
         <div>
             <GridLayout>
                 <Sidebar />
-                <div className="w-full  col-span-5 grid grid-cols-4 grid-rows-5 gap-5 m-10  ">
-                    {courses &&
-                        courses.map((course) => (
-                            <div
-                                key={course.id}
-                                className="bg-white p-4 capitalize"
-                            >
-                                <p>
-                                    <span className="font-bold">Title: </span>
-                                    {course.title}
-                                </p>
-                                <p>
-                                    <span className="font-bold">code: </span>
-                                    {course.code}
-                                </p>
-                            </div>
-                        ))}
+
+                <div className="col-span-5 m-10">
+                    <Header
+                        title={user && `${user.full_name}`}
+                        subtitle={"courses"}
+                    />
+                    <div className="w-full   grid grid-cols-4 grid-rows-5 gap-5   ">
+                        {courses &&
+                            courses.map((course) => (
+                                <div
+                                    key={course.id}
+                                    className="bg-white p-4 capitalize"
+                                >
+                                    <p>
+                                        <span className="font-bold">
+                                            Title:{" "}
+                                        </span>
+                                        {course.title}
+                                    </p>
+                                    <p>
+                                        <span className="font-bold">
+                                            code:{" "}
+                                        </span>
+                                        {course.code}
+                                    </p>
+                                </div>
+                            ))}
+                    </div>
                 </div>
                 <PlusBtn onclick={() => setshowModel(true)} />
             </GridLayout>
             {showModel && (
                 <Model>
                     <form onSubmit={handleSubmit} className="p-4">
+                        {errMsg && errMsg}
                         <div className="flex justify-between items-center mb-5">
                             <h1 className="capitalize font-bold ">
                                 Add New Course

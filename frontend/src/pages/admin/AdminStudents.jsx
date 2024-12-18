@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import GridLayout from "../../components/GridLayout";
 import Header from "../../components/Header";
@@ -62,14 +62,17 @@ const AdminStudents = () => {
     };
 
     const [file, setFile] = useState(null);
+    const fileRef = useRef();
 
     // Handle file selection
     const handleFileChange = (e) => {
-        // setFile(e.target.files[0]);
-        console.log("hello");
+        setFile(e.target.files[0]);
+        // fileRef.current = e.target.files[0];
+        console.log(file);
     };
 
-    // Handle file upload
+    const [excelFile, setExcelFile] = useState();
+
     const handleFileUpload = async (e) => {
         e.preventDefault();
         if (!file) {
@@ -77,12 +80,15 @@ const AdminStudents = () => {
             return;
         }
 
+        const xfile = fileRef.current
+        const files = xfile.files[0]
         const formData = new FormData();
-        formData.append("excel_file", file); // The key must match the backend's expected parameter
+        formData.append("excel_file", files); // Pass the actual file from state
 
+        console.log(files)
         try {
             const response = await axios.post(
-                `${path}/upload-excel`,
+                `${path}/upload-excel`, // Ensure the backend route is correct
                 formData,
                 {
                     headers: {
@@ -92,9 +98,38 @@ const AdminStudents = () => {
             );
             console.log("File uploaded successfully:", response.data);
         } catch (error) {
-            console.error(error.response.data);
+            console.error(
+                "Error uploading file:",
+                error.response?.data || error.message
+            );
         }
     };
+    // Handle file upload
+    // const handleFileUpload = async (e) => {
+    //     e.preventDefault();
+    //     if (!file) {
+    //         alert("Please select a file to upload");
+    //         return;
+    //     }
+
+    //     const formData = new FormData();
+    //     formData.append("excel_file", fileRef); // The key must match the backend's expected parameter
+
+    //     try {
+    //         const response = await axios.post(
+    //             `${path}/upload-excel`,
+    //             formData,
+    //             {
+    //                 headers: {
+    //                     "Content-Type": "multipart/form-data",
+    //                 },
+    //             }
+    //         );
+    //         console.log("File uploaded successfully:", response.data);
+    //     } catch (error) {
+    //         console.error(error.response.data);
+    //     }
+    // };
 
     return (
         <GridLayout>
@@ -201,10 +236,9 @@ const AdminStudents = () => {
                                         type="file"
                                         name="excel_file"
                                         id=""
-                                        onChange={(e) => {
-                                            setFile(e.target.files[0]);
-                                            console.log(file);
-                                        }}
+                                        ref={fileRef}
+                                        onChange={handleFileChange}
+                                        accept=".xlsx, .xls"
                                     />
                                     <FormBtn text={"submit"} />
                                 </form>
@@ -269,6 +303,7 @@ const AdminStudents = () => {
                     </div>
                 </Model>
             )}
+            {excelFile}
         </GridLayout>
     );
 };

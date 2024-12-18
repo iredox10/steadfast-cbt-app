@@ -37,7 +37,7 @@ const Session = () => {
     useEffect(() => {
         fetch();
     }, []);
-    console.log(semesters, session);
+    // console.log(semesters, session);
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!semester) {
