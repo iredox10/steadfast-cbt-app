@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('candidates', function (Blueprint $table) {
+        Schema::table('students', function (Blueprint $table) {
+            $table->timestamp('checkin_time')->nullable()->change();
+            $table->string('is_logged_on')->nullable()->change();
             //
-            $table->integer('is_logged_on')->default(0);
         });
     }
 
@@ -22,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('candidates', function (Blueprint $table) {
+        Schema::table('students', function (Blueprint $table) {
             //
         });
     }

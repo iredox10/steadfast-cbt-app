@@ -25,8 +25,8 @@ class StudentsImport implements ToCollection
                 'programme' => $row[2],
                 'department' => $row[3],
                 'password' => bcrypt($row[4]), // Hash password
-                'is_logged_on' => 0,          // Default value for is_logged_on
-                'checkin_time' => 'null',
+                'is_logged_on' => 'no',          // Default value for is_logged_on
+                'checkin_time' => null,
                 // 'checkout_time' => 'null',
             ]);
         }
