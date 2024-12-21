@@ -17,6 +17,7 @@ class Candidate extends Model
         'password',
         'is_checkout',
         'is_checkout',
+        'is_logged_on',
         'checkin_time',
         'checkout_time'
     ];

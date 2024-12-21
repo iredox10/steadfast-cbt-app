@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Collections\ExcelCollection;
 // use Maatwebsite\Excel\Excel;
 // use Maatwebsite\Excel\Facades\Excel as FacadesExcel;
@@ -333,19 +334,40 @@ class Admin extends Controller
         }
     }
 
+    // public function upload_excel(Request $request)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'excel_file' => 'required|mimes:xlsx,csv'
+    //         ]);
+
+    //         Excel::import(new StudentsImport, $request->file('excel_file'));
+    //         return response()->json(['message' => 'File imported']);
+    //         // return response()->json($request);
+
+    //     } catch (Exception $e) {
+    //         return response()->json($e->getMessage());
+    //     }
+    // }
+
     public function upload_excel(Request $request)
     {
         try {
             $request->validate([
-                'excel_file' => 'required|mimes:xlsx,csv'
+                'excel_file' => 'required|mimes:xlsx,xls',
             ]);
 
-            Excel::import(new StudentsImport, $request->file('excel_file'));
-            return response()->json(['message' => 'File imported']);
-            // return response()->json($request);
+            // Log file details for debugging
+            Log::info('File uploaded:', ['file' => $request->file('excel_file')]);
 
+            Excel::import(new StudentsImport, $request->file('excel_file'));
+
+            return response()->json(['message' => 'File imported successfully']);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            // Log the error
+            Log::error('Error during import:', ['error' => $e->getMessage()]);
+
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }
