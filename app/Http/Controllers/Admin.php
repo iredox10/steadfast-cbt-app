@@ -362,7 +362,7 @@ class Admin extends Controller
 
             Excel::import(new StudentsImport, $request->file('excel_file'));
 
-            return response()->json(['message' => 'File imported successfully']);
+            return response()->json(['message' => 'File imported successfully'], 201);
         } catch (Exception $e) {
             // Log the error
             Log::error('Error during import:', ['error' => $e->getMessage()]);
