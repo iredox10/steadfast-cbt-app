@@ -21,12 +21,12 @@ class Student extends Controller
         if (!$student) {
             return response()->json('user not found', 404);
         }
-        // if (Hash::check($request->input('password'), $user->password)) {
-        if ($request->input('password') == $student->password) {
+        if (Hash::check($request->input('password'), $student->password)) {
+        // if ($request->input('password') == $student->password) {
             return response()->json($student);
         } else {
             // return redirect()->back()->with('message', 'wrong password!!');
-            return response()->json('wrong password!!');
+            return response()->json('wrong password!!', 404);
         }
     }
     public function index()
@@ -39,6 +39,8 @@ class Student extends Controller
     public function get_student($student_id)
     {
         $student = \App\Models\Student::findOrFail($student_id);
+        $student->is_logged_on = 'yes';
+        $student->save();
         return response()->json($student, 200);
     }
 

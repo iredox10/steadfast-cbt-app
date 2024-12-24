@@ -12,8 +12,17 @@ import { FaTimes, FaTimesCircle } from "react-icons/fa";
 const Student = () => {
     const { studentId } = useParams();
     const { data } = useFetch(`/get-student-exam`);
+
     const [answers, setAnswers] = useState([]);
-    // console.log(data && data.exam.exam_duration);
+    console.log(data);
+// useEffect(() =>{
+//     setTimeout(() =>{
+//     if(!data){
+//         navigate('/')
+//     }
+//     }, 1000)
+// },[])
+
 
     // const time = parseDuration(data && data.exam.exam_duration);
 

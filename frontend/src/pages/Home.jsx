@@ -23,13 +23,14 @@ const Home = () => {
                 candidate_no: candidateNumber,
                 password,
             });
-            if (res.status == 200 && res.data.is_logged_on == "no") {
+            if (res.status == 200 && res.data.is_logged_on === "no") {
                 navigate(`student/${res.data.id}`);
                 console.log(res);
-            } else {
+            } else if(res.data.is_logged_on === 'yes') {
                 navigate("/logged-student");
+                console.log(res.data)
             }
-            // console.log(res);
+            console.log(res);
         } catch (err) {
             console.log(err);
             setErrMsg(err.response.data);
@@ -55,7 +56,6 @@ const Home = () => {
                                 login to your account
                             </p>
                         </div>
-                        {errMsg}
                     </div>
 
                     <form onSubmit={handleSubmit} method="POST">
