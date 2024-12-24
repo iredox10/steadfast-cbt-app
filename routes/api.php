@@ -117,6 +117,8 @@ Route::get('/get-exams', [Admin::class,'get_exams']);
 
 Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam']);
 
+Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam']);
+
 Route::post('/register-student/{user_id}', [Admin::class, 'register_student']);
 
 Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_students']);

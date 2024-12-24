@@ -30,6 +30,7 @@ const Instructor = () => {
                         <span class="font-bold">{user.full_name}</span>
                     </h1>
                 </div>
+                {userLoading && 'loading...'}
                 <div class="grid grid-cols-4 gap-20 my-10 w-full ">
                     {courses &&
                         courses.map((course) => (

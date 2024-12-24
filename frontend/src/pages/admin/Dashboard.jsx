@@ -16,7 +16,7 @@ const AdminDashboard = () => {
 
     const [course, setCourse] = useState();
     console.log(course);
-    const [exams, setExams] = useState()
+    const [exams, setExams] = useState();
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
     const [showTerminateModel, setShowTerminateModel] = useState(false);
@@ -25,29 +25,30 @@ const AdminDashboard = () => {
 
     const [courses, setCourses] = useState();
 
+    const fetchExams = async () => {
+        try {
+            const res = await axios(`${path}/get-exams`);
+            setExams(res.data);
+        } catch (err) {
+            console.log(err);
+        }
+    };
     useEffect(() => {
-        const fetch = async () => {
-            try {
-                const res = await axios(`${path}/get-exams`);
-                setExams(res.data);
-            } catch (err) {
-                console.log(err);
-            }
-        };
-        fetch();
-    }, [exams]);
+        fetchExams();
+    }, []);
+
+    const fetchCourses = async () => {
+        try {
+            const res = await axios(`${path}/get-courses`);
+            setCourses(res.data);
+        } catch (err) {
+            console.log(err);
+        }
+    };
 
     useEffect(() => {
-        const fetch = async () => {
-            try {
-                const res = await axios(`${path}/get-courses`);
-                setCourses(res.data);
-            } catch (err) {
-                console.log(err);
-            }
-        };
-        fetch();
-    }, [exams,courses]);
+        fetchCourses();
+    }, []);
     console.log(courses);
 
     const showModelAndSetExamId = (id) => {
@@ -61,8 +62,7 @@ const AdminDashboard = () => {
             const res = await axios.post(`${path}/activate-exam/${id}`);
             if (res.status == 200) {
                 setShowSubmitModel(false);
-                const res  = await axios(`${path}/get-exams`)
-                setExams(res.data)
+                fetchExams()
             }
             console.log(res);
         } catch (err) {
@@ -71,11 +71,15 @@ const AdminDashboard = () => {
     };
 
     const handleTerminateExam = async (id) => {
+        console.log(id)
         try {
             const res = await axios.post(`${path}/terminate-exam/${id}`);
+            if(res.status == 200){
+                fetchExams()
+                setShowTerminateModel(false)
+            }
             console.log(res);
         } catch (err) {
-            const [showTerminateModel, setShowTerminateModel] = useState(false);
             console.log(err);
         }
     };
@@ -246,15 +250,33 @@ const AdminDashboard = () => {
                                     ))}
                             </tbody>
                         </table>
-                        {showTerminateModel && <Model>
-                           <div className="p-5 text-center">
-                            <h1 className="text-xl font-bold capitalize my-6">Did you want to terminate this exam</h1>
-                            <div className="flex justify-center gap-5">
-                                <button className="px-4 py-2 bg-green-500 text-white" onClick={() => handleTerminateExam()}>Yes</button>
-                                <button className="px-4 py-2 bg-red-500 text-white" onClick={() => setShowTerminateModel(false)}>No</button>
-                            </div>
-                            </div> 
-                            </Model>}
+                        {showTerminateModel && (
+                            <Model>
+                                <div className="p-5 text-center">
+                                    <h1 className="text-xl font-bold capitalize my-6">
+                                        Did you want to terminate this exam
+                                    </h1>
+                                    <div className="flex justify-center gap-5">
+                                        <button
+                                            className="px-4 py-2 bg-green-500 text-white"
+                                            onClick={() =>
+                                                handleTerminateExam(examId)
+                                            }
+                                        >
+                                            Yes
+                                        </button>
+                                        <button
+                                            className="px-4 py-2 bg-red-500 text-white"
+                                            onClick={() =>
+                                                setShowTerminateModel(false)
+                                            }
+                                        >
+                                            No
+                                        </button>
+                                    </div>
+                                </div>
+                            </Model>
+                        )}
                         <div className="mt-4 flex justify-between items-center">
                             <span className="text-sm text-gray-600">
                                 {/* Showing 6-21 of 1000 */}

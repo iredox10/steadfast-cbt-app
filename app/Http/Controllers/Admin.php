@@ -217,14 +217,15 @@ class Admin extends Controller
         }
     }
 
-    public function deactivate_exam($exam_id)
+    public function terminate_exam($exam_id)
     {
         try {
             $exam = Exam::findOrFail($exam_id);
             $exam->activated = 'no';
             $exam->save();
+            return response()->json($exam_id);
         } catch (Exception $e) {
-            return response()->json($e);
+            return response()->json($e->getMessage());
         }
     }
 
@@ -357,15 +358,10 @@ class Admin extends Controller
                 'excel_file' => 'required|mimes:xlsx,xls',
             ]);
 
-            // Log file details for debugging
-            Log::info('File uploaded:', ['file' => $request->file('excel_file')]);
-
             Excel::import(new StudentsImport, $request->file('excel_file'));
 
             return response()->json(['message' => 'File imported successfully'], 201);
         } catch (Exception $e) {
-            // Log the error
-            Log::error('Error during import:', ['error' => $e->getMessage()]);
 
             return response()->json(['error' => $e->getMessage()], 500);
         }

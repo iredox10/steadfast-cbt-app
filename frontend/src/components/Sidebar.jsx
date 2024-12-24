@@ -13,8 +13,8 @@ const Sidebar = ({children}) => {
                     <div></div>
                 </div>
                 <div className="p-4 pl-10 flex justify-self-end flex-col">
-                    <a href="">Log out</a>
-                    <a href="">Help Center</a>
+                    <Link to="/">Log out</Link>
+                    <Link to="">Help Center</Link>
                 </div>
             </div>
         </div>

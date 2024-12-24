@@ -103,7 +103,7 @@ const Exams = () => {
             <Sidebar>
                 <div>
                     <Link to={`/instructor-student/${userId}/${courseId}`}>
-                        Candidate
+                        Candidates
                     </Link>
                 </div>
             </Sidebar>
