@@ -221,9 +221,18 @@ class Admin extends Controller
     {
         try {
             $exam = Exam::findOrFail($exam_id);
+            $students = Student::all();
+
+            foreach ($students as $student) {
+                $student->is_logged_on = 'no';
+                $student->checkin_time = null;
+                $student->checkout_time = null;
+                $student->save();
+            }
+
             $exam->activated = 'no';
             $exam->save();
-            return response()->json($exam_id);
+            return response()->json($students);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
