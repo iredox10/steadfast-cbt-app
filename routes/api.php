@@ -92,6 +92,10 @@ Route::get('/get-acd-sessions', [Admin::class, 'get_acd_sessions']);
 
 Route::get('/get-acd-session/{session_Id}', [Admin::class, 'get_acd_session']);
 
+Route::post('/activate-acd-session/{session_Id}', [Admin::class, 'activate_session']);
+
+Route::get('/get-active-session', [Admin::class, 'get_active_session']);
+
 Route::get('/get-semesters/{acd_sesssion_id}', [Admin::class, 'get_semesters']);
 
 Route::post('/add-semester/{session_id}', [Admin::class, 'add_semester']);

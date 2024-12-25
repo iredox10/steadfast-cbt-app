@@ -73,6 +73,21 @@ class Admin extends Controller
         }
     }
 
+    public function activate_session($session_id)
+    {
+        try {
+            $sessions = Acd_session::query()->update(['status' => 'inactive']);
+            $session = Acd_session::findOrFail($session_id);
+            $semesters = Semester::query()->update(['status' => 'inactive']);
+
+            $session->status = 'active';
+            $session->save();
+            return response()->json($session);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
     public function add_semester(Request $request, $session_id)
     {
         $validate = request()->validate([
@@ -158,6 +173,12 @@ class Admin extends Controller
     {
         $courses = Semester::find($semester_id)->courses;
         return response()->json($courses);
+    }
+
+    public function get_active_session()
+    {
+        $session = Acd_session::where('status', 'active')->get();
+        return response()->json($session);
     }
 
     public function add_lecturer_course(Request $request, $user_id, $course_id)
