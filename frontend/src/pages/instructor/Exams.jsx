@@ -70,6 +70,7 @@ const Exams = () => {
             );
             if (res.status == 201) {
                 setshowModel(false);
+                fetch()
             }
             console.log(res.data);
         } catch (err) {

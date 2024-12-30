@@ -163,8 +163,8 @@ class Instructor extends Controller
             'correct_answer' => 'string | required',
             // 'option_a' => 'string | required',
             'option_b' => 'string | required',
-            'option_c' => 'string | required',
-            'option_d' => 'string | required',
+            'option_c' => 'string ',
+            'option_d' => 'string ',
         ]);
         try {
 

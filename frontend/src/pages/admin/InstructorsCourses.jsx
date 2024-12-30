@@ -20,25 +20,12 @@ const InstructorsCourses = () => {
     } = useFetch(`/get-user/${id}`);
 
     const {
-        data: activeSession,
+        data: allCourses,
         loading: sLoading,
         error: sErr,
     } = useFetch(`/get-active-session`);
-    console.log(activeSession && activeSession);
-
-    const {
-        data: allCourses,
-        loading: coursesLoading,
-        error: coursesErr,
-    } = useFetch(`/get-session-courses/${activeSession.id}`);
 
     console.log(allCourses)
-
-    // const {
-    //     data: allCourses,
-    //     loading: coursesLoading,
-    //     error: coursesErr,
-    // } = useFetch(`/get-all-courses`);
 
     const [courses, setCourses] = useState();
     const fetch = async () => {
