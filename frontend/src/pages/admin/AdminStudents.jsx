@@ -44,10 +44,17 @@ const AdminStudents = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErr(null);
+        
         if (!full_name || !candidate_no || !department || !programme) {
-            setErr('fields can"t be empty');
+            setErr('All fields are required');
             return;
         }
+        if (!image) {
+            setErr('Please select an image');
+            return;
+        }
+
         const formData = new FormData();
         formData.append("image", image);
         formData.append("full_name", full_name);
@@ -55,9 +62,8 @@ const AdminStudents = () => {
         formData.append("password", "password");
         formData.append("is_logged_on", "no");
         formData.append("programme", programme);
+        formData.append("department", department);
 
-        const formDataJson = JSON.stringify(Object.fromEntries(formData));
-        console.log(formDataJson);
         try {
             const res = await axios.post(
                 `${path}/register-student/${id}`,
@@ -68,9 +74,20 @@ const AdminStudents = () => {
                     },
                 }
             );
-            console.log(res.data);
+            
+            if (res.status === 201) {
+                setFull_name("");
+                setCandidate_no("");
+                setDepartment("");
+                setProgramme("");
+                setImage(null);
+                
+                setShowModel(false);
+                fetch();
+            }
         } catch (err) {
-            console.log(err);
+            setErr(err.response?.data?.error || 'An error occurred while registering student');
+            console.error(err);
         }
     };
 
@@ -241,6 +258,11 @@ const AdminStudents = () => {
                                     <h1 className="capitalize font-bold text-center text-xl">
                                         add new student
                                     </h1>
+                                    {err && (
+                                        <div className="text-red-500 text-sm mb-4 text-center">
+                                            {err}
+                                        </div>
+                                    )}
                                     <div>
                                         <FormInput
                                             label={"full name"}

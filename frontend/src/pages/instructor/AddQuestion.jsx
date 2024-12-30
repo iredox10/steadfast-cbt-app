@@ -6,7 +6,6 @@ import { FaPlus } from "react-icons/fa6";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Header from "../../components/Header";
-import useFetch from "../../hooks/useFetch";
 import axios from "axios";
 import { path } from "../../../utils/path";
 import { FaTimes } from "react-icons/fa";

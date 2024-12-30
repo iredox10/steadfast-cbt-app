@@ -145,10 +145,9 @@ class Instructor extends Controller
     public function get_exams($user_id, $course_id)
     {
         try {
-            // $exams = User::findOrFail($user_id)->exams;
-            // $exams = Exam::where(['user_id' => $user_id]);
             $exams = Exam::where('user_id', $user_id)
                 ->where('course_id', $course_id)
+                ->orderBy('created_at', 'desc')
                 ->get();
             return response()->json($exams);
         } catch (Exception $e) {
@@ -163,26 +162,43 @@ class Instructor extends Controller
             'correct_answer' => 'string | required',
             // 'option_a' => 'string | required',
             'option_b' => 'string | required',
-            'option_c' => 'string ',
-            'option_d' => 'string ',
+            'option_c' => 'string | nullable',
+            'option_d' => 'string | nullable',
         ]);
         try {
 
             $user = User::findOrFail($user_id);
             $exam = Exam::findOrFail($exam_id);
-
             $question = Question::findOrFail($question_id);
 
             $question->question = $validate['question'];
             $question->correct_answer = $validate['correct_answer'];
-            // $question->option_a = $validate['option_a'];
             $question->option_b = $validate['option_b'];
-            $question->option_c = $validate['option_c'];
-            $question->option_d = $validate['option_d'];
+            $question->option_c = $validate['option_c'] ?? null;
+            $question->option_d = $validate['option_d'] ?? null;
 
             $question->save();
 
             return response()->json($question, 201);
+            // Only create question bank entry if question was successfully saved
+            if ($question->wasChanged()) {
+                $question_bank = QuestionBank::create([
+                    'exam_id' => $question->exam_id,
+                    'user_id' => $question->user_id,
+                    'question' => $question->question,
+                    'correct_answer' => $question->correct_answer,
+                    'option_b' => $question->option_b,
+                    'option_c' => $question->option_c,
+                    'option_d' => $question->option_d,
+                ]);
+
+                return response()->json([
+                    'question' => $question,
+                    'question_bank' => $question_bank
+                ], 201);
+            }
+
+            // return response()->json($question, 201);
             // Todo: implement question bank
             // if ($question) {
             //     $question_bank = question_bank::create([
@@ -248,7 +264,7 @@ class Instructor extends Controller
     }
     public function get_questions(Request $request, $exam_id)
     {
-        $exam = Exam::findOrFail($exam_id)->questions;
+        $exam = Exam::findOrFail($exam_id)->questions()->orderBy('id')->get();
         return response()->json($exam, 200);
     }
 
