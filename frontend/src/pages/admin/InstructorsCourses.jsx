@@ -25,11 +25,14 @@ const InstructorsCourses = () => {
         error: sErr,
     } = useFetch(`/get-active-session`);
     console.log(activeSession && activeSession);
+
     const {
         data: allCourses,
         loading: coursesLoading,
         error: coursesErr,
-    } = useFetch(`/get-sesssion-courses/${activeSession.id}`);
+    } = useFetch(`/get-session-courses/${activeSession.id}`);
+
+    console.log(allCourses)
 
     // const {
     //     data: allCourses,
@@ -114,7 +117,7 @@ const InstructorsCourses = () => {
                         {errMsg && errMsg}
                         <div className="flex justify-between items-center mb-5">
                             <h1 className="capitalize font-bold ">
-                                Add New Course
+                                Add Course
                             </h1>
                             <button
                                 onClick={() => setshowModel(false)}

@@ -191,8 +191,21 @@ class Admin extends Controller
 
     public function get_active_session()
     {
-        $session = Acd_session::where('status', 'active')->get();
-        return response()->json($session);
+        $session = Acd_session::where('status', 'active')->first();
+        $semesters = Acd_session::findOrFail($session->id)->semesters;
+        $activeSemester = null;
+
+        foreach ($semesters as $semester) {
+            if ($semester->status === 'active') {
+                $activeSemester = $semester;
+                break;
+            }
+        }
+
+        if ($activeSemester) {
+            $courses = Course::where('semester_id', $activeSemester->id)->get();
+            return response()->json($courses);
+        }
     }
 
     public function add_lecturer_course(Request $request, $user_id, $course_id)
