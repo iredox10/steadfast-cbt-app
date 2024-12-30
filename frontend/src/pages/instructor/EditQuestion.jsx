@@ -13,6 +13,7 @@ import { FaTimes } from "react-icons/fa";
 
 const EditQuestion = () => {
     const { questionId, userId, examId } = useParams();
+
     const modules = {
         toolbar: [
             [{ header: [1, 2, false] }], // Header options
@@ -35,18 +36,26 @@ const EditQuestion = () => {
 
     const [error, setError] = useState("");
 
-    const [questionObj, setQuestionObj] = useState()
+    const [questionObj, setQuestionObj] = useState();
     useEffect(() => {
         const fetch = async () => {
             try {
                 const res = await axios(`${path}/get-question/${questionId}`);
                 // console.log(res.data);
-                if(res.status == 200){
-                  setTimeout(() => {
-                    setQuestion(res.data.question)
-                    setCorrectAnswer(res.data.correct_answer)
-                    setOptions([res.data.option_b, res.data.option_c, res.data.option_d ])
-                  }, 1000);
+                if (res.status == 200) {
+                    setTimeout(() => {
+                        setQuestion(res.data.question);
+                        setCorrectAnswer(res.data.correct_answer);
+                        const backendOptions = [
+                            res.data.option_b,
+                            res.data.option_c,
+                            res.data.option_d,
+                        ].filter((option) => option !== null);
+                        setOptions([
+                            res.data.correct_answer,
+                            ...backendOptions,
+                        ]);
+                    }, 1000);
                 }
             } catch (error) {
                 console.log(error);
