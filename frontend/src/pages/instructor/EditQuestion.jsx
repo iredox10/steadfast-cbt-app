@@ -69,13 +69,34 @@ const EditQuestion = () => {
     };
 
     const addOption = () => {
+        if (optionEditor == "") {
+            setError("Option can't be empty");
+            return;
+        }
+        if (options.length == 4) {
+            setError("You can't add more than 4 options");
+            return;
+        }
         setOptions((prev) => [...prev, optionEditor]);
         setOptionEditor("");
+        if (options.length == 1) {
+            setCorrectAnswer(options[0]);
+        }
+        console.log("Current options:", [...options, optionEditor]); // This will show the actual updated array
     };
 
     const removeOption = (i) => {
         const newValue = options.filter((option, index) => index !== i);
         setOptions(newValue);
+        if (newValue.length !== 0) {
+            setCorrectAnswer(newValue[0]);
+        }
+        if (newValue.length == 0) {
+            setCorrectAnswer("");
+        }
+        if (newValue.length == 1) {
+            setCorrectAnswer(newValue[0]);
+        }
     };
 
     const handleSubmit = async (e) => {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css"; // Import Quill styles
 import "../../quill.css";
@@ -51,23 +51,44 @@ const AddQuestion = () => {
     };
 
     const addOption = () => {
+        if (optionEditor == "") {
+            setError("Option can't be empty");
+            return;
+        }
+        if (options.length == 4) {
+            setError("You can't add more than 4 options");
+            return;
+        }
         setOptions((prev) => [...prev, optionEditor]);
         setOptionEditor("");
+        if (options.length == 1) {
+            setCorrectAnswer(options[0]);
+        }
+        console.log("Current options:", [...options, optionEditor]); // This will show the actual updated array
     };
 
     const removeOption = (i) => {
         const newValue = options.filter((option, index) => index !== i);
         setOptions(newValue);
+        if (newValue.length !== 0) {
+            setCorrectAnswer(newValue[0]);
+        }
+        if (newValue.length == 0) {
+            setCorrectAnswer("");
+        }
+        if (newValue.length == 1) {
+            setCorrectAnswer(newValue[0]);
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!question || !correctAnswer || !options) {
-            setError("fields can't be empty");
+            setError("fields can't be empty ");
             return;
         }
-        if (!options || options.length < 2) {
-            setError("options can't be less than or more than 2");
+        if (!options || options.length < 2 || options.length > 4) {
+            setError("options can't be less than 2 or more than 4");
             return;
         }
         setError("");
@@ -133,7 +154,7 @@ const AddQuestion = () => {
                                 modules={modules}
                             />
                         </div>
-                        <div className="mb-5">
+                        {/* <div className="mb-5">
                             <h2 className="font-bold text-xl my-2">
                                 Correct Answer
                             </h2>
@@ -143,7 +164,7 @@ const AddQuestion = () => {
                                 theme="snow"
                                 modules={modules}
                             />
-                        </div>
+                        </div> */}
 
                         <div className="relative">
                             <h2 className="font-bold text-xl my-2">Options</h2>
@@ -170,6 +191,7 @@ const AddQuestion = () => {
                     </form>
                 </div>
             </div>
+
             <div className="mr-4 col-start-5 col-end-7">
                 <div className="py-8">
                     <div className="">profile pic and sign out</div>
@@ -177,7 +199,9 @@ const AddQuestion = () => {
                 <div className="sticky top-0 bg-white  p-2 min-h-36 flex flex-col gap-5">
                     <div>
                         <h1>Correct Answer</h1>
-                        <div dangerouslySetInnerHTML={{__html:correctAnswer}}></div>
+                        <div
+                            dangerouslySetInnerHTML={{ __html: correctAnswer }}
+                        ></div>
                     </div>
                     <div>
                         <div>
@@ -196,7 +220,13 @@ const AddQuestion = () => {
                                                     __html: option,
                                                 }}
                                             />
-                                            <button onClick={() => setCorrectAnswer(option)}>correct</button>
+                                            <button
+                                                onClick={() =>
+                                                    setCorrectAnswer(option)
+                                                }
+                                            >
+                                                correct
+                                            </button>
                                             <button
                                                 onClick={() => removeOption(i)}
                                             >
