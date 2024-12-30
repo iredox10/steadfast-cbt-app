@@ -8,6 +8,7 @@ import FormBtn from "../../components/FormBtn";
 import Btn from "../../components/Btn";
 import FormInput from "../../components/FormInput";
 import axios from "axios";
+import {format } from 'date-fns'
 import { path } from "../../../utils/path";
 import Model from "../../components/Model";
 
@@ -24,7 +25,7 @@ const Exams = () => {
         loading: courseLoading,
         err: courseErr,
     } = useFetch(`/get-course/${courseId}`);
-    console.log(course)
+    console.log(course);
 
     const [maxScore, setMaxScore] = useState("");
     const [instructions, setInstructions] = useState("");
@@ -70,7 +71,7 @@ const Exams = () => {
             );
             if (res.status == 201) {
                 setshowModel(false);
-                fetch()
+                fetch();
             }
             console.log(res.data);
         } catch (err) {
@@ -144,6 +145,9 @@ const Exams = () => {
                                     Submission Status
                                 </th>
                                 <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                    created on 
+                                </th>
+                                <th className="py-3 px-4 text-left text-gray-600 font-bold">
                                     actions
                                 </th>
                             </tr>
@@ -187,6 +191,9 @@ const Exams = () => {
                                             )}
                                         </td>
                                         <td className="py-3 px-4 text-gray-700">
+                                            {format(new Date(exam.updated_at), 'Pp')}
+                                        </td>
+                                        <td className="py-3 px-4 text-gray-700">
                                             <div className="flex gap-3 items-center">
                                                 <button
                                                     className=""
@@ -198,13 +205,13 @@ const Exams = () => {
                                                 >
                                                     submit
                                                 </button>
-                                                <button
+                                                {/* <button
                                                     onClick={() =>
                                                         setShowDeleteModel(true)
                                                     }
                                                 >
                                                     delete
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </td>
                                     </tr>

@@ -62,7 +62,7 @@ const AdminDashboard = () => {
             const res = await axios.post(`${path}/activate-exam/${id}`);
             if (res.status == 200) {
                 setShowSubmitModel(false);
-                fetchExams()
+                fetchExams();
             }
             console.log(res);
         } catch (err) {
@@ -71,12 +71,12 @@ const AdminDashboard = () => {
     };
 
     const handleTerminateExam = async (id) => {
-        console.log(id)
+        console.log(id);
         try {
             const res = await axios.post(`${path}/terminate-exam/${id}`);
-            if(res.status == 200){
-                fetchExams()
-                setShowTerminateModel(false)
+            if (res.status == 200) {
+                fetchExams();
+                setShowTerminateModel(false);
             }
             console.log(res);
         } catch (err) {
@@ -128,128 +128,135 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                     <div className="bg-white rounded-lg shadow-md p-4">
-                        <table className="min-w-full border-collapse overflow-hidden rounded-lg">
-                            <thead>
-                                <tr className="bg-gray-100 ">
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                        Id
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Course
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Number Of Questions
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Acutal Question
-                                    </th>
+                        {exams && exams.length > 0 ? (
+                            <table className="min-w-full border-collapse overflow-hidden rounded-lg">
+                                <thead>
+                                    <tr className="bg-gray-100 ">
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
+                                            Id
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Course
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Number Of Questions
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Acutal Question
+                                        </th>
 
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Max score
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Marks Per Question
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Exam Type
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Exam Duration
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Is Activated
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {exams &&
-                                    exams.map((exam, index) => (
-                                        <tr className="border-b">
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {index + 1}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {courses &&
-                                                    courses.map((course) => {
-                                                        if (
-                                                            course.id ==
-                                                            exam.course_id
-                                                        ) {
-                                                            return (
-                                                                <p>
-                                                                    {
-                                                                        course.title
-                                                                    }
-                                                                </p>
-                                                            );
-                                                        } else {
-                                                            return "";
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Max score
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Marks Per Question
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Exam Type
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Exam Duration
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                            Is Activated
+                                        </th>
+                                        <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {exams &&
+                                        exams.map((exam, index) => (
+                                            <tr className="border-b">
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {index + 1}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {courses &&
+                                                        courses.map(
+                                                            (course) => {
+                                                                if (
+                                                                    course.id ==
+                                                                    exam.course_id
+                                                                ) {
+                                                                    return (
+                                                                        <p>
+                                                                            {
+                                                                                course.title
+                                                                            }
+                                                                        </p>
+                                                                    );
+                                                                } else {
+                                                                    return "";
+                                                                }
+                                                            }
+                                                        )}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.no_of_questions}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.actual_questions}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.max_score}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.marks_per_question}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.exam_type}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.exam_duration}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-700">
+                                                    {exam.activated == "yes" ? (
+                                                        <button className="p-1 bg-green-700 rounded-full">
+                                                            <FaCheck className="text-white" />
+                                                        </button>
+                                                    ) : (
+                                                        <button className="p-1 bg-red-500 rounded-full">
+                                                            <FaTimes className="text-white" />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                                <td className="py-3 px-4 flex items-center text-gray-700 gap-2">
+                                                    <button
+                                                        id="show_detail"
+                                                        className="p-2 bg-green-600"
+                                                        onClick={() =>
+                                                            showModelAndSetExamId(
+                                                                exam.id
+                                                            )
                                                         }
-                                                    })}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.no_of_questions}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.actual_questions}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.max_score}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.marks_per_question}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.exam_type}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.exam_duration}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {exam.activated == "yes" ? (
-                                                    <button className="p-1 bg-green-700 rounded-full">
-                                                        <FaCheck className="text-white" />
+                                                    >
+                                                        {/* <FaCheck /> */}
+                                                        Activate
                                                     </button>
-                                                ) : (
-                                                    <button className="p-1 bg-red-500 rounded-full">
-                                                        <FaTimes className="text-white" />
+                                                    <button
+                                                        type="button"
+                                                        id="show_detail"
+                                                        className="p-2 bg-red-500 text-white"
+                                                        onClick={() =>
+                                                            setShowTerminateModel(
+                                                                true
+                                                            )
+                                                        }
+                                                    >
+                                                        {/* <FaCheck /> */}
+                                                        Terminate
                                                     </button>
-                                                )}
-                                            </td>
-                                            <td className="py-3 px-4 flex items-center text-gray-700 gap-2">
-                                                <button
-                                                    id="show_detail"
-                                                    className="p-2 bg-green-600"
-                                                    onClick={() =>
-                                                        showModelAndSetExamId(
-                                                            exam.id
-                                                        )
-                                                    }
-                                                >
-                                                    {/* <FaCheck /> */}
-                                                    Activate
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    id="show_detail"
-                                                    className="p-2 bg-red-500 text-white"
-                                                    onClick={() =>
-                                                        setShowTerminateModel(
-                                                            true
-                                                        )
-                                                    }
-                                                >
-                                                    {/* <FaCheck /> */}
-                                                    Terminate
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            "no exam submitted yet"
+                        )}
+
                         {showTerminateModel && (
                             <Model>
                                 <div className="p-5 text-center">
