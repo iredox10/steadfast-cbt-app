@@ -88,6 +88,20 @@ class Admin extends Controller
         }
     }
 
+    public function activate_semester($semester_id)
+    {
+        try {
+            $semesters = Semester::query()->update(['status' => 'inactive']);
+            $semester = Semester::findOrFail($semester_id);
+
+            $semester->status = 'active';
+            $semester->save();
+            return response()->json($semester);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
     public function add_semester(Request $request, $session_id)
     {
         $validate = request()->validate([

@@ -10,12 +10,14 @@ import FormBtn from "../../components/FormBtn";
 import Model from "../../components/Model";
 import PlusBtn from "../../components/PlusBtn";
 import { path } from "../../../utils/path";
+import ConfirmationModel from "../../components/ConfirmationModel";
 
 const Session = () => {
     const { id } = useParams();
     const [semester, setSemester] = useState();
     const [semesters, setSemesters] = useState();
     const [error, setError] = useState();
+    const [showActivateSemesterModel, setShowActivateSemesterModel] = useState(false)
 
     const {
         data: session,
@@ -37,7 +39,7 @@ const Session = () => {
     useEffect(() => {
         fetch();
     }, []);
-    // console.log(semesters, session);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!semester) {
@@ -58,30 +60,75 @@ const Session = () => {
             console.log(err);
         }
     };
+
+
+    const handleActivateSemester = async (semesterId) => {
+        console.log(semesterId)
+        try {
+            const res = await axios.post(
+                `${path}/activate-semester/${semesterId}`
+            );
+            if (res.status == 200) {
+                fetch();
+                setShowActivateSemesterModel(false);
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
     return (
         <div>
             <GridLayout>
                 <Sidebar>
                     <Link to={`/admin-dashboard/${id}`}>Dashboard</Link>
                 </Sidebar>
-                <div className="col-span-5 p-5 grid grid-cols-4 grid-rows-12">
+                <div className="col-span-5 p-5 grid grid-cols-4 grid-rows-12 w-full ">
                     <div>
                         <h1 className="my-4 font-bold">
                             List of ({session && session.title}) semesters
                         </h1>
-                        <div className="flex gap-2">
+
+                        <div className="flex gap-5 w-full ">
                             {semesters &&
                                 semesters.map((semester) => (
                                     <div
-                                        key={semester.id}
-                                        className="bg-white p-2"
+                                        key={semester._id}
+                                        className="bg-white p-4 text-center capitalize"
                                     >
-                                        <Link to={`/semester/${semester.id}`}>
-                                            <p>{semester.semester} semester</p>
-                                            <p className="font-bold">
-                                                {semester.status}
-                                            </p>
-                                        </Link>
+                                        <p>{semester.semester} semester</p>
+                                        <p className="font-bold">
+                                            <span>status: </span>
+                                            {semester.status}
+                                        </p>
+
+                                        <div className="flex items-center gap-5">
+                                            <Link
+                                                className="bg-black text-white px-4 py-1"
+                                                to={`/semester/${semester.id}`}
+                                            >
+                                                view
+                                            </Link>
+                                            {semester.status == "inactive" ? (
+                                                <button
+                                                    onClick={() => {
+                                                        setShowActivateSemesterModel(
+                                                            true
+                                                        );
+                                                        setSemester({
+                                                            id: semester.id,
+                                                            semester:
+                                                                semester.semester,
+                                                        });
+                                                    }}
+                                                    className="bg-green-500 text-white px-4 py-1 capitalize"
+                                                >
+                                                    activate
+                                                </button>
+                                            ) : (
+                                                ""
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                         </div>
@@ -108,6 +155,14 @@ const Session = () => {
                         <FormBtn text={"submit"} />
                     </form>
                 </Model>
+            )}
+
+            {showActivateSemesterModel && (
+                <ConfirmationModel
+                    title={`Do You Want To Activate ${semester.semester} semester`}
+                    onYes={() => handleActivateSemester(semester.id)}
+                    onNo={() => setShowActivateSemesterModel(false)}
+                />
             )}
         </div>
     );
