@@ -15,16 +15,6 @@ const Student = () => {
 
     const [answers, setAnswers] = useState([]);
     console.log(data);
-// useEffect(() =>{
-//     setTimeout(() =>{
-//     if(!data){
-//         navigate('/')
-//     }
-//     }, 1000)
-// },[])
-
-
-    // const time = parseDuration(data && data.exam.exam_duration);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
     // console.log(student);
