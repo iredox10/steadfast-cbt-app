@@ -22,6 +22,9 @@ const AdminDashboard = () => {
     const [examId, setexamId] = useState();
 
     const [courses, setCourses] = useState();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(5);
 
     const fetchExams = async () => {
         try {
@@ -82,6 +85,23 @@ const AdminDashboard = () => {
             console.log(err);
         }
     };
+
+    // Filter exams based on search
+    const filteredExams = exams?.filter((exam) => {
+        const courseName = courses?.find(course => course.id === exam.course_id)?.title || '';
+        return courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            exam.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            exam.exam_duration.toString().includes(searchTerm);
+    });
+
+    // Calculate pagination
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredExams?.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil((filteredExams?.length || 0) / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
     return (
         <div className="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar>
@@ -100,10 +120,10 @@ const AdminDashboard = () => {
                         <div className="bg-white flex items-center gap-3 p-2 rounded-full">
                             <input
                                 type="search"
-                                name="search"
-                                id="search"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full p-1 border-none outline-none px-5"
-                                placeholder="Search...."
+                                placeholder=" course name,duration,type" 
                             />
                             <button>
                                 <i className="fas fa-search"></i>
@@ -127,49 +147,49 @@ const AdminDashboard = () => {
                 </div>
                 <div>
                     <div className="bg-white rounded-lg shadow-md p-4">
-                        {exams && exams.length > 0 ? (
-                            <table className="min-w-full border-collapse overflow-hidden rounded-lg">
-                                <thead>
-                                    <tr className="bg-gray-100 ">
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                            Id
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Course
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Number Of Questions
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Acutal Question
-                                        </th>
+                        {currentItems && currentItems.length > 0 ? (
+                            <>
+                                <table className="min-w-full border-collapse overflow-hidden rounded-lg">
+                                    <thead>
+                                        <tr className="bg-gray-100 ">
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
+                                                Id
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Course
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Number Of Questions
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Acutal Question
+                                            </th>
 
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Max score
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Marks Per Question
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Exam Type
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Exam Duration
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                            Is Activated
-                                        </th>
-                                        <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {exams &&
-                                        exams.map((exam, index) => (
-                                            <tr className="border-b">
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Max score
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Marks Per Question
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Exam Type
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Exam Duration
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
+                                                Is Activated
+                                            </th>
+                                            <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {currentItems.map((exam, index) => (
+                                            <tr className="border-b" key={exam.id}>
                                                 <td className="py-3 px-4 text-gray-700">
-                                                    {index + 1}
+                                                    {indexOfFirstItem + index + 1}
                                                 </td>
                                                 <td className="py-3 px-4 text-gray-700">
                                                     {courses &&
@@ -252,51 +272,58 @@ const AdminDashboard = () => {
                                                 </td>
                                             </tr>
                                         ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            "no exam submitted yet"
-                        )}
+                                    </tbody>
+                                </table>
 
-                        {showTerminateModel && (
-                            <Model>
-                                <div className="p-5 text-center">
-                                    <h1 className="text-xl font-bold capitalize my-6">
-                                        Did you want to terminate this exam
-                                    </h1>
-                                    <div className="flex justify-center gap-5">
+                                {/* Pagination Controls */}
+                                <div className="flex justify-center items-center gap-2 mt-4">
+                                    <button
+                                        onClick={() => paginate(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className={`px-3 py-1 rounded ${
+                                            currentPage === 1
+                                                ? 'bg-gray-200 cursor-not-allowed'
+                                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                        }`}
+                                    >
+                                        Previous
+                                    </button>
+                                    
+                                    {[...Array(totalPages)].map((_, index) => (
                                         <button
-                                            className="px-4 py-2 bg-green-500 text-white"
-                                            onClick={() =>
-                                                handleTerminateExam(examId)
-                                            }
+                                            key={index + 1}
+                                            onClick={() => paginate(index + 1)}
+                                            className={`px-3 py-1 rounded ${
+                                                currentPage === index + 1
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-gray-200 hover:bg-gray-300'
+                                            }`}
                                         >
-                                            Yes
+                                            {index + 1}
                                         </button>
-                                        <button
-                                            className="px-4 py-2 bg-red-500 text-white"
-                                            onClick={() =>
-                                                setShowTerminateModel(false)
-                                            }
-                                        >
-                                            No
-                                        </button>
-                                    </div>
+                                    ))}
+                                    
+                                    <button
+                                        onClick={() => paginate(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className={`px-3 py-1 rounded ${
+                                            currentPage === totalPages
+                                                ? 'bg-gray-200 cursor-not-allowed'
+                                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                        }`}
+                                    >
+                                        Next
+                                    </button>
                                 </div>
-                            </Model>
+
+                                {/* Items per page info */}
+                                <div className="text-center text-sm text-gray-600 mt-2">
+                                    Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredExams?.length || 0)} of {filteredExams?.length || 0} entries
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-center py-4">No exams found</p>
                         )}
-                        <div className="mt-4 flex justify-between items-center">
-                            <span className="text-sm text-gray-600">
-                                {/* Showing 6-21 of 1000 */}
-                            </span>
-                            <div className="flex space-x-1 text-gray-600">
-                                {[...Array(10)].map((a, i) => {
-                                    <div className="flex space-x-1 text-gray-600">
-                                        i
-                                    </div>;
-                                })}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -311,6 +338,33 @@ const AdminDashboard = () => {
                                 Yes
                             </button>
                             <button onClick={() => setShowSubmitModel(false)}>
+                                No
+                            </button>
+                        </div>
+                    </div>
+                </Model>
+            )}
+            {showTerminateModel && (
+                <Model>
+                    <div className="p-5 text-center">
+                        <h1 className="text-xl font-bold capitalize my-6">
+                            Did you want to terminate this exam
+                        </h1>
+                        <div className="flex justify-center gap-5">
+                            <button
+                                className="px-4 py-2 bg-green-500 text-white"
+                                onClick={() =>
+                                    handleTerminateExam(examId)
+                                }
+                            >
+                                Yes
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-red-500 text-white"
+                                onClick={() =>
+                                    setShowTerminateModel(false)
+                                }
+                            >
                                 No
                             </button>
                         </div>

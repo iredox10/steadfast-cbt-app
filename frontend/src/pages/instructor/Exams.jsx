@@ -37,6 +37,10 @@ const Exams = () => {
 
     const [exams, setExams] = useState();
     const [exam, setExam] = useState();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(5); // Adjust number of items per page as needed
+
     const fetch = async () => {
         try {
             const res = await axios(`${path}/get-exams/${userId}/${courseId}`);
@@ -100,6 +104,20 @@ const Exams = () => {
         }
     };
 
+    const filteredExams = exams?.filter((exam) =>
+        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exam.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exam.exam_duration.toString().includes(searchTerm)
+    );
+
+    // Calculate pagination values
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredExams?.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil((filteredExams?.length || 0) / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
     return (
         <GridLayout>
             <Sidebar>
@@ -111,13 +129,22 @@ const Exams = () => {
             </Sidebar>
             <div className="p-5 col-span-5">
                 <div className="flex items-center justify-between my-5">
-                    <h1 className="capitalize ">
+                    <h1 className="capitalize">
                         <span className="font-bold">{course.title}</span> Exams
                     </h1>
-                    <Btn
-                        onclick={() => setshowModel(!showModel)}
-                        text={"add Exam"}
-                    />
+                    <div className="flex items-center gap-4">
+                        <input
+                            type="text"
+                            placeholder="Search exams..."
+                            className="px-4 py-2 border rounded-lg"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <Btn
+                            onclick={() => setshowModel(!showModel)}
+                            text={"add Exam"}
+                        />
+                    </div>
                 </div>
                 <div className="bg-white rounded-lg shadow-md p-4">
                     <table className="min-w-full border-collapse overflow-hidden rounded-lg">
@@ -153,11 +180,11 @@ const Exams = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {exams &&
-                                exams.map((exam, index) => (
+                            {currentItems &&
+                                currentItems.map((exam, index) => (
                                     <tr className="border-b">
                                         <td className="py-3 px-4 text-gray-700">
-                                            {index + 1}
+                                            {indexOfFirstItem + index + 1}
                                         </td>
                                         <Link
                                             to={`/exam-questions/${userId}/${exam.id}`}
@@ -218,6 +245,52 @@ const Exams = () => {
                                 ))}
                         </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    <div className="flex justify-center items-center gap-2 mt-4">
+                        <button
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`px-3 py-1 rounded ${
+                                currentPage === 1
+                                    ? 'bg-gray-200 cursor-not-allowed'
+                                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                            }`}
+                        >
+                            Previous
+                        </button>
+                        
+                        {[...Array(totalPages)].map((_, index) => (
+                            <button
+                                key={index + 1}
+                                onClick={() => paginate(index + 1)}
+                                className={`px-3 py-1 rounded ${
+                                    currentPage === index + 1
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-gray-200 hover:bg-gray-300'
+                                }`}
+                            >
+                                {index + 1}
+                            </button>
+                        ))}
+                        
+                        <button
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`px-3 py-1 rounded ${
+                                currentPage === totalPages
+                                    ? 'bg-gray-200 cursor-not-allowed'
+                                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                            }`}
+                        >
+                            Next
+                        </button>
+                    </div>
+
+                    {/* Show items per page info */}
+                    <div className="text-center text-sm text-gray-600 mt-2">
+                        Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredExams?.length || 0)} of {filteredExams?.length || 0} entries
+                    </div>
                 </div>
             </div>
 

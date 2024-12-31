@@ -22,7 +22,7 @@ class Student extends Controller
             return response()->json('user not found', 404);
         }
         if (Hash::check($request->input('password'), $student->password)) {
-        // if ($request->input('password') == $student->password) {
+            // if ($request->input('password') == $student->password) {
             return response()->json($student);
         } else {
             // return redirect()->back()->with('message', 'wrong password!!');
@@ -40,6 +40,7 @@ class Student extends Controller
     {
         $student = \App\Models\Student::findOrFail($student_id);
         $student->is_logged_on = 'yes';
+        $student->checkin_time = now();
         $student->save();
         return response()->json($student, 200);
     }
@@ -185,8 +186,10 @@ class Student extends Controller
     public function submit_exam(Request $request, $student_id, $course_id)
     {
         try {
+            $student = \App\Models\Student::findOrFail($student_id);
             $student_answered_questions = Answers::where('candidate_id', $student_id)->where('course_id', $course_id)->get();
-            // $student_answered_questions = Answers::where('candidate_id', $student_id)->get();
+            $student->checkout_time = now();
+            $student->save();
             $marks = Answers::where('is_correct', true)->count();
             return response()->json([$student_answered_questions, $marks]);
         } catch (Exception $e) {
