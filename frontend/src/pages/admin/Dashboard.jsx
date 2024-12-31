@@ -13,9 +13,7 @@ import FormBtn from "../../components/FormBtn";
 const AdminDashboard = () => {
     const { id } = useParams();
     // const { data: exams, loading, err } = useFetch(`/get-exams`);
-
     const [course, setCourse] = useState();
-    console.log(course);
     const [exams, setExams] = useState();
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
@@ -52,6 +50,7 @@ const AdminDashboard = () => {
     console.log(courses);
 
     const showModelAndSetExamId = (id) => {
+        console.log(id)
         setShowSubmitModel(true);
         setexamId(id);
     };
@@ -239,10 +238,12 @@ const AdminDashboard = () => {
                                                         type="button"
                                                         id="show_detail"
                                                         className="p-2 bg-red-500 text-white"
-                                                        onClick={() =>
+                                                        onClick={() =>{
+                                                            setexamId(exam.id)
                                                             setShowTerminateModel(
                                                                 true
                                                             )
+                                                        }
                                                         }
                                                     >
                                                         {/* <FaCheck /> */}

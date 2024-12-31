@@ -288,69 +288,59 @@ class Admin extends Controller
 
     public function register_student(Request $request, $user_id)
     {
-        // Validate the request data
-        $validate = request()->validate([
-            'candidate_no' => 'required|string',
-            'full_name' => 'required|string',
-            'programme' => 'required|string',
-            'department' => 'required|string',
-            'password' => 'required|string',
-            'is_logged_on' => 'required|string',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
         try {
-            // Verify user exists
-            $user = User::findOrFail($user_id);
-            
-            // Check if image exists in request
-            if (!$request->hasFile('image')) {
-                return response()->json(['error' => 'No image file found in request'], 400);
-            }
-
-            // Get the image file
-            $image = $request->file('image');
-            
-            // Check if image is valid
-            if (!$image->isValid()) {
-                return response()->json(['error' => 'Invalid image file'], 400);
-            }
-
-            try {
-                // Store the image and get the path
-                $imagePath = $image->store('students', 'public');
-                
-                if (!$imagePath) {
-                    throw new Exception('Failed to store image');
-                }
-            } catch (Exception $e) {
-                Log::error('Image upload failed: ' . $e->getMessage());
-                return response()->json(['error' => 'The image failed to upload: ' . $e->getMessage()], 500);
-            }
-
-            // Create the student record
             $student = Student::create([
-                'candidate_no' => $validate['candidate_no'],
-                'full_name' => $validate['full_name'],
-                'programme' => $validate['programme'],
-                'department' => $validate['department'],
-                'password' => bcrypt($validate['password']),
-                'is_logged_on' => $validate['is_logged_on'],
-                'image' => $imagePath,
+                'candidate_no' => $request->candidate_no,
+                'full_name' => $request->full_name,
+                'department' => $request->department,
+                'programme' => $request->programme,
+                'password' => bcrypt($request->password),
+                'is_logged_on' => 'no'
             ]);
-
-            return response()->json([
-                'message' => 'Student registered successfully',
-                'student' => $student
-            ], 201);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json($student, 201);
         } catch (Exception $e) {
-            Log::error('Student registration failed: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json($e->getMessage());
         }
     }
+    // public function register_student(Request $request, $user_id)
+    // {
+    //     // Validate the request data
+    //     $validate = request()->validate([
+    //         'candidate_no' => 'required|string',
+    //         'full_name' => 'required|string',
+    //         'programme' => 'required|string',
+    //         'department' => 'required|string',
+    //         'password' => 'required|string',
+    //         'is_logged_on' => 'required|string',
+    //         // 'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+    //     ]);
+
+    //     try {
+    //         // Verify user exists
+    //         $user = User::findOrFail($user_id);
+
+    //         $student = Student::create([
+    //             'candidate_no' => $validate['candidate_no'],
+    //             'full_name' => $validate['full_name'],
+    //             'programme' => $validate['programme'],
+    //             'department' => $validate['department'],
+    //             'password' => bcrypt($validate['password']),
+    //             'is_logged_on' => $validate['is_logged_on'],
+    //             // 'image' => $imagePath,
+    //         ]);
+
+    //         return response()->json([
+    //             'message' => 'Student registered successfully',
+    //             'student' => $student
+    //         ], 201);
+
+    //     } catch (ModelNotFoundException $e) {
+    //         return response()->json(['error' => 'User not found'], 404);
+    //     } catch (Exception $e) {
+    //         Log::error('Student registration failed: ' . $e->getMessage());
+    //         return response()->json(['error' => $e->getMessage()], 500);
+    //     }
+    // }
 
     public function get_course_students($course_id)
     {
@@ -363,21 +353,6 @@ class Admin extends Controller
         }
     }
 
-    // public function upload_excel(Request $request)
-    // {
-    //     try {
-    //         $request->validate([
-    //             'excel_file' => 'required|mimes:xlsx,csv'
-    //         ]);
-
-    //         Excel::import(new StudentsImport, $request->file('excel_file'));
-    //         return response()->json(['message' => 'File imported']);
-    //         // return response()->json($request);
-
-    //     } catch (Exception $e) {
-    //         return response()->json($e->getMessage());
-    //     }
-    // }
 
     public function upload_excel(Request $request)
     {

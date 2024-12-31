@@ -72,7 +72,7 @@ Route::get('/get-question/{question_id}', [Instructor::class, 'get_question']);
 
 Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
 
-Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_students_score']);
+// Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_students_score']);
 
 
 // ! I add the course_id so that I can easily search the db with the course Id

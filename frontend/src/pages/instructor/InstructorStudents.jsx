@@ -15,8 +15,9 @@ const InstructorStudents = () => {
         error,
     } = useFetch(`/get-students-score/${courseId}`);
     console.log(scores);
+
     const [students, setStudents] = useState();
-    console.log(students);
+
     useEffect(() => {
         const fetch = async () => {
             try {
@@ -55,7 +56,7 @@ const InstructorStudents = () => {
                                         department
                                     </th>
                                     <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Marks
+                                        Score
                                     </th>
                                 </tr>
                             </thead>

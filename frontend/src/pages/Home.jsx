@@ -14,6 +14,7 @@ const Home = () => {
     const navigate = useNavigate();
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrMsg('')
         if (!candidateNumber || !password) {
             setErrMsg("fields are empty");
             return;

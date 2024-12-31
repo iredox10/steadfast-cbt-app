@@ -45,48 +45,53 @@ const AdminStudents = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErr(null);
-        
-        if (!full_name || !candidate_no || !department || !programme) {
-            setErr('All fields are required');
-            return;
-        }
-        if (!image) {
-            setErr('Please select an image');
-            return;
-        }
 
-        const formData = new FormData();
-        formData.append("image", image);
-        formData.append("full_name", full_name);
-        formData.append("candidate_no", candidate_no);
-        formData.append("password", "password");
-        formData.append("is_logged_on", "no");
-        formData.append("programme", programme);
-        formData.append("department", department);
+        // if (!full_name || !candidate_no || !department || !programme) {
+        //     setErr("All fields are required");
+        //     return;
+        // }
+        // if (!image) {
+        //     setErr("Please select an image");
+        //     return;
+        // }
 
+        // const formData = new FormData();
+        // formData.append("image", image);
+        // formData.append("full_name", full_name);
+        // formData.append("candidate_no", candidate_no);
+        // formData.append("password", "password");
+        // formData.append("is_logged_on", "no");
+        // formData.append("programme", programme);
+        // formData.append("department", department);
+        console.log(programme)
         try {
-            const res = await axios.post(
-                `${path}/register-student/${id}`,
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-            
+            const res = await axios.post(`${path}/register-student/${id}`, {
+                full_name,
+                candidate_no,
+                password: "password",
+                programme,
+                department,
+                is_logged_on: "no",
+            });
+
             if (res.status === 201) {
                 setFull_name("");
                 setCandidate_no("");
                 setDepartment("");
                 setProgramme("");
                 setImage(null);
-                
+
                 setShowModel(false);
                 fetch();
+
+                console.log("heelo");
             }
+            console.log(res.data)
         } catch (err) {
-            setErr(err.response?.data?.error || 'An error occurred while registering student');
+            setErr(
+                err.response?.data?.error ||
+                    "An error occurred while registering student"
+            );
             console.error(err);
         }
     };
@@ -128,7 +133,7 @@ const AdminStudents = () => {
 
             if (res.status == 201) {
                 setShowForm(false);
-                setShowModel(false)
+                setShowModel(false);
                 fetch();
             }
             console.log("File uploaded successfully:", res);
@@ -300,6 +305,7 @@ const AdminStudents = () => {
                                                 setProgramme(e.target.value)
                                             }
                                         />
+
                                         <FormInput
                                             label={"image"}
                                             type={"file"}
@@ -309,6 +315,7 @@ const AdminStudents = () => {
                                                 setImage(e.target.files[0])
                                             }
                                         />
+
                                         <FormBtn text={"add student"} />
                                     </div>
                                 </form>

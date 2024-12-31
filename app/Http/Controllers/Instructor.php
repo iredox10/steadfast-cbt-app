@@ -408,6 +408,7 @@ class Instructor extends Controller
             return response()->json($e->getMessage());
         }
     }
+
     public function get_students_score($course_id)
     {
         try {
@@ -417,6 +418,7 @@ class Instructor extends Controller
             return response()->json($e->getMessage());
         }
     }
+
     public function edit_question(Request $request, $question_Id)
     {
         $question = Question::where('id', $question_Id)->update(
