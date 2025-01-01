@@ -36,104 +36,55 @@ const InstructorStudents = () => {
                 <Sidebar></Sidebar>
                 <div className="p-5 col-start-2 col-end-7">
                     <Header title={"Candidate"} subtitle={"List of Student"} />
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        <table className="min-w-full border-collapse overflow-hidden rounded-lg">
-                            <thead>
-                                <tr className="bg-gray-100 ">
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                        S/N
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Full Name
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Candidate NUmber
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        programme
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        department
-                                    </th>
-                                    <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                        Score
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {scores &&
-                                    scores.map((score, index) => (
-                                        <tr className="border-b">
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {index + 1}
-                                            </td>
-                                            {/* <Link
-                                                to={`/exam-questions/${userId}/${student.id}`}
-                                            >
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {student.full_name}
-                                                </td>
-                                            </Link> */}
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {students &&
-                                                    students.map((student) => {
-                                                        if (
-                                                            student.id ===
-                                                            score.student_id
-                                                        ) {
-                                                            return student.full_name;
-                                                        }
-                                                    })}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {students &&
-                                                    students.map((student) => {
-                                                        if (
-                                                            student.id ===
-                                                            score.student_id
-                                                        ) {
-                                                            return student.candidate_no;
-                                                        }
-                                                    })}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {students &&
-                                                    students.map((student) => {
-                                                        if (
-                                                            student.id ===
-                                                            score.student_id
-                                                        ) {
-                                                            return student.programme;
-                                                        }
-                                                    })}
-                                            </td>
-
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {students &&
-                                                    students.map((student) => {
-                                                        if (
-                                                            student.id ===
-                                                            score.student_id
-                                                        ) {
-                                                            return student.department;
-                                                        }
-                                                    })}
-                                            </td>
-                                            <td className="py-3 px-4 text-gray-700">
-                                                {students &&
-                                                    students.map((student) => {
-                                                        if (
-                                                            student.id ===
-                                                            score.student_id
-                                                        ) {
-                                                            return score.score;
-                                                        }
-                                                    })}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100">
+                                        <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S/N</th>
+                                        <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Full Name</th>
+                                        <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Candidate Number</th>
+                                        <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Programme</th>
+                                        <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
+                                        <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="6" className="text-center py-4">
+                                                <i className="fas fa-spinner fa-spin mr-2"></i>
+                                                Loading...
                                             </td>
                                         </tr>
-                                    ))}
-                            </tbody>
-                        </table>
+                                    ) : scores && scores.map((score, index) => {
+                                        const student = students?.find(s => s.id === score.student_id);
+                                        return (
+                                            <tr key={score.id} className="hover:bg-gray-50 transition-colors duration-200">
+                                                <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
+                                                <td className="py-4 px-6 text-sm font-medium text-gray-900">
+                                                    {student?.full_name}
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">
+                                                    {student?.candidate_no}
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">
+                                                    {student?.programme}
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">
+                                                    {student?.department}
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        {score.score}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </GridLayout>
