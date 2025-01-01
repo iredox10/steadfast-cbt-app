@@ -8,92 +8,102 @@ import ErrMsg from "../components/ErrMsg";
 import { useNavigate } from "react-router-dom";
 const Home = () => {
     const [candidateNumber, setCandidateNumber] = useState("");
-    const [password, setpassword] = useState("");
+    const [password, setPassword] = useState("");
     const [errMsg, setErrMsg] = useState("");
-
     const navigate = useNavigate();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrMsg('')
+        setErrMsg('');
+
         if (!candidateNumber || !password) {
-            setErrMsg("fields are empty");
+            setErrMsg("Please fill in all fields");
             return;
         }
+
         try {
             const res = await axios.post(`${path}/student-login`, {
                 candidate_no: candidateNumber,
                 password,
             });
-            if (res.status == 200 && res.data.is_logged_on === "no") {
-                navigate(`student/${res.data.id}`);
-                console.log(res);
-            } else if(res.data.is_logged_on === 'yes') {
-                navigate("/logged-student");
-                console.log(res.data)
+
+            if (res.status === 200) {
+                if (res.data.is_logged_on === "no") {
+                    navigate(`student/${res.data.id}`);
+                } else {
+                    navigate("/logged-student");
+                }
             }
-            console.log(res);
         } catch (err) {
-            console.log(err);
-            setErrMsg(err.response.data);
+            setErrMsg(err.response?.data || "Login failed");
         }
     };
+
     return (
-        <div>
-            <div className="flex justify-center">
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="py-8 text-center">
                 <div className="flex flex-col items-center">
-                    <img src={logo} className="w-[6rem]" alt="" />
-                    <h1 className="font-bold">HUK POLY</h1>
+                    <img src={logo} className="w-24 h-24 object-contain" alt="HUK POLY Logo" />
+                    <h1 className="text-2xl font-bold text-gray-800 mt-2">HUK POLY</h1>
                 </div>
             </div>
 
-            <div className="flex justify-between py-[4rem] px-16">
-                <div>
-                    <div>
-                        <div className="py-2">
-                            <h1 className="text-black font-bold  text-8xl">
-                                Welcome
-                            </h1>
-                            <p className="text-black capitalize ml-4 text-xl ">
-                                login to your account
-                            </p>
+            {/* Main Content */}
+            <div className="container mx-auto px-4 md:px-6 lg:px-8">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+                    {/* Login Section */}
+                    <div className="w-full lg:w-1/2 max-w-md">
+                        <div className="mb-8">
+                            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+                            <p className="text-lg text-gray-600">Please sign in to your account</p>
                         </div>
-                    </div>
 
-                    <form onSubmit={handleSubmit} method="POST">
-                        {errMsg && <ErrMsg msg={errMsg} />}
-                        <div className="flex flex-col my-4">
-                            <form onSubmit={handleSubmit}></form>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {errMsg && (
+                                <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+                                    {errMsg}
+                                </div>
+                            )}
+
                             <FormInput
-                                labelFor={"candidateNo"}
-                                label={"Candidate Number"}
-                                name={"candidateNo"}
-                                placeholder={"Enter Your Candidate Number"}
-                                onchange={(e) =>
-                                    setCandidateNumber(e.target.value)
-                                }
+                                labelFor="candidateNo"
+                                label="Candidate Number"
+                                name="candidateNo"
+                                placeholder="Enter your candidate number"
+                                onchange={(e) => setCandidateNumber(e.target.value)}
+                                className="w-full"
                             />
 
                             <FormInput
-                                type={"password"}
-                                labelFor={"password"}
-                                label={"password"}
-                                name={"password"}
-                                placeholder={"Enter Your Password "}
-                                onchange={(e) => setpassword(e.target.value)}
+                                type="password"
+                                labelFor="password"
+                                label="Password"
+                                name="password"
+                                placeholder="Enter your password"
+                                onchange={(e) => setPassword(e.target.value)}
+                                className="w-full"
                             />
+
                             <button
                                 type="submit"
-                                className="bg-black px-4 py-2 text-white text-lg capitalize "
+                                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
                             >
-                                login
+                                Sign In
                             </button>
-                        </div>
-                    </form>
-                </div>
-                <div className="relative">
-                    <div className="absolute -z-10 w-[18rem] h-[18rem] rounded-full bg-black/20"></div>
-                    <div className="absolute top-[5rem] right-0 -z-10 w-[20rem] h-[20rem] rounded-full bg-black/40"></div>
-                    <img src={exam_img} alt="className exam image" />
+                        </form>
+                    </div>
+
+                    {/* Image Section */}
+                    <div className="w-full lg:w-1/2 relative">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-blue-100 rounded-full opacity-50 blur-xl"></div>
+                        <div className="absolute top-1/4 right-1/4 w-48 h-48 bg-purple-100 rounded-full opacity-50 blur-xl"></div>
+                        <img 
+                            src={exam_img} 
+                            alt="Student studying" 
+                            className="relative z-10 max-w-lg mx-auto w-full h-auto"
+                        />
+                    </div>
                 </div>
             </div>
         </div>

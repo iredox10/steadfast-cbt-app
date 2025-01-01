@@ -34,40 +34,55 @@ const AdminLogin = () => {
         }
     };
     return (
-        <div className="flex gap-10 min-h-screen">
-            <div className="bg-black flex-1 p-11">
-                <div className="w-[20%] my-11">
-                    <img src={logo} alt="logo" className="w-full" />
-                </div>
-                <div className="text-white ">
-                    <h1 className="text-6xl font-black">
-                        <span className="block ">Hassan</span>
-                        <span className="block">Usman Katsina</span>
-                        <span className="block">Polytechnic</span>
-                    </h1>
-                    <p className="my-4">Computer Based Test (CBT)</p>
+        <div className="min-h-screen flex">
+            {/* Left Panel */}
+            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-900 to-black items-center justify-center p-12">
+                <div className="max-w-xl">
+                    <div className="mb-12">
+                        <img src={logo} alt="HUK POLY Logo" className="w-32 h-32 object-contain" />
+                    </div>
+                    <div className="text-white space-y-4">
+                        <h1 className="text-5xl font-bold leading-tight">
+                            Hassan Usman Katsina Polytechnic
+                        </h1>
+                        <div className="h-1 w-20 bg-blue-500"></div>
+                        <p className="text-xl text-gray-300">
+                            Computer Based Test (CBT) Portal
+                        </p>
+                    </div>
                 </div>
             </div>
-            <div className="flex-1 p-32">
-                <form onSubmit={handleSubmit}>
-                    <h1 className="font-black text-xl my-4">Admin Login</h1>
-                    {err && <ErrMsg msg={err} />}
-                    <FormInput
-                        label={"email"}
-                        labelFor={"email"}
-                        type={"text"}
-                        placeholder={"enter your email"}
-                        onchange={(e) => setEmail(e.target.value)}
-                    />
-                    <FormInput
-                        label={"password"}
-                        labelFor={"password"}
-                        type={"password"}
-                        placeholder={"enter your password"}
-                        onchange={(e) => setPassword(e.target.value)}
-                    />
-                    <FormBtn text={"Login"} />
-                </form>
+
+            {/* Right Panel */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+                <div className="max-w-md w-full">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+                        <p className="text-gray-600 mt-2">Please sign in to your account</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {err && <ErrMsg msg={err} />}
+                        
+                        <FormInput
+                            label="Email Address"
+                            labelFor="email"
+                            type="text"
+                            placeholder="Enter your email"
+                            onchange={(e) => setEmail(e.target.value)}
+                        />
+
+                        <FormInput
+                            label="Password"
+                            labelFor="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            onchange={(e) => setPassword(e.target.value)}
+                        />
+
+                        <FormBtn text="Sign In" />
+                    </form>
+                </div>
             </div>
         </div>
     );
