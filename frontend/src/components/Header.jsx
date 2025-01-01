@@ -2,9 +2,15 @@ import React from "react";
 
 const Header = ({title,subtitle}) => {
     return (
-        <div className="py-4 capitalize">
-            <h1 className="font-bold text-2xl">{title}</h1>
-            <p>{subtitle}</p>
+        <div className="bg-white shadow-sm p-6 mb-8">
+            <div className="flex flex-col">
+                <h1 className="text-2xl font-bold text-gray-900 mb-1 capitalize">
+                    {title}
+                </h1>
+                <p className="text-gray-600">
+                    {subtitle}
+                </p>
+            </div>
         </div>
     );
 };
