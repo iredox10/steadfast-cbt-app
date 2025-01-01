@@ -272,7 +272,7 @@ const Student = () => {
                                                                     hover:bg-gray-50 cursor-pointer`}
                                                             >
                                                                 <span className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-sm">
-                                                                    {option.label}
+                                                                    {option.label} 
                                                                 </span>
                                                                 <div
                                                                     className="text-sm text-gray-700"
