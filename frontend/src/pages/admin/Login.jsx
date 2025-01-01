@@ -5,6 +5,7 @@ import FormInput from "../../components/FormInput";
 import { path } from "../../../utils/path";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import ErrMsg from "../../components/ErrMsg";
 const AdminLogin = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -14,7 +15,7 @@ const AdminLogin = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+        setErr('')
         if (!email || !password) {
             setErr("field can't be empty");
             return;
@@ -50,7 +51,7 @@ const AdminLogin = () => {
             <div className="flex-1 p-32">
                 <form onSubmit={handleSubmit}>
                     <h1 className="font-black text-xl my-4">Admin Login</h1>
-                    {err && <p>{err}</p>}
+                    {err && <ErrMsg msg={err} />}
                     <FormInput
                         label={"email"}
                         labelFor={"email"}

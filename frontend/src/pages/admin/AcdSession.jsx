@@ -77,104 +77,106 @@ const AcdSession = () => {
     };
 
     return (
-        <div className="grid grid-cols-6 gap-4 min-h-screen">
-            <Sidebar>
-                <Link to={"/admin-dashboard"}>Dashboard</Link>
-            </Sidebar>
+        <div className="min-h-screen bg-gray-100">
+            <div className="flex">
+                <Sidebar>
+                    <Link to={"/admin-dashboard"} className="flex items-center gap-2 p-4 hover:bg-gray-200">
+                        Dashboard
+                    </Link>
+                </Sidebar>
 
-            <div className="col-span-5 p-5 grid grid-cols-4 grid-rows-12">
-                <div className="w-full  col-span-4">
-                    <h1 className="my-4 font-bold">Academy Sessions List</h1>
-                    <div className="flex gap-5 w-full">
-                        {sessions &&
-                            sessions.map((session) => (
-                                <div
-                                    key={session._id}
-                                    className="bg-white p-4 text-center capitalize"
-                                >
-                                    <p>{session.title}</p>
-                                    <p className="font-bold">
-                                        <span>status: </span>
-                                        {session.status}
-                                    </p>
-
-                                    <div className="flex items-center gap-5">
-                                        <Link
-                                            className="bg-black text-white px-4 py-1"
-                                            to={`/session/${session.id}`}
-                                        >
-                                            view
-                                        </Link>
-                                        {session.status == "inactive" ? (
-                                            <button
-                                                onClick={() => {
-                                                    setShowActivateSessionModel(
-                                                        true
-                                                    );
-                                                    setSession({
-                                                        id: session.id,
-                                                        session: session.title,
-                                                    });
-                                                }}
-                                                className="bg-green-500 text-white px-4 py-1 capitalize"
-                                            >
-                                                activate
-                                            </button>
-                                        ) : (
-                                            ""
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                <div className="flex-1 p-8">
+                    <div className="mb-8">
+                        <h1 className="text-2xl font-bold text-gray-800">Academic Sessions</h1>
+                        <p className="text-gray-600">Manage academic sessions and their status</p>
                     </div>
-                </div>
-                <PlusBtn onclick={() => setshowModel(!showModel)} />
-                {showModel && (
-                    <Model>
-                        <div className="p-5 bg-primary-color capitalize">
-                            <FormCloseBtn onclick={() => setshowModel(false)} />
-                            <form onSubmit={handleSubmit}>
-                                {errMsg && errMsg}
-                                <h1 className="font-bold text-xl my-4">
-                                    Add Academic Session
-                                </h1>
-                                <FormInput
-                                    label={"Title"}
-                                    labelFor={"title"}
-                                    type={"text"}
-                                    name={"title"}
-                                    placeholder={"Enter Title"}
-                                    onchange={(e) => setTitle(e.target.value)}
-                                />
-                                <div>
-                                    <label htmlFor="status" className="block">
-                                        status
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <p>activate</p>
-                                        <input
-                                            type="checkbox"
-                                            name="status"
-                                            id=""
-                                            onChange={(e) =>
-                                                setActivate(e.target.checked)
-                                            }
-                                        />
-                                    </div>
-                                    {/* <select name="status" id="" className="w-full">
-                                    <option select disabled>select to activate</option>
-                                    <option value="active">active</option>
-                                </select> */}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {sessions && sessions.map((session) => (
+                            <div key={session._id} className="bg-white rounded-lg shadow-md p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-semibold text-gray-800">{session.title}</h2>
+                                    <span className={`px-3 py-1 rounded-full text-sm ${
+                                        session.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                        {session.status}
+                                    </span>
                                 </div>
-                                <FormBtn text={"submit"} />
-                            </form>
-                        </div>
-                    </Model>
-                )}
+
+                                <div className="flex gap-3">
+                                    <Link 
+                                        to={`/session/${session.id}`}
+                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-center"
+                                    >
+                                        View Details
+                                    </Link>
+                                    {session.status === "inactive" && (
+                                        <button
+                                            onClick={() => {
+                                                setShowActivateSessionModel(true);
+                                                setSession({
+                                                    id: session.id,
+                                                    session: session.title,
+                                                });
+                                            }}
+                                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                        >
+                                            Activate
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button 
+                        onClick={() => setshowModel(!showModel)}
+                    >
+                        <PlusBtn />
+                    </button>
+                </div>
             </div>
+
+            {showModel && (
+                <Model>
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold">Add Academic Session</h2>
+                            <FormCloseBtn onclick={() => setshowModel(false)} />
+                        </div>
+
+                        <form onSubmit={handleSubmit}>
+                            {errMsg && <div className="mb-4 text-red-600">{errMsg}</div>}
+                            
+                            <FormInput
+                                label={"Session Title"}
+                                labelFor={"title"}
+                                type={"text"}
+                                name={"title"}
+                                placeholder={"e.g. 2023/2024"}
+                                onchange={(e) => setTitle(e.target.value)}
+                            />
+
+                            <div className="mb-6">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4"
+                                        onChange={(e) => setActivate(e.target.checked)}
+                                    />
+                                    <span>Activate this session</span>
+                                </label>
+                            </div>
+
+                            <FormBtn text={"Create Session"} />
+                        </form>
+                    </div>
+                </Model>
+            )}
+
             {showActivateSessionModel && (
                 <ConfirmationModel
-                    title={`Do You Want To Activate ${session.session}`}
+                    title={`Activate ${session.session}?`}
                     onYes={() => handleActivateSession(session.id)}
                     onNo={() => setShowActivateSessionModel(false)}
                 />

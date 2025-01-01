@@ -15,6 +15,7 @@ const AdminDashboard = () => {
     // const { data: exams, loading, err } = useFetch(`/get-exams`);
     const [course, setCourse] = useState();
     const [exams, setExams] = useState();
+    const [loading, setLoading] = useState(false);
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
     const [showTerminateModel, setShowTerminateModel] = useState(false);
@@ -27,11 +28,14 @@ const AdminDashboard = () => {
     const [itemsPerPage] = useState(5);
 
     const fetchExams = async () => {
+        setLoading(true);
         try {
             const res = await axios(`${path}/get-exams`);
             setExams(res.data);
         } catch (err) {
             console.log(err);
+        } finally {
+            setLoading(false);
         }
     };
     useEffect(() => {
@@ -105,170 +109,151 @@ const AdminDashboard = () => {
     return (
         <div className="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar>
-                <Link to={"/admin-sessions"}>Sessions</Link>
-                <Link to={"/admin-instructors"}>instructors</Link>
-                <Link to={`/admin-students/${id}`}>students</Link>
+                <Link to={"/admin-sessions"} className="flex items-center gap-2 p-3 hover:bg-gray-100 hover:text-black rounded-lg">
+                    <i className="fas fa-clock"></i>
+                    <span>Sessions</span>
+                </Link>
+                <Link to={"/admin-instructors"} className="flex items-center gap-2 p-3 hover:bg-gray-100 hover:text-black rounded-lg">
+                    <i className="fas fa-chalkboard-teacher"></i>
+                    <span>Instructors</span>
+                </Link>
+                <Link to={`/admin-students/${id}`} className="flex items-center gap-2 p-3 hover:bg-gray-100 hover:text-black rounded-lg">
+                    <i className="fas fa-user-graduate"></i>
+                    <span>Students</span>
+                </Link>
                 {/* <Link to={`/admin-courses/${id}`}>courses</Link> */}
             </Sidebar>
             <div className="col-span-5 p-5">
-                <div className="flex justify-between  w-full my-5">
+                <div className="flex justify-between items-center w-full mb-4 bg-white p-6 rounded-lg shadow-sm">
                     <div>
-                        <h1 className="text-2xl font-bold">Exams</h1>
-                        <p>exam details</p>
+                        <h1 className="text-3xl font-bold text-gray-800">Exams Dashboard</h1>
+                        <p className="text-gray-600 mt-1">Manage and monitor exam details</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="bg-white flex items-center gap-3 p-2 rounded-full">
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
                             <input
                                 type="search"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full p-1 border-none outline-none px-5"
-                                placeholder=" course name,duration,type" 
+                                className="w-[300px] py-2 px-4 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                                placeholder="Search by course, duration or type..."
                             />
-                            <button>
+                            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                                 <i className="fas fa-search"></i>
                             </button>
                         </div>
-                        <i className="fas fa-filter"></i>
-                        <div className="flex gap-4 items-center">
-                            {/* {{-- <img src="" alt="profile picture" className=""> --}} */}
-                            <i className="fas fa-user text-2xl border-2 border-black p-2 rounded-full"></i>
-                            <button className="transition ease-in-out delay-75 p-1 arrow relative hover:mt-2">
-                                <i className="fas fa-arrow-down"></i>
-                                <button
-                                    id="logout"
-                                    className="hidden absolute top-[5rem] -right-0 p-2  h-10 bg-white shadow-lg"
-                                >
-                                    logout
+                        
+                        <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
+                            <i className="fas fa-filter"></i>
+                        </button>
+
+                        <div className="flex items-center gap-3 border-l pl-4">
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                <i className="fas fa-user text-gray-600"></i>
+                            </div>
+                            <div className="relative">
+                                <button className="hover:bg-gray-100 p-2 rounded-lg">
+                                    <i className="fas fa-chevron-down text-gray-600"></i>
                                 </button>
-                            </button>
+                                <div id="logout" className="hidden absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100">
+                                    <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50">
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div>
                     <div className="bg-white rounded-lg shadow-md p-4">
-                        {currentItems && currentItems.length > 0 ? (
+                        {loading ? (
+                            <div className="flex justify-center items-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                <span className="ml-2">Loading...</span>
+                            </div>
+                        ) : currentItems && currentItems.length > 0 ? (
                             <>
-                                <table className="min-w-full border-collapse overflow-hidden rounded-lg">
+                                <table className="min-w-full divide-y divide-gray-200">
                                     <thead>
-                                        <tr className="bg-gray-100 ">
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                                Id
+                                        <tr>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                ID
                                             </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Course
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Course Details
                                             </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Number Of Questions
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Questions
                                             </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Acutal Question
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Scoring
                                             </th>
-
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Max score
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Exam Info
                                             </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Marks Per Question
-                                            </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Exam Type
-                                            </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Exam Duration
-                                            </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold">
-                                                Is Activated
-                                            </th>
-                                            <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tr-lg">
-                                                Actions
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Status & Actions
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="bg-white divide-y divide-gray-200">
                                         {currentItems.map((exam, index) => (
-                                            <tr className="border-b" key={exam.id}>
-                                                <td className="py-3 px-4 text-gray-700">
+                                            <tr key={exam.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {indexOfFirstItem + index + 1}
                                                 </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {courses &&
-                                                        courses.map(
-                                                            (course) => {
-                                                                if (
-                                                                    course.id ==
-                                                                    exam.course_id
-                                                                ) {
-                                                                    return (
-                                                                        <p>
-                                                                            {
-                                                                                course.title
-                                                                            }
-                                                                        </p>
-                                                                    );
-                                                                } else {
-                                                                    return "";
-                                                                }
-                                                            }
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {courses && courses.map(course => 
+                                                            course.id === exam.course_id ? course.title : ""
                                                         )}
+                                                    </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.no_of_questions}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        <div>Total: {exam.no_of_questions}</div>
+                                                        <div className="text-gray-500">Actual: {exam.actual_questions}</div>
+                                                    </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.actual_questions}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        <div>Max Score: {exam.max_score}</div>
+                                                        <div className="text-gray-500">Per Question: {exam.marks_per_question}</div>
+                                                    </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.max_score}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        <div>Type: {exam.exam_type}</div>
+                                                        <div className="text-gray-500">Duration: {exam.exam_duration}</div>
+                                                    </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.marks_per_question}
-                                                </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.exam_type}
-                                                </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.exam_duration}
-                                                </td>
-                                                <td className="py-3 px-4 text-gray-700">
-                                                    {exam.activated == "yes" ? (
-                                                        <button className="p-1 bg-green-700 rounded-full">
-                                                            <FaCheck className="text-white" />
-                                                        </button>
-                                                    ) : (
-                                                        <button className="p-1 bg-red-500 rounded-full">
-                                                            <FaTimes className="text-white" />
-                                                        </button>
-                                                    )}
-                                                </td>
-                                                <td className="py-3 px-4 flex items-center text-gray-700 gap-2">
-                                                    <button
-                                                        id="show_detail"
-                                                        className="p-2 bg-green-600"
-                                                        onClick={() =>
-                                                            showModelAndSetExamId(
-                                                                exam.id
-                                                            )
-                                                        }
-                                                    >
-                                                        {/* <FaCheck /> */}
-                                                        Activate
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        id="show_detail"
-                                                        className="p-2 bg-red-500 text-white"
-                                                        onClick={() =>{
-                                                            setexamId(exam.id)
-                                                            setShowTerminateModel(
-                                                                true
-                                                            )
-                                                        }
-                                                        }
-                                                    >
-                                                        {/* <FaCheck /> */}
-                                                        Terminate
-                                                    </button>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                    <div className="flex items-center gap-4">
+                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                            exam.activated === "yes" 
+                                                            ? "bg-green-100 text-green-800" 
+                                                            : "bg-red-100 text-red-800"
+                                                        }`}>
+                                                            {exam.activated === "yes" ? "Active" : "Inactive"}
+                                                        </span>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => showModelAndSetExamId(exam.id)}
+                                                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                            >
+                                                                Activate
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setexamId(exam.id)
+                                                                    setShowTerminateModel(true)
+                                                                }}
+                                                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                            >
+                                                                Terminate
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -329,16 +314,23 @@ const AdminDashboard = () => {
             </div>
             {showSubmitModel && (
                 <Model>
-                    <div className="p-4 text-center">
-                        <h1 className="text-2xl font-bold">
-                            Did you want to activate{" "}
-                        </h1>
-                        <div className="flex justify-center items-center gap-10">
-                            <button onClick={() => handleActivateExam(examId)}>
-                                Yes
+                    <div className="bg-white rounded-lg p-6  w-full">
+                        <div className="mb-6 text-center">
+                            <h2 className="text-2xl font-bold text-gray-800">Activate Exam</h2>
+                            <p className="text-gray-600 mt-2">Are you sure you want to activate this exam?</p>
+                        </div>
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={() => handleActivateExam(examId)}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                                Yes, Activate
                             </button>
-                            <button onClick={() => setShowSubmitModel(false)}>
-                                No
+                            <button 
+                                onClick={() => setShowSubmitModel(false)}
+                                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>

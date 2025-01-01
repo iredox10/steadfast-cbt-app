@@ -11,6 +11,7 @@ import { path } from "../../../utils/path";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
 import FormCloseBtn from "../../components/FormCloseBtn";
+import ErrMsg from "../../components/ErrMsg";
 
 const AdminStudents = () => {
     const { id } = useParams();
@@ -146,186 +147,205 @@ const AdminStudents = () => {
     };
 
     return (
-        <GridLayout>
-            <Sidebar>
-                <Link to={""}>Courses</Link>
-            </Sidebar>
-            <div className="p-4 w-full col-start-2 col-end-7">
-                <div className="flex justify-between items-center">
-                    <Header title={"Students"} subtitle={"List of students"} />
-                    <Btn
-                        text={"add student"}
-                        onclick={() => setShowModel(true)}
-                    />
-                </div>
-                <div className="bg-white w-full rounded-lg shadow-md p-4">
-                    <table className="min-w-full border-collapse overflow-hidden rounded-lg">
-                        <thead>
-                            <tr className="bg-gray-100 ">
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    fullname
-                                </th>
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    Candidate Number
-                                </th>
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    Department
-                                </th>
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    Programme
-                                </th>
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    is logged on
-                                </th>
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    Checkin Time
-                                </th>
-                                <th className="py-3 px-4 text-left text-gray-600 font-bold rounded-tl-lg">
-                                    Checkout Time
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students &&
-                                students.map((student) => (
+        <div className="min-h-screen bg-gray-100">
+            <div className="flex">
+                <Sidebar>
+                    <Link to="/admin-courses" className="flex items-center gap-2 p-4 hover:bg-gray-200">
+                        <i className="fas fa-book"></i>
+                        <span>Courses</span>
+                    </Link>
+                </Sidebar>
+
+                <div className="flex-1 p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800">Students</h1>
+                            <p className="text-gray-600">Manage and view student information</p>
+                        </div>
+                        <button
+                            onClick={() => setShowModel(true)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                        >
+                            <i className="fas fa-plus"></i>
+                            Add Student
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
                                     <tr>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {student.full_name}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {student.candidate_no}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {student.department}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {student.programme}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {student.is_logged_on}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {!student.checkin_time
-                                                ? "null"
-                                                : student.checkin_time}
-                                        </td>
-                                        <td className="py-3 px-4 text-gray-700">
-                                            {!student.checkout_time
-                                                ? "null"
-                                                : student.checkout_time}
-                                        </td>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Number</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Login Status</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in Time</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out Time</th>
                                     </tr>
-                                ))}
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {students && students.map((student, index) => (
+                                        <tr key={index} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.full_name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.candidate_no}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.department}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.programme}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                    student.is_logged_on === "yes" 
+                                                    ? "bg-green-100 text-green-800" 
+                                                    : "bg-red-100 text-red-800"
+                                                }`}>
+                                                    {student.is_logged_on === "yes" ? "Logged In" : "Logged Out"}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {student.checkin_time || "Not checked in"}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {student.checkout_time || "Not checked out"}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {showModel && (
                 <Model>
-                    <div className="flex justify-end p-2">
-                        <FormCloseBtn onclick={() => setShowModel(false)} />
-                    </div>
-                    <div className="flex w-full justify-center items-center gap-5 p-2">
-                        <Btn
-                            text={"add single student"}
-                            onclick={() => {
-                                setShowForm(true);
-                                setShowImport(false);
-                            }}
-                        />
-                        <Btn
-                            text={"import students"}
-                            onclick={() => {
-                                setShowImport(true);
-                                setShowForm(false);
-                            }}
-                        />
-                    </div>
-                    <div>
+                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full h-[600px] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-800">Add Student</h2>
+                            <button
+                                onClick={() => setShowModel(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <FormCloseBtn onclick={() => setShowModel(false)} />
+                            </button>
+                        </div>
+
+                        <div className="flex justify-center gap-4 mb-6">
+                            <button
+                                onClick={() => {
+                                    setShowForm(true);
+                                    setShowImport(false);
+                                }}
+                                className={`px-4 py-2 rounded-lg ${
+                                    showForm 
+                                    ? "bg-blue-600 text-white" 
+                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                }`}
+                            >
+                                Add Single Student
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowImport(true);
+                                    setShowForm(false);
+                                }}
+                                className={`px-4 py-2 rounded-lg ${
+                                    showImport
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                }`}
+                            >
+                                Import Students
+                            </button>
+                        </div>
+
                         {showImport ? (
-                            <div>
-                                <form onSubmit={handleFileUpload}>
-                                    <input
-                                        type="file"
-                                        name="excel_file"
-                                        id=""
-                                        ref={fileRef}
-                                        onChange={handleFileChange}
-                                        accept=".xlsx, .xls"
-                                    />
-                                    <FormBtn text={"submit"} />
-                                </form>
-                            </div>
-                        ) : (
-                            <div className="p-2">
-                                <form onSubmit={handleSubmit}>
-                                    <h1 className="capitalize font-bold text-center text-xl">
-                                        add new student
-                                    </h1>
-                                    {err && (
-                                        <div className="text-red-500 text-sm mb-4 text-center">
-                                            {err}
+                            <form onSubmit={handleFileUpload} className="space-y-4">
+                                <div className="flex items-center justify-center w-full">
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <i className="fas fa-cloud-upload-alt text-gray-500 text-3xl mb-2"></i>
+                                            <p className="mb-2 text-sm text-gray-500">
+                                                <span className="font-semibold">Click to upload</span> or drag and drop
+                                            </p>
+                                            <p className="text-xs text-gray-500">Excel files only (.xlsx, .xls)</p>
                                         </div>
-                                    )}
-                                    <div>
-                                        <FormInput
-                                            label={"full name"}
-                                            labelFor={"fullname"}
-                                            name={"fullname"}
-                                            placeholder={"Enter full name.."}
-                                            onchange={(e) =>
-                                                setFull_name(e.target.value)
-                                            }
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            name="excel_file"
+                                            ref={fileRef}
+                                            onChange={handleFileChange}
+                                            accept=".xlsx, .xls"
                                         />
-                                        <FormInput
-                                            label={"candidate number"}
-                                            labelFor={"candidate"}
-                                            name={"candidate"}
-                                            placeholder={"Enter Candidate"}
-                                            onchange={(e) =>
-                                                setCandidate_no(e.target.value)
-                                            }
-                                        />
-                                        <FormInput
-                                            label={"department"}
-                                            labelFor={"department"}
-                                            name={"department"}
-                                            placeholder={"Enter Department.."}
-                                            onchange={(e) =>
-                                                setDepartment(e.target.value)
-                                            }
-                                        />
-                                        <FormInput
-                                            label={"programme"}
-                                            labelFor={"programme"}
-                                            name={"programme"}
-                                            placeholder={"Enter programme.."}
-                                            onchange={(e) =>
-                                                setProgramme(e.target.value)
-                                            }
-                                        />
-
-                                        <FormInput
-                                            label={"image"}
-                                            type={"file"}
-                                            labelFor={"image"}
-                                            name={"image"}
-                                            onchange={(e) =>
-                                                setImage(e.target.files[0])
-                                            }
-                                        />
-
-                                        <FormBtn text={"add student"} />
-                                    </div>
-                                </form>
-                            </div>
+                                    </label>
+                                </div>
+                                {file && (
+                                    <p className="text-sm text-gray-600">Selected file: {file.name}</p>
+                                )}
+                                <button
+                                    type="submit"
+                                    className="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                >
+                                    Upload File
+                                </button>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="space-y-4 h-[500px] overflow-y-auto">
+                                {err && (
+                                    <ErrMsg msg={err} />
+                                )}
+                                
+                                <FormInput
+                                    label="Full Name"
+                                    labelFor="fullname"
+                                    name="fullname"
+                                    placeholder="Enter full name..."
+                                    onchange={(e) => setFull_name(e.target.value)}
+                                />
+                                <FormInput
+                                    label="Candidate Number"
+                                    labelFor="candidate"
+                                    name="candidate"
+                                    placeholder="Enter candidate number..."
+                                    onchange={(e) => setCandidate_no(e.target.value)}
+                                />
+                                <div className="flex gap-4">
+                                    <FormInput
+                                        label="Department"
+                                        labelFor="department"
+                                        name="department"
+                                        placeholder="Enter department..."
+                                        onchange={(e) => setDepartment(e.target.value)}
+                                    />
+                                    <FormInput
+                                        label="Programme"
+                                        labelFor="programme"
+                                        name="programme"
+                                        placeholder="Enter programme..."
+                                        onchange={(e) => setProgramme(e.target.value)}
+                                    />
+                                </div>
+                                <FormInput
+                                    label="Profile Image"
+                                    type="file"
+                                    labelFor="image"
+                                    name="image"
+                                    onchange={(e) => setImage(e.target.files[0])}
+                                />
+                                
+                                <button
+                                    type="submit"
+                                    className="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                >
+                                    Add Student
+                                </button>
+                            </form>
                         )}
+
                     </div>
                 </Model>
             )}
-            {excelFile}
-        </GridLayout>
+        </div>
     );
 };
 
