@@ -10,6 +10,7 @@ const AdminLogin = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [err, setErr] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -21,6 +22,7 @@ const AdminLogin = () => {
             return;
         }
         try {
+            setLoading(true)
             const res = await axios.post(`${path}/login`, { email, password });
             const user = res.data;
             if (user.role == "admin") {
@@ -31,6 +33,8 @@ const AdminLogin = () => {
         } catch (err) {
             console.log(err);
             setErr(err.response.data);
+        } finally {
+            setLoading(false)
         }
     };
     return (
@@ -70,6 +74,7 @@ const AdminLogin = () => {
                             type="text"
                             placeholder="Enter your email"
                             onchange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
                         />
 
                         <FormInput
@@ -78,9 +83,13 @@ const AdminLogin = () => {
                             type="password"
                             placeholder="Enter your password"
                             onchange={(e) => setPassword(e.target.value)}
+                            disabled={loading}
                         />
 
-                        <FormBtn text="Sign In" />
+                        <FormBtn 
+                            text={loading ? "Signing in..." : "Sign In"}
+                            disabled={loading}
+                        />
                     </form>
                 </div>
             </div>

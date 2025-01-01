@@ -6,22 +6,24 @@ import { path } from "../../utils/path";
 import { useState } from "react";
 import ErrMsg from "../components/ErrMsg";
 import { useNavigate } from "react-router-dom";
+
 const Home = () => {
     const [candidateNumber, setCandidateNumber] = useState("");
     const [password, setPassword] = useState("");
     const [errMsg, setErrMsg] = useState("");
     const navigate = useNavigate();
-
+    const [loading, setLoading] = useState(false);
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrMsg('');
-
+        
         if (!candidateNumber || !password) {
             setErrMsg("Please fill in all fields");
             return;
         }
 
         try {
+            setLoading(true);
             const res = await axios.post(`${path}/student-login`, {
                 candidate_no: candidateNumber,
                 password,
@@ -36,6 +38,7 @@ const Home = () => {
             }
         } catch (err) {
             setErrMsg(err.response?.data || "Login failed");
+            setLoading(false); // Allow retrying on error
         }
     };
 
@@ -71,8 +74,13 @@ const Home = () => {
                                 label="Candidate Number"
                                 name="candidateNo"
                                 placeholder="Enter your candidate number"
-                                onchange={(e) => setCandidateNumber(e.target.value)}
+                                onchange={(e) => {
+                                    setCandidateNumber(e.target.value);
+                                    setErrMsg(''); // Clear error when user types
+                                }}
+                                value={candidateNumber}
                                 className="w-full"
+                                disabled={loading}
                             />
 
                             <FormInput
@@ -81,15 +89,31 @@ const Home = () => {
                                 label="Password"
                                 name="password"
                                 placeholder="Enter your password"
-                                onchange={(e) => setPassword(e.target.value)}
+                                onchange={(e) => {
+                                    setPassword(e.target.value);
+                                    setErrMsg(''); // Clear error when user types
+                                }}
+                                value={password}
                                 className="w-full"
+                                disabled={loading}
                             />
 
                             <button
                                 type="submit"
-                                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200"
+                                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading}
+                                onClick={() => {
+                                    setErrMsg(''); // Clear any previous errors
+                                }}
                             >
-                                Sign In
+                                {loading ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    'Sign In'
+                                )}
                             </button>
                         </form>
                     </div>
