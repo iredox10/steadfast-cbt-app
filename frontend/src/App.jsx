@@ -22,6 +22,7 @@ import AdminStudents from './pages/admin/AdminStudents.jsx'
 import CourseStudents from './pages/admin/CourseStudents.jsx'
 import LoggedStudent from './pages/LoggedStudent.jsx'
 import AdminCourses from './pages/admin/AdminCourses.jsx'
+import Dashboard from './pages/admin/AdminDashboard.jsx'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
         <Route path='/admin-students/:id' element={<AdminStudents />} />
         {/* <Route path='/admin-courses/:id' element={<AdminCourses />} /> */}
 
+        <Route path='/dashboard/:userId' element={<Dashboard />} />
         <Route path='/admin-instructors' element={<AdminInstructiors />} />
         <Route path='/admin-instructor-courses/:id' element={<InstructorsCourses />} />
         <Route path='/add-student-to-course/:id' element={<CourseStudents />} />
