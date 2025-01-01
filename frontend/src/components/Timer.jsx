@@ -40,13 +40,12 @@ const Timer = ({ initialTime = 300, onTimeUp, reminder }) => {
     const displaySeconds = timeLeft % 60;
 
     return (
-        <div className="">
-            <h1>
-                {`${String(displayMinutes).padStart(2, "0")}m :${String(
-                    displaySeconds
-                ).padStart(2, "0")}s`}{" "}
-                <span>left</span>
-            </h1>
+        <div className="bg-gray-800 px-2 py-1 rounded-md text-white text-lg">
+            {String(displayMinutes).padStart(2, "0")}
+            <span className="text-gray-400 text-sm">m</span>
+            <span className="text-gray-400 mx-0.5">:</span>
+            {String(displaySeconds).padStart(2, "0")}
+            <span className="text-gray-400 text-sm">s</span>
         </div>
     );
 };

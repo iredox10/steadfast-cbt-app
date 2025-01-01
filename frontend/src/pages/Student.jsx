@@ -195,7 +195,7 @@ const Student = () => {
                         <div>
                             <button
                                 type="button"
-                                class="bg-black text-white p-2 font-bold"
+                                class=" text-white p-2 font-bold"
                             >
                                 {data && (
                                     <Timer
@@ -212,56 +212,53 @@ const Student = () => {
 
                     <div>
                         <div class="">
-                            <div class="my-4">
-                                <div className=" justify-between text-sm">
-                                    <h1 class="  capitalize">
-                                        <span className="font-bold">
-                                            course:{" "}
+                            <div className="bg-white rounded-lg shadow-sm p-4 my-2">
+                                <div className="flex justify-between items-center text-sm mb-2">
+                                    <div className="flex gap-4">
+                                        <span>
+                                            <span className="font-semibold text-gray-600">Course:</span>{" "}
+                                            <span className="text-gray-900">{course && course.title}</span>
                                         </span>
-                                        {course && course.title}
-                                    </h1>
-                                    <h1 class="  capitalize">
-                                        <span className="font-bold">
-                                            code:{" "}
+                                        <span>
+                                            <span className="font-semibold text-gray-600">Code:</span>{" "}
+                                            <span className="text-gray-900">{course && course.code}</span>
                                         </span>
-                                        {course && course.code}
-                                    </h1>
+                                    </div>
+                                    <span>
+                                        <span className="font-semibold text-gray-600">Date:</span>{" "}
+                                        <span className="text-gray-900">{new Date().toLocaleDateString()}</span>
+                                    </span>
                                 </div>
-                                <div className="flex justify-between w-full capitalize my-4">
-                                    <p className="text-xl ">
-                                        <span className="font-bold">
-                                            Instruction:{" "}
-                                        </span>
-                                        {data && data.exam.instructions}
-                                    </p>
-                                    <p>
-                                        <span className="font-bold">
-                                            Date:{" "}
-                                        </span>
-                                        {new Date().toLocaleDateString()}
-                                    </p>
+                                
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-2 text-sm">
+                                    <span className="font-semibold text-blue-800">Instructions:</span>{" "}
+                                    <span className="text-blue-900">{data && data.exam.instructions}</span>
                                 </div>
                             </div>
+
                             <div class="bg-white/60 p-4">
                                 {data &&
                                     data.questions.map((question, index) => {
                                         if (index === questionIndexToShow) {
                                             return (
-                                                <div key={question.id}>
-                                                    <h3 className="font-poppins font-bold my-2">
-                                                        <span>Question: </span>
-                                                        {index + 1}
-                                                    </h3>
-                                                    <div
+                                                <div key={question.id} className="bg-white rounded-lg shadow-sm p-4">
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                                                            Q{index + 1} • {data.exam.marks_per_question} marks
+                                                        </span>
+                                                    </div>
+
+                                                    <div 
+                                                        className="text-gray-800 text-base mb-4"
                                                         dangerouslySetInnerHTML={{
                                                             __html: question.question,
                                                         }}
                                                     />
 
-                                                    {shuffledOptions.map(
-                                                        (option, idx) => (
+                                                    <div className="space-y-2">
+                                                        {shuffledOptions.map((option, idx) => (
                                                             <div
-                                                                key={idx} // Unique key for each option
+                                                                key={idx}
                                                                 onClick={() =>
                                                                     handleAnswer(
                                                                         option.type,
@@ -270,46 +267,33 @@ const Student = () => {
                                                                         option.value
                                                                     )
                                                                 }
-                                                                className={`${getDivStyle(
-                                                                    option.value
-                                                                )} flex items-center gap-5 w-[35rem] hover:bg-gray-500/50 cursor-pointer my-4 p-2`}
+                                                                className={`${getDivStyle(option.value)} 
+                                                                    flex items-center gap-3 p-2 rounded border border-gray-100
+                                                                    hover:bg-gray-50 cursor-pointer`}
                                                             >
-                                                                <button
-                                                                    type="button"
-                                                                    className="bg-primary-color px-2 rounded-full text-xl"
-                                                                >
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </button>
+                                                                <span className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-sm">
+                                                                    {option.label}
+                                                                </span>
                                                                 <div
+                                                                    className="text-sm text-gray-700"
                                                                     dangerouslySetInnerHTML={{
                                                                         __html: option.value,
                                                                     }}
-                                                                ></div>
+                                                                />
                                                             </div>
-                                                        )
-                                                    )}
-                                                    <div class="flex justify-center my-5 gap-5">
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="flex justify-between mt-4">
                                                         <button
-                                                            onClick={() =>
-                                                                handlePrev(
-                                                                    question.id,
-                                                                    question.question
-                                                                )
-                                                            }
-                                                            class="capitalize bg-black text-white px-4 py-2"
+                                                            onClick={() => handlePrev(question.id, question.question)}
+                                                            className="px-4 py-1 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
                                                         >
-                                                            previous
+                                                            Previous
                                                         </button>
                                                         <button
-                                                            onClick={() =>
-                                                                handleNext(
-                                                                    question.id,
-                                                                    question.question
-                                                                )
-                                                            }
-                                                            class="capitalize bg-black text-white px-4 py-2"
+                                                            onClick={() => handleNext(question.id, question.question)}
+                                                            className="px-4 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
                                                         >
                                                             Next
                                                         </button>
@@ -317,65 +301,74 @@ const Student = () => {
                                                 </div>
                                             );
                                         }
-                                        return null; // Return null if not matching index
+                                        return null;
                                     })}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-4 mr-4">
-                    <div className="grid grid-cols-[repeat(20,1fr)] gap-5">
-                        {data &&
-                            data.questions.map((question, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => handleClick(index)} // Update state on button click
-                                    className={`bg-primary-color rounded-full hover:bg-black hover:text-white
-                        ${
-                            activeButton === index
-                                ? "text-red-600 bg-black font-bold text-2xl"
-                                : ""
-                        } ${
-                                        clickedBtns.includes(index)
-                                            ? "bg-slate-600 text-white"
-                                            : ""
-                                    } `} // Conditionally change the class if active
-                                >
-                                    {index + 1}
-                                </button>
-                            ))}
+                <div className="bg-white p-3 rounded-lg shadow-sm mr-4">
+                    <div className="grid grid-cols-10 gap-1">
+                        {data && data.questions.map((question, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleClick(index)}
+                                className={`
+                                    w-8 h-8 rounded-full text-sm font-medium
+                                    transition-all duration-200 ease-in-out
+                                    flex items-center justify-center
+                                    transform hover:scale-105
+                                    shadow-sm hover:shadow-md
+                                    ${activeButton === index 
+                                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white ring-2 ring-blue-400 ring-offset-2" 
+                                        : clickedBtns.includes(index)
+                                            ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                                    }
+                                `}
+                            >
+                                {index + 1}
+                            </button>
+                        ))}
                     </div>
                 </div>
-                <div class="my-3 flex justify-center">
+                <div className="my-6 flex justify-center">
                     <button
                         onClick={() => setSubmitModel(true)}
-                        class="px-14 py-2 bg-black text-white"
+                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
                     >
-                        Submit
+                        <span>Submit Exam</span>
+                        <i className="fas fa-paper-plane"></i>
                     </button>
                 </div>
             </div>
             {showModel && <div className="absolute bg-black"></div>}
             {sumbitModel && (
                 <Model>
-                    <div className="bg-white text-center p-4 shadow-lg rounded-sm capitalize">
-                        <div className="">
-                            <h1 className="font-bold text-xl">
-                                Are you sure you want to submit
-                            </h1>
-                            <div className="flex justify-center my-4 gap-3">
+                    <div className="bg-white p-8 rounded-lg shadow-lg  w-full">
+                        <div className="text-center">
+                            <div className="mb-6">
+                                <i className="fas fa-exclamation-circle text-yellow-500 text-4xl"></i>
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                                Submit Exam?
+                            </h2>
+                            <p className="text-gray-600 mb-8">
+                                Are you sure you want to submit your exam? This action cannot be undone.
+                            </p>
+                            <div className="flex justify-center gap-4">
                                 <button
-                                    className="bg-black px-12 py-2 text-white"
                                     onClick={handleSubmit}
+                                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
                                 >
-                                    Yes
+                                    Yes, Submit
                                 </button>
                                 <button
-                                    className="bg-red-500 px-12 py-2 text-white"
                                     onClick={() => setSubmitModel(false)}
+                                    className="px-6 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors duration-200"
                                 >
-                                    No
+                                    Cancel
                                 </button>
                             </div>
                         </div>
