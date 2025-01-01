@@ -13,7 +13,7 @@ import { FaTimes } from "react-icons/fa";
 
 const EditQuestion = () => {
     const { questionId, userId, examId } = useParams();
-
+    const {data:user, loading:userLoading , error:userError} = useFetch(`/get-user/${userId}`)
     const modules = {
         toolbar: [
             [{ header: [1, 2, false] }], // Header options
@@ -164,103 +164,144 @@ const EditQuestion = () => {
                     Candidates
                 </Link>
             </Sidebar>
-            <div className="  col-span-3">
+            <div className="col-span-3">
                 <Header title={"Course Name"} subtitle={"Instructor"} />
-                <div className="p-3 bg-white">
-                    <div>
-                        <h1 className="font-bold text-2xl p-3">Add Question</h1>
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-bold text-gray-900">Edit Question</h1>
+                        <p className="text-gray-600 mt-1">Update your exam question</p>
                     </div>
-                    <form onSubmit={handleSubmit}>
-                        {error && <div>{error}</div>}
-                        <div className="mb-5">
-                            <h2 className="font-bold text-xl my-2">Question</h2>
-                            <ReactQuill
-                                value={question}
-                                onChange={handleQuestionChange}
-                                theme="snow"
-                                modules={modules}
-                            />
-                        </div>
-                        <div className="mb-5">
-                            <h2 className="font-bold text-xl my-2">
-                                Correct Answer
-                            </h2>
-                            <ReactQuill
-                                value={correctAnswer}
-                                onChange={handleAnswerChange}
-                                theme="snow"
-                                modules={modules}
-                            />
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {error && (
+                            <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+                                <p>{error}</p>
+                            </div>
+                        )}
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Question Text
+                            </label>
+                            <div className="border border-gray-200 rounded-lg">
+                                <ReactQuill
+                                    value={question}
+                                    onChange={handleQuestionChange}
+                                    theme="snow"
+                                    modules={modules}
+                                    className="min-h-[200px]"
+                                />
+                            </div>
                         </div>
 
                         <div className="relative">
-                            <h2 className="font-bold text-xl my-2">Options</h2>
-                            <button
-                                type="button"
-                                onClick={addOption}
-                                className="absolute right-10 top-5  z-1 bg-black text-white rounded-full p-3"
-                            >
-                                <FaPlus />
-                            </button>
-                            <ReactQuill
-                                value={optionEditor}
-                                onChange={handleOptionEditor}
-                                theme="snow"
-                                modules={modules}
-                            />
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Answer Options
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={addOption}
+                                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    <FaPlus className="w-4 h-4" />
+                                    <span>Add Option</span>
+                                </button>
+                            </div>
+                            <div className="border border-gray-200 rounded-lg">
+                                <ReactQuill
+                                    value={optionEditor}
+                                    onChange={handleOptionEditor}
+                                    theme="snow"
+                                    modules={modules}
+                                    className="min-h-[150px]"
+                                />
+                            </div>
                         </div>
-                        <button
-                            type="submit"
-                            className="bg-black text-white w-full my-5 py-3 text-xl "
-                        >
-                            Add
-                        </button>
+
+                        <div className="pt-4">
+                            <button
+                                type="submit"
+                                className="w-full px-4 py-3 text-base font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <span>Update Question</span>
+                                <i className="fas fa-save"></i>
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
-            <div className="mr-4 col-start-5 col-end-7">
-                <div className="py-8">
-                    <div className="">profile pic and sign out</div>
-                </div>
-                <div className="sticky top-0 bg-white  p-2 min-h-36 flex flex-col gap-5">
-                    <div>
-                        <h1>Correct Answer</h1>
-                        <div
-                            dangerouslySetInnerHTML={{ __html: correctAnswer }}
-                        ></div>
-                    </div>
-                    <div>
-                        <div>
-                            <h1 className="font-bold text-xl">Options</h1>
-                            <p>List of Added Options</p>
-                            <div className="my-4 box-border">
-                                {options &&
-                                    options.map((option, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-center justify-between gap-5 bg-primary-color capitalize p-2 box-border my-2"
-                                        >
-                                            <div
-                                                className=""
-                                                dangerouslySetInnerHTML={{
-                                                    __html: option,
-                                                }}
-                                            />
-                                            <button
-                                                onClick={() =>
-                                                    setCorrectAnswer(option)
-                                                }
-                                            >
-                                                correct
-                                            </button>
-                                            <button
-                                                onClick={() => removeOption(i)}
-                                            >
-                                                <FaTimes />
-                                            </button>
-                                        </div>
-                                    ))}
+
+           <div className="mr-4 col-start-5 col-end-7">
+                <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <i className="fas fa-user text-blue-600"></i>
                             </div>
+                            <div>
+                                <h3 className="font-medium text-gray-900">{user?.full_name}</h3>
+                                <p className="text-sm text-gray-500">Instructor</p>
+                            </div>
+                        </div>
+                        <button className="text-gray-400 hover:text-gray-500">
+                            <i className="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="sticky top-4 bg-white rounded-lg shadow-sm p-6">
+                    <div className="mb-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-2">Correct Answer</h2>
+                        <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
+                            {correctAnswer ? (
+                                <div dangerouslySetInnerHTML={{ __html: correctAnswer }}></div>
+                            ) : (
+                                <p className="text-gray-500 text-sm">No correct answer selected yet</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">Answer Options</h2>
+                                <p className="text-sm text-gray-500">The first option is the correct answer</p>
+                            </div>
+                            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                {options?.length || 0} options
+                            </span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {options && options.map((option, i) => (
+                                <div
+                                    key={i}
+                                    className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                                >
+                                    <div className="flex-1 mr-4 break-words overflow-auto max-h-32" dangerouslySetInnerHTML={{ __html: option }} />
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        {/* <button
+                                            onClick={() => setCorrectAnswer(option)}
+                                            className={`p-2 rounded-lg transition-colors ${
+                                                correctAnswer === option 
+                                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                            title="Set as correct answer"
+                                        >
+                                            <i className="fas fa-check"></i>
+                                        </button> */}
+                                        <button
+                                            onClick={() => removeOption(i)}
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Remove option"
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
