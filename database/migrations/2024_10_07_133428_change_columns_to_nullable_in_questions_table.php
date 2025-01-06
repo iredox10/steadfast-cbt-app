@@ -15,7 +15,7 @@ return new class extends Migration
             //
             $table->string('question')->nullable()->change();
             $table->string('correct_answer')->nullable()->change();
-            $table->string('option_a')->nullable()->change();
+            // $table->string('option_a')->nullable()->change();
             $table->string('option_b')->nullable()->change();
             $table->string('option_c')->nullable()->change();
             $table->string('option_d')->nullable()->change();
