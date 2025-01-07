@@ -158,16 +158,38 @@ const Student = () => {
         // This effect is run when the component mounts and whenever questionIndexToShow changes
         if (data && data.questions[questionIndexToShow]) {
             const question = data.questions[questionIndexToShow];
-            const options = [
-                {
+            const options = [];
+
+            // Only add options that exist and are not empty/null
+            if (question.correct_answer) {
+                options.push({
                     label: "a",
                     value: question.correct_answer,
                     type: "correct_answer",
-                },
-                { label: "b", value: question.option_b, type: "option_b" },
-                { label: "c", value: question.option_c, type: "option_c" },
-                { label: "d", value: question.option_d, type: "option_d" }, // Add more options as needed
-            ];
+                });
+            }
+            if (question.option_b) {
+                options.push({
+                    label: "b",
+                    value: question.option_b,
+                    type: "option_b",
+                });
+            }
+            if (question.option_c) {
+                options.push({
+                    label: "c",
+                    value: question.option_c,
+                    type: "option_c",
+                });
+            }
+            if (question.option_d) {
+                options.push({
+                    label: "d",
+                    value: question.option_d,
+                    type: "option_d",
+                });
+            }
+
             const values = options.map((option) => option.value);
             const shuffledValues = shuffleArray(values);
 
@@ -180,7 +202,7 @@ const Student = () => {
 
             setShuffledOptions(newShuffledOptions);
         }
-    }, [data, questionIndexToShow]); // Run this effect when the data or questionIndexToShow changes
+    }, [data, questionIndexToShow]);
 
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
