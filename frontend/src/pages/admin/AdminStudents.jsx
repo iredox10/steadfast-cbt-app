@@ -109,6 +109,9 @@ const AdminStudents = () => {
 
     const [excelFile, setExcelFile] = useState();
 
+    // Add loading state
+    const [isUploading, setIsUploading] = useState(false);
+
     const handleFileUpload = async (e) => {
         e.preventDefault();
         if (!file) {
@@ -116,6 +119,7 @@ const AdminStudents = () => {
             return;
         }
 
+        setIsUploading(true); // Start loading
         const formData = new FormData();
         formData.append("excel_file", file);
 
@@ -142,8 +146,20 @@ const AdminStudents = () => {
                 error.response?.data?.error || error.message
             );
             alert(error.response?.data?.error || "Error uploading file");
+        } finally {
+            setIsUploading(false); // End loading
         }
     };
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [studentsPerPage] = useState(10);
+
+    const indexOfLastStudent = currentPage * studentsPerPage;
+    const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+    const currentStudents = students ? students.slice(indexOfFirstStudent, indexOfLastStudent) : [];
+    const totalPages = students ? Math.ceil(students.length / studentsPerPage) : 0;
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -185,7 +201,7 @@ const AdminStudents = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {students && students.map((student, index) => (
+                                    {currentStudents.map((student, index) => (
                                         <tr key={index} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.full_name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.candidate_no}</td>
@@ -210,6 +226,65 @@ const AdminStudents = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                            <div className="flex-1 flex justify-between sm:hidden">
+                                <button
+                                    onClick={() => paginate(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                                        currentPage === 1
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => paginate(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                                        currentPage === totalPages
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-sm text-gray-700">
+                                        Showing{' '}
+                                        <span className="font-medium">{indexOfFirstStudent + 1}</span>
+                                        {' '}-{' '}
+                                        <span className="font-medium">
+                                            {Math.min(indexOfLastStudent, students?.length || 0)}
+                                        </span>
+                                        {' '}of{' '}
+                                        <span className="font-medium">{students?.length || 0}</span>
+                                        {' '}results
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                                            <button
+                                                key={number}
+                                                onClick={() => paginate(number)}
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                                    currentPage === number
+                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {number}
+                                            </button>
+                                        ))}
+                                    </nav>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -283,9 +358,24 @@ const AdminStudents = () => {
                                 )}
                                 <button
                                     type="submit"
-                                    className="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                                    disabled={isUploading}
+                                    className={`w-full px-4 py-2 text-white rounded-lg flex items-center justify-center ${
+                                        isUploading 
+                                        ? 'bg-blue-400 cursor-not-allowed' 
+                                        : 'bg-blue-600 hover:bg-blue-700'
+                                    }`}
                                 >
-                                    Upload File
+                                    {isUploading ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Uploading...
+                                        </>
+                                    ) : (
+                                        'Upload File'
+                                    )}
                                 </button>
                             </form>
                         ) : (
