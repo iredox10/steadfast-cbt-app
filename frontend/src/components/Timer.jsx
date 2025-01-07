@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from "react";
 
-const Timer = ({ initialTime = 300, onTimeUp, reminder }) => {
-    // Default to 5 minutes
+const Timer = ({ initialTime, onTimeUp, reminder }) => {
     const [timeLeft, setTimeLeft] = useState(initialTime);
-    const [isActive, setIsActive] = useState(true);
+    
     useEffect(() => {
-        let timer = null;
-
-        if (isActive && timeLeft > 0) {
-            timer = setInterval(() => {
-                setTimeLeft((prevTime) => prevTime - 1);
-                reminder(timeLeft)
-            }, 1000);
-        } else if (timeLeft === 0) {
-            clearInterval(timer);
-            onTimeUp(); // Call the function passed as prop when time is up
+        if (timeLeft <= 0) {
+            onTimeUp(true); // Pass true to indicate auto-submission
+            return;
         }
 
-        return () => clearInterval(timer); // Cleanup on unmount
-    }, [isActive, timeLeft, onTimeUp]);
+        const timer = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [timeLeft, onTimeUp]);
 
     const startTimer = () => {
         setIsActive(true);
@@ -39,8 +35,13 @@ const Timer = ({ initialTime = 300, onTimeUp, reminder }) => {
     const displayMinutes = Math.floor(timeLeft / 60);
     const displaySeconds = timeLeft % 60;
 
+    // Add warning class when time is running low (less than 5 minutes)
+    const timerClassName = `px-2 py-1 rounded-md text-white text-lg ${
+        timeLeft <= 300 ? 'bg-red-600' : 'bg-gray-800'
+    }`;
+
     return (
-        <div className="bg-gray-800 px-2 py-1 rounded-md text-white text-lg">
+        <div className={timerClassName}>
             {String(displayMinutes).padStart(2, "0")}
             <span className="text-gray-400 text-sm">m</span>
             <span className="text-gray-400 mx-0.5">:</span>

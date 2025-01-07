@@ -83,10 +83,17 @@ const Student = () => {
     const [selectedOption, setSelectedOption] = useState();
     const [question, setQuestion] = useState();
 
+    const [selectedAnswers, setSelectedAnswers] = useState({});
+
     const handleAnswer = (option, questionId, question, answer) => {
         selectedAnswerRef.current = { questionId, question, answer };
         setQuestion(question);
         setSelectedOption(answer);
+        
+        setSelectedAnswers(prev => ({
+            ...prev,
+            [questionId]: answer
+        }));
     };
 
     const getPlainText = (html) => {
@@ -125,10 +132,13 @@ const Student = () => {
         setActiveButton(questionIndexToShow - 1);
     };
 
-    const getDivStyle = (option) =>
-        selectedOption == option
-            ? "bg-green-500 text-white"
-            : "bg-primary-color text-black";
+    const getDivStyle = (option, questionId) => {
+        const storedAnswer = selectedAnswers[questionId];
+        if (storedAnswer === option) {
+            return "bg-green-500 text-white";
+        }
+        return "bg-primary-color text-black";
+    };
 
     const [sumbitModel, setSubmitModel] = useState();
     const [msg, setMsg] = useState();
@@ -140,15 +150,21 @@ const Student = () => {
         // setReminder(data)
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (isAutoSubmit = false) => {
         try {
             const res = await axios.post(
                 `${path}/student-submit-exam/${course.id}/${studentId}`
             );
+            localStorage.removeItem(`exam_answers_${studentId}`); // Clear saved answers
+            
+            if (isAutoSubmit) {
+                alert("Time's up! Your exam has been automatically submitted.");
+            }
+            
             navigate("/student-submission/" + studentId);
-            // console.log(res.data);
         } catch (err) {
             console.log(err);
+            alert("Error submitting exam. Please contact your administrator.");
         }
     };
 
@@ -204,6 +220,14 @@ const Student = () => {
         }
     }, [data, questionIndexToShow]);
 
+    // Add this useEffect to load saved answers when component mounts
+    useEffect(() => {
+        const savedAnswers = localStorage.getItem(`exam_answers_${studentId}`);
+        if (savedAnswers) {
+            setSelectedAnswers(JSON.parse(savedAnswers));
+        }
+    }, [studentId]);
+
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -224,7 +248,7 @@ const Student = () => {
                                         initialTime={
                                             data && data.exam.exam_duration
                                         }
-                                        onTimeUp={() => alert("times up")}
+                                        onTimeUp={handleSubmit}
                                         reminder={timeRemain}
                                     />
                                 )}
@@ -289,7 +313,7 @@ const Student = () => {
                                                                         option.value
                                                                     )
                                                                 }
-                                                                className={`${getDivStyle(option.value)} 
+                                                                className={`${getDivStyle(option.value, question.id)} 
                                                                     flex items-center gap-3 p-2 rounded border border-gray-100
                                                                     hover:bg-gray-50 cursor-pointer`}
                                                             >
@@ -381,7 +405,7 @@ const Student = () => {
                             </p>
                             <div className="flex justify-center gap-4">
                                 <button
-                                    onClick={handleSubmit}
+                                    onClick={() => handleSubmit(false)}
                                     className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
                                 >
                                     Yes, Submit
