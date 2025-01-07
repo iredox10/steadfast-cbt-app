@@ -26,7 +26,7 @@ const AdminLogin = () => {
             const res = await axios.post(`${path}/login`, { email, password });
             const user = res.data;
             if (user.role == "admin") {
-                navigate(`/admin-dashboard/${user.id}`);
+                navigate(`/dashboard/${user.id}`);
             } else if (user.role == "lecturer") {
                 navigate(`/instructor/${res.data.id}`);
             }

@@ -116,14 +116,12 @@ const AdminStudents = () => {
             return;
         }
 
-        const xfile = fileRef.current;
-        const files = xfile.files[0];
         const formData = new FormData();
-        formData.append("excel_file", files); // Pass the actual file from state
+        formData.append("excel_file", file);
 
         try {
             const res = await axios.post(
-                `${path}/upload-excel`, // Ensure the backend route is correct
+                `${path}/upload-excel`,
                 formData,
                 {
                     headers: {
@@ -132,17 +130,18 @@ const AdminStudents = () => {
                 }
             );
 
-            if (res.status == 201) {
+            if (res.status === 201) {
                 setShowForm(false);
                 setShowModel(false);
+                setFile(null);
                 fetch();
             }
-            console.log("File uploaded successfully:", res);
         } catch (error) {
             console.error(
                 "Error uploading file:",
-                error.res?.data || error.message
+                error.response?.data?.error || error.message
             );
+            alert(error.response?.data?.error || "Error uploading file");
         }
     };
 
