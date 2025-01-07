@@ -8,34 +8,36 @@ import useFetch from "../../hooks/useFetch";
 
 const Dashboard = () => {
     const { userId } = useParams();
-    const { data: user, loading, error } = useFetch(`/get-user/${userId}`);
-    console.log(userId)
+    const { data: user, loading: userLoading } = useFetch(`/get-user/${userId}`);
+    
+    // Add new data fetching for stats
+    const { data: statsData, loading: statsLoading } = useFetch('/dashboard-stats');
 
     const stats = [
         {
             title: "Total Students",
-            value: "2,345",
+            value: statsLoading ? "..." : statsData?.total_students || "0",
             icon: <FaUsers className="text-blue-500 text-3xl" />,
             change: "+12%",
             trend: "up"
         },
         {
             title: "Active Courses", 
-            value: "48",
+            value: statsLoading ? "..." : statsData?.active_courses || "0",
             icon: <FaBook className="text-green-500 text-3xl" />,
             change: "+5%",
             trend: "up"
         },
         {
             title: "Instructors",
-            value: "126",
+            value: statsLoading ? "..." : statsData?.total_instructors || "0",
             icon: <FaChalkboardTeacher className="text-purple-500 text-3xl" />,
             change: "-2%", 
             trend: "down"
         },
         {
             title: "Academic Sessions",
-            value: "4",
+            value: statsLoading ? "..." : statsData?.academic_sessions || "0",
             icon: <FaCalendarAlt className="text-orange-500 text-3xl" />,
             change: "0%",
             trend: "neutral"

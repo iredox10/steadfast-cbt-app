@@ -131,6 +131,8 @@ Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_studen
 
 Route::post('/upload-excel', [Admin::class, 'upload_excel']);
 
+Route::get('/dashboard-stats', [Admin::class, 'getDashboardStats']);
+
 
 // TODO: populate student answer table with question that the student answer
 

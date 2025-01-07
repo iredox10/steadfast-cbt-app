@@ -379,4 +379,20 @@ class Admin extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getDashboardStats()
+    {
+        try {
+            $stats = [
+                'total_students' => Student::count(),
+                'active_courses' => Course::count(),
+                'total_instructors' => User::where('role', 'lecturer')->count(),
+                'academic_sessions' => Acd_session::count(),
+            ];
+
+            return response()->json($stats);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
