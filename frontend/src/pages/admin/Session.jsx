@@ -17,7 +17,8 @@ const Session = () => {
     const [semester, setSemester] = useState();
     const [semesters, setSemesters] = useState();
     const [error, setError] = useState();
-    const [showActivateSemesterModel, setShowActivateSemesterModel] = useState(false)
+    const [showActivateSemesterModel, setShowActivateSemesterModel] =
+        useState(false);
 
     const {
         data: session,
@@ -42,6 +43,7 @@ const Session = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError("");
         if (!semester) {
             setError("field can't be empty");
             return;
@@ -58,12 +60,12 @@ const Session = () => {
             }
         } catch (err) {
             console.log(err);
+            setError(err?.response?.data);
         }
     };
 
-
     const handleActivateSemester = async (semesterId) => {
-        console.log(semesterId)
+        console.log(semesterId);
         try {
             const res = await axios.post(
                 `${path}/activate-semester/${semesterId}`
@@ -81,7 +83,10 @@ const Session = () => {
         <div className="min-h-screen bg-gray-100">
             <div className="flex">
                 <Sidebar>
-                    <Link to={`/admin-dashboard/${id}`} className="flex items-center gap-2 p-4 hover:bg-gray-200">
+                    <Link
+                        to={`/admin-dashboard/${id}`}
+                        className="flex items-center gap-2 p-4 hover:bg-gray-200"
+                    >
                         Dashboard
                     </Link>
                 </Sidebar>
@@ -91,52 +96,63 @@ const Session = () => {
                         <h1 className="text-2xl font-bold text-gray-800">
                             {session && session.title} - Semesters
                         </h1>
-                        <p className="text-gray-600">Manage semesters and their status</p>
+                        <p className="text-gray-600">
+                            Manage semesters and their status
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {semesters && semesters.map((semester) => (
-                            <div key={semester._id} className="bg-white rounded-lg shadow-md p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-xl font-semibold text-gray-800 capitalize">
-                                        {semester.semester} Semester
-                                    </h2>
-                                    <span className={`px-3 py-1 rounded-full text-sm ${
-                                        semester.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                        {semester.status}
-                                    </span>
-                                </div>
-
-                                <div className="flex gap-3">
-                                    <Link 
-                                        to={`/semester/${semester.id}`}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
-                                    >
-                                        View Details
-                                    </Link>
-                                    {semester.status === "inactive" && (
-                                        <button
-                                            onClick={() => {
-                                                setShowActivateSemesterModel(true);
-                                                setSemester({
-                                                    id: semester.id,
-                                                    semester: semester.semester,
-                                                });
-                                            }}
-                                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        {semesters &&
+                            semesters.map((semester) => (
+                                <div
+                                    key={semester._id}
+                                    className="bg-white rounded-lg shadow-md p-6"
+                                >
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="text-xl font-semibold text-gray-800 capitalize">
+                                            {semester.semester} Semester
+                                        </h2>
+                                        <span
+                                            className={`px-3 py-1 rounded-full text-sm ${
+                                                semester.status === "active"
+                                                    ? "bg-green-100 text-green-800"
+                                                    : "bg-gray-100 text-gray-800"
+                                            }`}
                                         >
-                                            Activate
-                                        </button>
-                                    )}
+                                            {semester.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <Link
+                                            to={`/semester/${semester.id}`}
+                                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+                                        >
+                                            View Details
+                                        </Link>
+                                        {semester.status === "inactive" && (
+                                            <button
+                                                onClick={() => {
+                                                    setShowActivateSemesterModel(
+                                                        true
+                                                    );
+                                                    setSemester({
+                                                        id: semester.id,
+                                                        semester:
+                                                            semester.semester,
+                                                    });
+                                                }}
+                                                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                            >
+                                                Activate
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
                     </div>
 
-                    <button 
-                        onClick={() => setShowModel(true)}
-                    >
+                    <button onClick={() => setShowModel(true)}>
                         <PlusBtn />
                     </button>
                 </div>
@@ -146,13 +162,17 @@ const Session = () => {
                 <Model>
                     <div className="bg-white rounded-lg p-6 max-w-md w-full">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold">Add New Semester</h2>
+                            <h2 className="text-xl font-bold">
+                                Add New Semester
+                            </h2>
                             <FormCloseBtn onclick={() => setShowModel(false)} />
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            {error && <div className="mb-4 text-red-600">{error}</div>}
-                            
+                            {error && (
+                                <div className="mb-4 text-red-600">{error}</div>
+                            )}
+
                             <FormInput
                                 label={"Semester"}
                                 labelFor={"semester"}

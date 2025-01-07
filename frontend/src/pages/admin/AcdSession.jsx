@@ -157,7 +157,7 @@ const AcdSession = () => {
                                 onchange={(e) => setTitle(e.target.value)}
                             />
 
-                            <div className="mb-6">
+                            {/* <div className="mb-6">
                                 <label className="flex items-center gap-3 cursor-pointer">
                                     <input
                                         type="checkbox"
@@ -166,7 +166,7 @@ const AcdSession = () => {
                                     />
                                     <span>Activate this session</span>
                                 </label>
-                            </div>
+                            </div> */}
 
                             <FormBtn text={"Create Session"} />
                         </form>

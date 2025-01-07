@@ -109,6 +109,16 @@ class Admin extends Controller
             'status' => 'string | required'
         ]);
         try {
+
+            $semesters = Acd_session::findOrFail($session_id)->semesters;
+
+            if ($semesters) {
+                foreach ($semesters as $semester) {
+                    if ($semester->semester == $validate['semester']) {
+                        return response()->json('semesters already existed', 404);
+                    }
+                }
+            }
             $semester = Semester::create([
                 'acd_session_id' => $session_id,
                 'semester' => $validate['semester'],
@@ -158,7 +168,7 @@ class Admin extends Controller
             ]);
             return response()->json($course, 201);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json($e->getMessage(), 400);
         }
     }
 
