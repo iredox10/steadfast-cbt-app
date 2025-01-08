@@ -12,6 +12,19 @@ import { FaTimes, FaTimesCircle } from "react-icons/fa";
 const Student = () => {
     const { studentId } = useParams();
     const { data } = useFetch(`/get-student-exam`);
+    const [shuffledQuestions, setShuffledQuestions] = useState([]);
+
+    // Add useEffect to shuffle questions when data is loaded
+    useEffect(() => {
+        if (data?.questions) {
+            const shuffled = [...data.questions];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            setShuffledQuestions(shuffled);
+        }
+    }, [data]);
 
     const [answers, setAnswers] = useState([]);
     console.log(data);
@@ -102,7 +115,7 @@ const Student = () => {
     };
 
     const handleNext = async (questionId, question) => {
-        if (questionIndexToShow === data.questions.length - 1) {
+        if (questionIndexToShow === shuffledQuestions.length - 1) {
             setClickedBtns((prev) => [...prev, questionIndexToShow]);
             return;
         }
@@ -231,6 +244,33 @@ const Student = () => {
         }
     }, [studentId]);
 
+    // Add keyboard event listener
+    useEffect(() => {
+        const handleKeyPress = (e) => {
+            if (!shuffledQuestions[questionIndexToShow]) return;
+            
+            const currentQuestion = shuffledQuestions[questionIndexToShow];
+            const key = e.key.toLowerCase();
+            
+            // Match key press to option
+            if (['a', 'b', 'c', 'd'].includes(key)) {
+                const optionIndex = ['a', 'b', 'c', 'd'].indexOf(key);
+                if (optionIndex < shuffledOptions.length) {
+                    const selectedOption = shuffledOptions[optionIndex];
+                    handleAnswer(
+                        selectedOption.type,
+                        currentQuestion.id,
+                        currentQuestion.question,
+                        selectedOption.value
+                    );
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [shuffledQuestions, questionIndexToShow, shuffledOptions]);
+
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -262,72 +302,74 @@ const Student = () => {
                     <div>
                         <div class="">
                             <div class="bg-white/60 p-4">
-                                {data &&
-                                    data.questions.map((question, index) => {
-                                        if (index === questionIndexToShow) {
-                                            return (
-                                                <div key={question.id} className="bg-white rounded-lg shadow-sm p-4">
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
-                                                            Q{index + 1} • {data.exam.marks_per_question} marks
-                                                        </span>
-                                                    </div>
-
-                                                    <div 
-                                                        className="text-gray-800 text-base mb-4"
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: question.question,
-                                                        }}
-                                                    />
-
-                                                    <div className="space-y-2">
-                                                        {shuffledOptions.map((option, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                onClick={() =>
-                                                                    handleAnswer(
-                                                                        option.type,
-                                                                        question.id,
-                                                                        question.question,
-                                                                        option.value
-                                                                    )
-                                                                }
-                                                                className={`${getDivStyle(option.value, question.id)} 
-                                                                    flex items-center gap-3 p-2 rounded border border-gray-100
-                                                                    hover:bg-gray-50 cursor-pointer`}
-                                                            >
-                                                                <span className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-sm">
-                                                                    {option.label} 
-                                                                </span>
-                                                                <div
-                                                                    className="text-sm text-gray-700"
-                                                                    dangerouslySetInnerHTML={{
-                                                                        __html: option.value,
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-
-                                                    <div className="flex justify-between mt-4">
-                                                        <button
-                                                            onClick={() => handlePrev(question.id, question.question)}
-                                                            className="px-4 py-1 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                                                        >
-                                                            Previous
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleNext(question.id, question.question)}
-                                                            className="px-4 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
-                                                        >
-                                                            Next
-                                                        </button>
-                                                    </div>
+                                {shuffledQuestions.map((question, index) => {
+                                    if (index === questionIndexToShow) {
+                                        return (
+                                            <div key={question.id} className="bg-white rounded-lg shadow-sm p-4">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                                                        Q{index + 1} • {data.exam.marks_per_question} marks
+                                                    </span>
                                                 </div>
-                                            );
-                                        }
-                                        return null;
-                                    })}
+
+                                                <div 
+                                                    className="text-gray-800 text-base mb-4"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: question.question,
+                                                    }}
+                                                />
+
+                                                <div className="space-y-2">
+                                                    {shuffledOptions.map((option, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            onClick={() =>
+                                                                handleAnswer(
+                                                                    option.type,
+                                                                    question.id,
+                                                                    question.question,
+                                                                    option.value
+                                                                )
+                                                            }
+                                                            className={`${getDivStyle(option.value, question.id)} 
+                                                                flex items-center gap-3 p-2 rounded border border-gray-100
+                                                                hover:bg-gray-50 cursor-pointer`}
+                                                        >
+                                                            <span className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-sm">
+                                                                {option.label}
+                                                            </span>
+                                                            <div
+                                                                className="text-sm text-gray-700 flex-1"
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: option.value,
+                                                                }}
+                                                            />
+                                                            <span className="text-xs text-gray-400 px-2 py-1 bg-gray-100 rounded">
+                                                                Press '{option.label}'
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex justify-between mt-4">
+                                                    <button
+                                                        onClick={() => handlePrev(question.id, question.question)}
+                                                        className="px-4 py-1 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+                                                    >
+                                                        Previous
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleNext(question.id, question.question)}
+                                                        className="px-4 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+                                                    >
+                                                        Next
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })}
                             </div>
                         </div>
                     </div>
@@ -335,7 +377,7 @@ const Student = () => {
 
                 <div className="bg-white p-3 rounded-lg shadow-sm mr-4">
                     <div className="grid grid-cols-10 gap-1">
-                        {data && data.questions.map((question, index) => (
+                        {shuffledQuestions.map((question, index) => (
                             <button
                                 key={index}
                                 onClick={() => handleClick(index)}
