@@ -106,10 +106,12 @@ const Student = () => {
             setClickedBtns((prev) => [...prev, questionIndexToShow]);
             return;
         }
-        console.log(questionIndexToShow);
         setQuestionIndexToShow((prev) => prev + 1);
         setActiveButton(questionIndexToShow + 1);
-        setClickedBtns((prev) => [...prev, activeButton]);
+        if (!clickedBtns.includes(questionIndexToShow)) {
+            setClickedBtns((prev) => [...prev, questionIndexToShow]);
+        }
+        
         if (selectedOption) {
             const res = await axios.post(
                 `${path}/answer-question/${studentId}/${questionId}/${data.exam.course_id}`,
@@ -119,8 +121,6 @@ const Student = () => {
                     course_id: data.exam.course_Id,
                 }
             );
-        } else {
-            return;
         }
     };
 
@@ -130,6 +130,9 @@ const Student = () => {
         }
         setQuestionIndexToShow((prev) => prev - 1);
         setActiveButton(questionIndexToShow - 1);
+        if (!clickedBtns.includes(questionIndexToShow)) {
+            setClickedBtns((prev) => [...prev, questionIndexToShow]);
+        }
     };
 
     const getDivStyle = (option, questionId) => {
@@ -258,30 +261,6 @@ const Student = () => {
 
                     <div>
                         <div class="">
-                            <div className="bg-white rounded-lg shadow-sm p-4 my-2">
-                                <div className="flex justify-between items-center text-sm mb-2">
-                                    <div className="flex gap-4">
-                                        <span>
-                                            <span className="font-semibold text-gray-600">Course:</span>{" "}
-                                            <span className="text-gray-900">{course && course.title}</span>
-                                        </span>
-                                        <span>
-                                            <span className="font-semibold text-gray-600">Code:</span>{" "}
-                                            <span className="text-gray-900">{course && course.code}</span>
-                                        </span>
-                                    </div>
-                                    <span>
-                                        <span className="font-semibold text-gray-600">Date:</span>{" "}
-                                        <span className="text-gray-900">{new Date().toLocaleDateString()}</span>
-                                    </span>
-                                </div>
-                                
-                                <div className="bg-blue-50 border-l-4 border-blue-500 p-2 text-sm">
-                                    <span className="font-semibold text-blue-800">Instructions:</span>{" "}
-                                    <span className="text-blue-900">{data && data.exam.instructions}</span>
-                                </div>
-                            </div>
-
                             <div class="bg-white/60 p-4">
                                 {data &&
                                     data.questions.map((question, index) => {
