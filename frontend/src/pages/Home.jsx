@@ -31,7 +31,8 @@ const Home = () => {
 
             if (res.status === 200) {
                 if (res.data.is_logged_on === "no") {
-                    navigate(`student/${res.data.id}`);
+                    // navigate(`student/${res.data.id}`);
+                    navigate(`/exam-instructions/${res.data.id}`);
                 } else {
                     navigate("/logged-student");
                 }

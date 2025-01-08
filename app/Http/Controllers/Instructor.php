@@ -391,19 +391,39 @@ class Instructor extends Controller
     public function student_submit_exam($course_id, $candidate_id)
     {
         try {
-            $score = Answers::where('course_id', $course_id)->where('candidate_id', $candidate_id)->where('is_correct', true)->count();
+            // Get number of correct answers
+            $correct_answers = Answers::where('course_id', $course_id)
+                ->where('candidate_id', $candidate_id)
+                ->where('is_correct', true)
+                ->count();
+            
             $course = Course::findOrFail($course_id);
-            $exam = StudentExamScore::updateOrCreate(
+            
+            // Get the exam details to get marks_per_question
+            $exam = Exam::where('course_id', $course_id)
+                ->where('submission_status', 'submitted')
+                ->first();
+            
+            // Calculate total score (correct answers * marks per question)
+            $total_score = $correct_answers * $exam->marks_per_question;
+
+            $exam_score = StudentExamScore::updateOrCreate(
                 [
-                    'student_id' => $candidate_id, // Condition for finding  
-                    'course_id' => $course_id               // Condition for finding  
+                    'student_id' => $candidate_id,
+                    'course_id' => $course_id
                 ],
                 [
-                    'score' => $score,                       // Attributes to update or create  
+                    'score' => $total_score,
                     'course_name' => $course->title
                 ]
             );
-            return response()->json(['score' => $score, 'exam' => $exam]);
+            
+            return response()->json([
+                'correct_answers' => $correct_answers,
+                'marks_per_question' => $exam->marks_per_question,
+                'total_score' => $total_score,
+                'exam_score' => $exam_score
+            ]);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }

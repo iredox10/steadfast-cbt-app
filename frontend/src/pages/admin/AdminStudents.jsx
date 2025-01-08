@@ -414,13 +414,13 @@ const AdminStudents = () => {
                                         onchange={(e) => setProgramme(e.target.value)}
                                     />
                                 </div>
-                                <FormInput
+                                {/* <FormInput
                                     label="Profile Image"
                                     type="file"
                                     labelFor="image"
                                     name="image"
                                     onchange={(e) => setImage(e.target.files[0])}
-                                />
+                                /> */}
                                 
                                 <button
                                     type="submit"
