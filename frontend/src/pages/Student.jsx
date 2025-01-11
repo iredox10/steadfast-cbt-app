@@ -179,9 +179,9 @@ const Student = () => {
 
     const handleSubmit = async (isAutoSubmit = false) => {
         try {
-            // const res = await axios.post(
-            //     `${path}/student-submit-exam/${course.id}/${studentId}`
-            // );
+            const res = await axios.post(
+                `${path}/student-submit-exam/${course.id}/${studentId}`
+            );
             // Clear all exam data from localStorage
             localStorage.removeItem('examTimeRemaining');
             localStorage.removeItem('examLastTimestamp');
