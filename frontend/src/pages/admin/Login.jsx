@@ -16,25 +16,27 @@ const AdminLogin = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErr('')
+        setErr("");
         if (!email || !password) {
             setErr("field can't be empty");
             return;
         }
         try {
-            setLoading(true)
+            setLoading(true);
             const res = await axios.post(`${path}/login`, { email, password });
             const user = res.data;
             if (user.role == "admin") {
                 navigate(`/dashboard/${user.id}`);
             } else if (user.role == "lecturer") {
                 navigate(`/instructor/${res.data.id}`);
+            } else {
+                navigate(`/regular/${user.id}`);
             }
         } catch (err) {
             console.log(err);
             setErr(err.response.data);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     };
     return (
@@ -43,7 +45,11 @@ const AdminLogin = () => {
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-900 to-black items-center justify-center p-12">
                 <div className="max-w-xl">
                     <div className="mb-12">
-                        <img src={logo} alt="HUK POLY Logo" className="w-32 h-32 object-contain" />
+                        <img
+                            src={logo}
+                            alt="HUK POLY Logo"
+                            className="w-32 h-32 object-contain"
+                        />
                     </div>
                     <div className="text-white space-y-4">
                         <h1 className="text-5xl font-bold leading-tight">
@@ -61,13 +67,17 @@ const AdminLogin = () => {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
                 <div className="max-w-md w-full">
                     <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-                        <p className="text-gray-600 mt-2">Please sign in to your account</p>
+                        <h2 className="text-3xl font-bold text-gray-900">
+                            Welcome Back
+                        </h2>
+                        <p className="text-gray-600 mt-2">
+                            Please sign in to your account
+                        </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {err && <ErrMsg msg={err} />}
-                        
+
                         <FormInput
                             label="Email Address"
                             labelFor="email"
@@ -86,7 +96,7 @@ const AdminLogin = () => {
                             disabled={loading}
                         />
 
-                        <FormBtn 
+                        <FormBtn
                             text={loading ? "Signing in..." : "Sign In"}
                             disabled={loading}
                         />

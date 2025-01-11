@@ -57,6 +57,10 @@ function App() {
         <Route path='/add-student-to-course/:id' element={<CourseStudents />} />
         <Route path="/exam-instructions/:studentId" element={<ExamInstructions />} />
 
+
+
+        {/* <Route path="/regular/:id" element={<ExamInstructions />} /> */}
+
       </Routes>
     </Router>
     </div>

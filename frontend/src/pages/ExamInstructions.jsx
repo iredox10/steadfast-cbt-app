@@ -57,7 +57,6 @@ const ExamInstructions = () => {
                                 <li>Each question carries {examData?.exam?.marks_per_question} marks</li>
                                 <li>Timer will start as soon as you begin the exam</li>
                                 <li>You cannot return to the exam once submitted</li>
-                                <li>Ensure stable internet connection before starting</li>
                                 <li>Do not refresh or close the browser during the exam</li>
                             </ul>
                         </div>

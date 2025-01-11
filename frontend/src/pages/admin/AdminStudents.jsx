@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import Sidebar from "../../components/Sidebar";
-import GridLayout from "../../components/GridLayout";
-import Header from "../../components/Header";
-import useFetch from "../../hooks/useFetch";
-import FormBtn from "../../components/FormBtn";
-import Btn from "../../components/Btn";
 import Model from "../../components/Model";
 import FormInput from "../../components/FormInput";
 import { path } from "../../../utils/path";
@@ -15,7 +10,6 @@ import ErrMsg from "../../components/ErrMsg";
 
 const AdminStudents = () => {
     const { id } = useParams();
-    // const { data: students, error, loading } = useFetch(`/get-students`);
 
     const [students, setStudents] = useState();
 
@@ -64,7 +58,7 @@ const AdminStudents = () => {
         // formData.append("is_logged_on", "no");
         // formData.append("programme", programme);
         // formData.append("department", department);
-        console.log(programme)
+        console.log(programme);
         try {
             const res = await axios.post(`${path}/register-student/${id}`, {
                 full_name,
@@ -87,7 +81,7 @@ const AdminStudents = () => {
 
                 console.log("heelo");
             }
-            console.log(res.data)
+            console.log(res.data);
         } catch (err) {
             setErr(
                 err.response?.data?.error ||
@@ -124,15 +118,11 @@ const AdminStudents = () => {
         formData.append("excel_file", file);
 
         try {
-            const res = await axios.post(
-                `${path}/upload-excel`,
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
+            const res = await axios.post(`${path}/upload-excel`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
 
             if (res.status === 201) {
                 setShowForm(false);
@@ -156,8 +146,12 @@ const AdminStudents = () => {
 
     const indexOfLastStudent = currentPage * studentsPerPage;
     const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
-    const currentStudents = students ? students.slice(indexOfFirstStudent, indexOfLastStudent) : [];
-    const totalPages = students ? Math.ceil(students.length / studentsPerPage) : 0;
+    const currentStudents = students
+        ? students.slice(indexOfFirstStudent, indexOfLastStudent)
+        : [];
+    const totalPages = students
+        ? Math.ceil(students.length / studentsPerPage)
+        : 0;
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -165,7 +159,10 @@ const AdminStudents = () => {
         <div className="min-h-screen bg-gray-100">
             <div className="flex">
                 <Sidebar>
-                    <Link to="/admin-courses" className="flex items-center gap-2 p-4 hover:bg-gray-200">
+                    <Link
+                        to="/admin-courses"
+                        className="flex items-center gap-2 p-4 hover:bg-gray-200"
+                    >
                         <i className="fas fa-book"></i>
                         <span>Courses</span>
                     </Link>
@@ -174,8 +171,12 @@ const AdminStudents = () => {
                 <div className="flex-1 p-8">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Students</h1>
-                            <p className="text-gray-600">Manage and view student information</p>
+                            <h1 className="text-2xl font-bold text-gray-800">
+                                Students
+                            </h1>
+                            <p className="text-gray-600">
+                                Manage and view student information
+                            </p>
                         </div>
                         <button
                             onClick={() => setShowModel(true)}
@@ -191,36 +192,71 @@ const AdminStudents = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Number</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Login Status</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in Time</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out Time</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Full Name
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Candidate Number
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Department
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Programme
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Login Status
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Check-in Time
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Check-out Time
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {currentStudents.map((student, index) => (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.full_name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.candidate_no}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.department}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.programme}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                    student.is_logged_on === "yes" 
-                                                    ? "bg-green-100 text-green-800" 
-                                                    : "bg-red-100 text-red-800"
-                                                }`}>
-                                                    {student.is_logged_on === "yes" ? "Logged In" : "Logged Out"}
+                                        <tr
+                                            key={index}
+                                            className="hover:bg-gray-50"
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {student.full_name}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {student.candidate_no}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {student.department}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {student.programme}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <span
+                                                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                        student.is_logged_on ===
+                                                        "yes"
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-red-100 text-red-800"
+                                                    }`}
+                                                >
+                                                    {student.is_logged_on ===
+                                                    "yes" ? (
+                                                        "Logged In"
+                                                    ) : (
+                                                        <span> - </span>
+                                                    )}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {student.checkin_time || "Not checked in"}
+                                                {student.checkin_time ||
+                                                    "Not checked in"}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {student.checkout_time || "Not checked out"}
+                                                {student.checkout_time ||
+                                                    "Not checked out"}
                                             </td>
                                         </tr>
                                     ))}
@@ -235,8 +271,8 @@ const AdminStudents = () => {
                                     disabled={currentPage === 1}
                                     className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
                                         currentPage === 1
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white text-gray-700 hover:bg-gray-50"
                                     }`}
                                 >
                                     Previous
@@ -246,8 +282,8 @@ const AdminStudents = () => {
                                     disabled={currentPage === totalPages}
                                     className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
                                         currentPage === totalPages
-                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white text-gray-700 hover:bg-gray-50"
                                     }`}
                                 >
                                     Next
@@ -256,27 +292,37 @@ const AdminStudents = () => {
                             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                                 <div>
                                     <p className="text-sm text-gray-700">
-                                        Showing{' '}
-                                        <span className="font-medium">{indexOfFirstStudent + 1}</span>
-                                        {' '}-{' '}
+                                        Showing{" "}
                                         <span className="font-medium">
-                                            {Math.min(indexOfLastStudent, students?.length || 0)}
-                                        </span>
-                                        {' '}of{' '}
-                                        <span className="font-medium">{students?.length || 0}</span>
-                                        {' '}results
+                                            {indexOfFirstStudent + 1}
+                                        </span>{" "}
+                                        -{" "}
+                                        <span className="font-medium">
+                                            {Math.min(
+                                                indexOfLastStudent,
+                                                students?.length || 0
+                                            )}
+                                        </span>{" "}
+                                        of{" "}
+                                        <span className="font-medium">
+                                            {students?.length || 0}
+                                        </span>{" "}
+                                        results
                                     </p>
                                 </div>
                                 <div>
                                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                                        {Array.from(
+                                            { length: totalPages },
+                                            (_, i) => i + 1
+                                        ).map((number) => (
                                             <button
                                                 key={number}
                                                 onClick={() => paginate(number)}
                                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                                     currentPage === number
-                                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                        ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                                        : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                                                 }`}
                                             >
                                                 {number}
@@ -294,12 +340,16 @@ const AdminStudents = () => {
                 <Model>
                     <div className="bg-white rounded-lg p-6 max-w-2xl w-full h-[600px] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-800">Add Student</h2>
+                            <h2 className="text-xl font-bold text-gray-800">
+                                Add Student
+                            </h2>
                             <button
                                 onClick={() => setShowModel(false)}
                                 className="text-gray-400 hover:text-gray-600"
                             >
-                                <FormCloseBtn onclick={() => setShowModel(false)} />
+                                <FormCloseBtn
+                                    onclick={() => setShowModel(false)}
+                                />
                             </button>
                         </div>
 
@@ -310,9 +360,9 @@ const AdminStudents = () => {
                                     setShowImport(false);
                                 }}
                                 className={`px-4 py-2 rounded-lg ${
-                                    showForm 
-                                    ? "bg-blue-600 text-white" 
-                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                    showForm
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                 }`}
                             >
                                 Add Single Student
@@ -324,8 +374,8 @@ const AdminStudents = () => {
                                 }}
                                 className={`px-4 py-2 rounded-lg ${
                                     showImport
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                 }`}
                             >
                                 Import Students
@@ -333,15 +383,23 @@ const AdminStudents = () => {
                         </div>
 
                         {showImport ? (
-                            <form onSubmit={handleFileUpload} className="space-y-4">
+                            <form
+                                onSubmit={handleFileUpload}
+                                className="space-y-4"
+                            >
                                 <div className="flex items-center justify-center w-full">
                                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                             <i className="fas fa-cloud-upload-alt text-gray-500 text-3xl mb-2"></i>
                                             <p className="mb-2 text-sm text-gray-500">
-                                                <span className="font-semibold">Click to upload</span> or drag and drop
+                                                <span className="font-semibold">
+                                                    Click to upload
+                                                </span>{" "}
+                                                or drag and drop
                                             </p>
-                                            <p className="text-xs text-gray-500">Excel files only (.xlsx, .xls)</p>
+                                            <p className="text-xs text-gray-500">
+                                                Excel files only (.xlsx, .xls)
+                                            </p>
                                         </div>
                                         <input
                                             type="file"
@@ -354,49 +412,72 @@ const AdminStudents = () => {
                                     </label>
                                 </div>
                                 {file && (
-                                    <p className="text-sm text-gray-600">Selected file: {file.name}</p>
+                                    <p className="text-sm text-gray-600">
+                                        Selected file: {file.name}
+                                    </p>
                                 )}
                                 <button
                                     type="submit"
                                     disabled={isUploading}
                                     className={`w-full px-4 py-2 text-white rounded-lg flex items-center justify-center ${
-                                        isUploading 
-                                        ? 'bg-blue-400 cursor-not-allowed' 
-                                        : 'bg-blue-600 hover:bg-blue-700'
+                                        isUploading
+                                            ? "bg-blue-400 cursor-not-allowed"
+                                            : "bg-blue-600 hover:bg-blue-700"
                                     }`}
                                 >
                                     {isUploading ? (
                                         <>
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            <svg
+                                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                ></circle>
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
                                             </svg>
                                             Uploading...
                                         </>
                                     ) : (
-                                        'Upload File'
+                                        "Upload File"
                                     )}
                                 </button>
                             </form>
                         ) : (
-                            <form onSubmit={handleSubmit} className="space-y-4 h-[500px] overflow-y-auto">
-                                {err && (
-                                    <ErrMsg msg={err} />
-                                )}
-                                
+                            <form
+                                onSubmit={handleSubmit}
+                                className="space-y-4 h-[500px] overflow-y-auto"
+                            >
+                                {err && <ErrMsg msg={err} />}
+
                                 <FormInput
                                     label="Full Name"
                                     labelFor="fullname"
                                     name="fullname"
                                     placeholder="Enter full name..."
-                                    onchange={(e) => setFull_name(e.target.value)}
+                                    onchange={(e) =>
+                                        setFull_name(e.target.value)
+                                    }
                                 />
                                 <FormInput
                                     label="Candidate Number"
                                     labelFor="candidate"
                                     name="candidate"
                                     placeholder="Enter candidate number..."
-                                    onchange={(e) => setCandidate_no(e.target.value)}
+                                    onchange={(e) =>
+                                        setCandidate_no(e.target.value)
+                                    }
                                 />
                                 <div className="flex gap-4">
                                     <FormInput
@@ -404,14 +485,18 @@ const AdminStudents = () => {
                                         labelFor="department"
                                         name="department"
                                         placeholder="Enter department..."
-                                        onchange={(e) => setDepartment(e.target.value)}
+                                        onchange={(e) =>
+                                            setDepartment(e.target.value)
+                                        }
                                     />
                                     <FormInput
                                         label="Programme"
                                         labelFor="programme"
                                         name="programme"
                                         placeholder="Enter programme..."
-                                        onchange={(e) => setProgramme(e.target.value)}
+                                        onchange={(e) =>
+                                            setProgramme(e.target.value)
+                                        }
                                     />
                                 </div>
                                 {/* <FormInput
@@ -421,7 +506,7 @@ const AdminStudents = () => {
                                     name="image"
                                     onchange={(e) => setImage(e.target.files[0])}
                                 /> */}
-                                
+
                                 <button
                                     type="submit"
                                     className="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
@@ -430,7 +515,6 @@ const AdminStudents = () => {
                                 </button>
                             </form>
                         )}
-
                     </div>
                 </Model>
             )}

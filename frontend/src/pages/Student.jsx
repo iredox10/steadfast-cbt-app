@@ -27,7 +27,7 @@ const Student = () => {
     }, [data]);
 
     const [answers, setAnswers] = useState([]);
-    console.log(data);
+    // console.log(data);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
     // console.log(student);
@@ -96,17 +96,24 @@ const Student = () => {
     const [selectedOption, setSelectedOption] = useState();
     const [question, setQuestion] = useState();
 
-    const [selectedAnswers, setSelectedAnswers] = useState({});
+    const [selectedAnswers, setSelectedAnswers] = useState(() => {
+        const savedAnswers = localStorage.getItem(`exam_answers_${studentId}`);
+        return savedAnswers ? JSON.parse(savedAnswers) : {};
+    });
 
     const handleAnswer = (option, questionId, question, answer) => {
         selectedAnswerRef.current = { questionId, question, answer };
         setQuestion(question);
         setSelectedOption(answer);
-        
-        setSelectedAnswers(prev => ({
-            ...prev,
+    //    console.log(selectedOption) 
+        const newAnswers = {
+            ...selectedAnswers,
             [questionId]: answer
-        }));
+        };
+        
+        setSelectedAnswers(newAnswers);
+        // Save to localStorage
+        localStorage.setItem(`exam_answers_${studentId}`, JSON.stringify(newAnswers));
     };
 
     const getPlainText = (html) => {
@@ -150,10 +157,12 @@ const Student = () => {
 
     const getDivStyle = (option, questionId) => {
         const storedAnswer = selectedAnswers[questionId];
-        if (storedAnswer === option) {
-            return "bg-green-500 text-white";
+        const plainStoredAnswer = getPlainText(storedAnswer);
+        const plainOption = getPlainText(option);
+        if (plainStoredAnswer === plainOption) {
+            return 'bg-blue-500 text-white' 
         }
-        return "bg-primary-color text-black";
+        return "";
     };
 
     const [sumbitModel, setSubmitModel] = useState();
@@ -168,16 +177,15 @@ const Student = () => {
 
     const handleSubmit = async (isAutoSubmit = false) => {
         try {
-            const res = await axios.post(
-                `${path}/student-submit-exam/${course.id}/${studentId}`
-            );
-            localStorage.removeItem(`exam_answers_${studentId}`); // Clear saved answers
+            // const res = await axios.post(
+            //     `${path}/student-submit-exam/${course.id}/${studentId}`
+            // );
+            // Clear all exam data from localStorage
+            localStorage.removeItem('examTimeRemaining');
+            localStorage.removeItem('examLastTimestamp');
+            localStorage.removeItem(`exam_answers_${studentId}`);
             
-            if (isAutoSubmit) {
-                alert("Time's up! Your exam has been automatically submitted.");
-            }
-            
-            navigate("/student-submission/" + studentId);
+            // navigate("/student-submission/" + studentId);
         } catch (err) {
             console.log(err);
             alert("Error submitting exam. Please contact your administrator.");
@@ -271,6 +279,22 @@ const Student = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [shuffledQuestions, questionIndexToShow, shuffledOptions]);
 
+    // Add useEffect to track clicked buttons based on saved answers
+    useEffect(() => {
+        const savedAnswers = Object.keys(selectedAnswers);
+        if (savedAnswers.length > 0) {
+            // Find indices of questions that have answers
+            const answeredIndices = shuffledQuestions
+                .map((q, index) => savedAnswers.includes(q.id.toString()) ? index : null)
+                .filter(index => index !== null);
+            
+            // Update clickedBtns with these indices
+            setClickedBtns(answeredIndices);
+        }
+    }, [shuffledQuestions, selectedAnswers]);
+
+    // Add console logs to debug
+
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
             <Sidebar />
@@ -331,21 +355,40 @@ const Student = () => {
                                                                     option.value
                                                                 )
                                                             }
-                                                            className={`${getDivStyle(option.value, question.id)} 
-                                                                flex items-center gap-3 p-2 rounded border border-gray-100
-                                                                hover:bg-gray-50 cursor-pointer`}
+                                                            className={`
+                                                                ${getDivStyle(option.value, question.id)} 
+                                                                flex items-center gap-3 p-2 rounded 
+                                                                border border-gray-200
+                                                                transition-colors duration-200
+                                                                cursor-pointer
+                                                            `}
                                                         >
-                                                            <span className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-300 text-sm">
+                                                            <span className={`
+                                                                w-6 h-6 
+                                                                flex items-center justify-center 
+                                                                rounded-full border 
+                                                                ${selectedAnswers[question.id] === getPlainText(option.value) 
+                                                                    ? 'border-white text-white' 
+                                                                    : 'border-gray-300 text-gray-600'
+                                                                }
+                                                                text-sm
+                                                            `}>
                                                                 {option.label}
                                                             </span>
                                                             <div
-                                                                className="text-sm text-gray-700 flex-1"
+                                                                className={`
+                                                                    text-sm flex-1
+                                                                    ${selectedAnswers[question.id] === getPlainText(option.value) 
+                                                                        ? 'text-white' 
+                                                                        : 'text-gray-700'
+                                                                    }
+                                                                `}
                                                                 dangerouslySetInnerHTML={{
                                                                     __html: option.value,
                                                                 }}
                                                             />
                                                             <span className="text-xs text-gray-400 px-2 py-1 bg-gray-100 rounded">
-                                                                Press '{option.label}'
+                                                                Press '{idx + 1}'
                                                             </span>
                                                         </div>
                                                     ))}

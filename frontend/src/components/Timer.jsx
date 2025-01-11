@@ -1,52 +1,78 @@
 import React, { useState, useEffect } from "react";
 
-const Timer = ({ initialTime, onTimeUp, reminder }) => {
-    const [timeLeft, setTimeLeft] = useState(initialTime);
-    
+const Timer = ({ initialTime, onTimeUp }) => {
+    const [timeRemaining, setTimeRemaining] = useState(() => {
+        // Try to get saved time from localStorage
+        const savedTime = localStorage.getItem('examTimeRemaining');
+        if (savedTime) {
+            const parsedTime = parseInt(savedTime);
+            // Verify saved time isn't more than initial time
+            return parsedTime > initialTime ? initialTime : parsedTime;
+        }
+        return initialTime;
+    });
+
+    const [isActive, setIsActive] = useState(true);
+
     useEffect(() => {
-        if (timeLeft <= 0) {
-            onTimeUp(true); // Pass true to indicate auto-submission
-            return;
+        // Get the timestamp when timer was last updated
+        const lastTimestamp = localStorage.getItem('examLastTimestamp');
+        const now = Date.now();
+
+        if (lastTimestamp) {
+            // Calculate time passed since last update
+            const timePassed = Math.floor((now - parseInt(lastTimestamp)) / 1000);
+            const newTimeRemaining = timeRemaining - timePassed;
+            
+            // Update timer if time has passed
+            if (newTimeRemaining < timeRemaining) {
+                setTimeRemaining(Math.max(0, newTimeRemaining));
+            }
         }
 
-        const timer = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
+        // Save initial timestamp
+        localStorage.setItem('examLastTimestamp', now.toString());
+
+        const interval = setInterval(() => {
+            setTimeRemaining(prevTime => {
+                const newTime = prevTime - 1;
+                
+                // Save current time to localStorage
+                localStorage.setItem('examTimeRemaining', newTime.toString());
+                localStorage.setItem('examLastTimestamp', Date.now().toString());
+
+                if (newTime <= 0) {
+                    clearInterval(interval);
+                    setIsActive(false);
+                    onTimeUp(true); // Pass true to indicate auto-submission
+                    // Clear localStorage
+                    localStorage.removeItem('examTimeRemaining');
+                    localStorage.removeItem('examLastTimestamp');
+                    return 0;
+                }
+                return newTime;
+            });
         }, 1000);
 
-        return () => clearInterval(timer);
-    }, [timeLeft, onTimeUp]);
+        return () => {
+            clearInterval(interval);
+        };
+    }, [initialTime, onTimeUp]);
 
-    const startTimer = () => {
-        setIsActive(true);
+    // Format time as HH:MM:SS
+    const formatTime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+
+        const pad = (num) => num.toString().padStart(2, '0');
+
+        return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
     };
-
-    const pauseTimer = () => {
-        setIsActive(false);
-    };
-
-    const resetTimer = () => {
-        setTimeLeft(initialTime);
-        setIsActive(false);
-    };
-
-    // console.log(timeLeft)
-
-    // Format time for display
-    const displayMinutes = Math.floor(timeLeft / 60);
-    const displaySeconds = timeLeft % 60;
-
-    // Add warning class when time is running low (less than 5 minutes)
-    const timerClassName = `px-2 py-1 rounded-md text-white text-lg ${
-        timeLeft <= 300 ? 'bg-red-600' : 'bg-gray-800'
-    }`;
 
     return (
-        <div className={timerClassName}>
-            {String(displayMinutes).padStart(2, "0")}
-            <span className="text-gray-400 text-sm">m</span>
-            <span className="text-gray-400 mx-0.5">:</span>
-            {String(displaySeconds).padStart(2, "0")}
-            <span className="text-gray-400 text-sm">s</span>
+        <div className={`font-mono text-lg ${timeRemaining < 300 ? 'text-red-600' : 'text-gray-800'}`}>
+            {formatTime(timeRemaining)}
         </div>
     );
 };
