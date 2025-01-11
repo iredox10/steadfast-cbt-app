@@ -124,6 +124,7 @@ const Student = () => {
     const handleNext = async (questionId, question) => {
         if (questionIndexToShow === shuffledQuestions.length - 1) {
             setClickedBtns((prev) => [...prev, questionIndexToShow]);
+            setSubmitModel(true)
             return;
         }
         setQuestionIndexToShow((prev) => prev + 1);
@@ -131,7 +132,7 @@ const Student = () => {
         if (!clickedBtns.includes(questionIndexToShow)) {
             setClickedBtns((prev) => [...prev, questionIndexToShow]);
         }
-        
+
         if (selectedOption) {
             const res = await axios.post(
                 `${path}/answer-question/${studentId}/${questionId}/${data.exam.course_id}`,
@@ -142,6 +143,7 @@ const Student = () => {
                 }
             );
         }
+        
     };
 
     const handlePrev = (questionId, question) => {
