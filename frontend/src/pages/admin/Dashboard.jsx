@@ -13,6 +13,13 @@ import FormBtn from "../../components/FormBtn";
 const AdminDashboard = () => {
     const { id } = useParams();
     // const { data: exams, loading, err } = useFetch(`/get-exams`);
+
+    const {
+        data: invigilators,
+        loading: invigilatorsLoading,
+        err,
+    } = useFetch(`/get-invigilators`);
+
     const [course, setCourse] = useState();
     const [exams, setExams] = useState();
     const [loading, setLoading] = useState(false);
@@ -20,7 +27,9 @@ const AdminDashboard = () => {
     const [showDeleteModel, setShowDeleteModel] = useState(false);
     const [showTerminateModel, setShowTerminateModel] = useState(false);
     const [showSubmitModel, setShowSubmitModel] = useState(false);
+    const [showAssignInvigilator, SetshowAssignInvigilator] = useState(false);
     const [examId, setexamId] = useState();
+    const [invigilator, setInvigilator] = useState();
 
     const [courses, setCourses] = useState();
     const [searchTerm, setSearchTerm] = useState("");
@@ -58,14 +67,17 @@ const AdminDashboard = () => {
 
     const showModelAndSetExamId = (id) => {
         console.log(id);
-        setShowSubmitModel(true);
+        // setShowSubmitModel(true);
+        SetshowAssignInvigilator(true);
         setexamId(id);
     };
 
     const handleActivateExam = async (id) => {
         console.log(id);
         try {
-            const res = await axios.post(`${path}/activate-exam/${id}`);
+            const res = await axios.post(`${path}/activate-exam/${id}`, {
+                invigilator,
+            });
             if (res.status == 200) {
                 setShowSubmitModel(false);
                 fetchExams();
@@ -319,11 +331,16 @@ const AdminDashboard = () => {
                                                         </span>
                                                         <div className="flex gap-2">
                                                             <button
-                                                                onClick={() =>
+                                                                onClick={() => {
                                                                     showModelAndSetExamId(
                                                                         exam.id
-                                                                    )
-                                                                }
+                                                                    );
+                                                                }}
+                                                                // onClick={() =>
+                                                                //     showModelAndSetExamId(
+                                                                //         exam.id
+                                                                //     )
+                                                                // }
                                                                 className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                                             >
                                                                 Activate
@@ -410,6 +427,58 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {showAssignInvigilator && (
+                <Model>
+                    <div className="bg-white rounded-lg p-6  w-full">
+                        <div className="flex justify-between">
+                            <h1 className="font-bold ">Assign Invigilator</h1>
+                            <button
+                                onClick={() => {
+                                    SetshowAssignInvigilator(false);
+                                    setInvigilator("");
+                                }}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <div className="flex flex-col">
+                            Choose Invigilator
+                            <select
+                                onChange={(e) => {
+                                    setInvigilator(e.target.value);
+                                }}
+                                name="invigilator"
+                                id=""
+                            >
+                                <option selected disabled>
+                                    Select Invigilator
+                                </option>
+                                {invigilators?.map((invigilator) => (
+                                    <option value={invigilator.email}>
+                                        {invigilator.full_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        {invigilator && (
+                            <div className="flex justify-end mt-5">
+                                <button
+                                    // onClick={() => handleActivateExam(examId)}
+                                    onClick={() => {
+                                        handleActivateExam(examId);
+                                        SetshowAssignInvigilator(false)
+                                    }}
+                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                >
+                                    Assign & Activate
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </Model>
+            )}
+
             {showSubmitModel && (
                 <Model>
                     <div className="bg-white rounded-lg p-6  w-full">
@@ -464,7 +533,6 @@ const AdminDashboard = () => {
                             </button>
                         </div>
                     </div>
-
                 </Model>
             )}
         </div>

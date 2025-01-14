@@ -259,7 +259,6 @@ class Admin extends Controller
 
     public function activate_exam(Request $request, $exam_id)
     {
-        $validate = request()->validate([]);
         try {
             $exams = Exam::query()->update(['activated' => 'no']);
             $exam = Exam::findOrFail($exam_id);
@@ -267,6 +266,7 @@ class Admin extends Controller
 
             $exam->activated = 'yes';
             $exam->activated_date = Carbon::now();
+            $exam->invigilator = $request->invigilator;
             // $exam->start_time = Carbon::
             $exam->save();
             return response()->json($exam);
@@ -393,6 +393,17 @@ class Admin extends Controller
             return response()->json($stats);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function get_invigilators()
+    {
+        try {
+            $invigilators = User::where('role', 'regular')->get();
+            return response()->json($invigilators);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
         }
     }
 }

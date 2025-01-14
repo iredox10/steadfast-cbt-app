@@ -133,6 +133,8 @@ Route::post('/upload-excel', [Admin::class, 'upload_excel']);
 
 Route::get('/dashboard-stats', [Admin::class, 'getDashboardStats']);
 
+Route::get('/get-invigilators', [Admin::class, 'get_invigilators']);
+
 
 // TODO: populate student answer table with question that the student answer
 
