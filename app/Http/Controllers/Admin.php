@@ -397,11 +397,16 @@ class Admin extends Controller
     }
 
 
-    public function get_invigilators()
+    public function get_invigilator($invigilator_id)
     {
         try {
-            $invigilators = User::where('role', 'regular')->get();
-            return response()->json($invigilators);
+            $invigilator = User::findOrFail($invigilator_id);
+            $exam = Exam::where('activated', 'yes')->first();
+            // $invigilatorExam = User::where('email', $exam->invigilator)->get();
+            if ($invigilator->email == $exam->invigilator) {
+                return response()->json(['invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
+            }
+            return response()->json(['invigilator' => $invigilator, 'examAssigned' => false]);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }

@@ -38,6 +38,8 @@ Route::get('/submit-exam/{student_id}/{course_id}', [Student::class,'submit_exam
 
 Route::get('/student-courses/{student_id}', [Student::class, 'get_courses']);
 
+Route::post('/check-student/{student_id}', [Student::class, 'check_student']);
+
 
 
 // instructor
@@ -134,6 +136,8 @@ Route::post('/upload-excel', [Admin::class, 'upload_excel']);
 Route::get('/dashboard-stats', [Admin::class, 'getDashboardStats']);
 
 Route::get('/get-invigilators', [Admin::class, 'get_invigilators']);
+
+Route::get('/get-invigilator/{invigilator_id}', [Admin::class, 'get_invigilator']);
 
 
 // TODO: populate student answer table with question that the student answer

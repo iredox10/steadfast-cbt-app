@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Answers;
 use App\Models\Exam;
 use App\Models\Question;
+use App\Models\Student as ModelsStudent;
 use App\Models\StudentCourse;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -32,7 +34,8 @@ class Student extends Controller
     public function index()
     {
         //
-        $students = \App\Models\Student::all();
+        // $students = \App\Models\Student::all();
+        $students = \App\Models\Student::orderBy('checkin_time')->get();
         return response()->json($students);
     }
 
@@ -202,6 +205,18 @@ class Student extends Controller
         try {
             $courses = StudentCourse::findOrFail($student_id);
             return response()->json($courses);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function check_student($student_id)
+    {
+        try {
+            $student = \App\Models\Student::findOrFail($student_id);
+            $student->checkin_time = now();
+            $student->save();
+            return response()->json($student);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }

@@ -30,7 +30,7 @@ const AdminLogin = () => {
             } else if (user.role == "lecturer") {
                 navigate(`/instructor/${res.data.id}`);
             } else {
-                navigate(`/regular/${user.id}`);
+                navigate(`/invigilator/${user.id}`);
             }
         } catch (err) {
             console.log(err);

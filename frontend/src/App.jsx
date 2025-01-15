@@ -24,6 +24,7 @@ import LoggedStudent from './pages/LoggedStudent.jsx'
 import AdminCourses from './pages/admin/AdminCourses.jsx'
 import Dashboard from './pages/admin/AdminDashboard.jsx'
 import ExamInstructions from './pages/ExamInstructions.jsx'
+import Invigilator from './pages/Invigilator.jsx'
 
 function App() {
   return (
@@ -59,7 +60,10 @@ function App() {
 
 
 
-        {/* <Route path="/regular/:id" element={<ExamInstructions />} /> */}
+        <Route path="/invigilator/:id" element={<Invigilator />} />
+
+
+
 
       </Routes>
     </Router>
