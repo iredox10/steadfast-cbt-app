@@ -51,15 +51,14 @@ const Invigilator = () => {
 
     return (
         <GridLayout>
-
             <Sidebar />
 
             <div className="col-span-5 p-5">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
+                        <h1 className="text-2xl font-bold text-gray-800 capitalize">
                             {/* Welcome back {data && data.Invigilator.full_name} */}
-                            {/* {data && data.invigilator.full_name} */}
+                            Welcome back {data && data.invigilator.full_name}
                         </h1>
                         <p className="text-gray-600">
                             Manage and view student information
@@ -156,7 +155,7 @@ const Invigilator = () => {
                                                               <button
                                                                   onClick={() =>
                                                                       handleCheck(
-                                                                          student.id
+                                                                          student.id,
                                                                       )
                                                                   }
                                                                   className="bg-blue-500 text-white rounded-lg px-4 py-1"
@@ -166,7 +165,7 @@ const Invigilator = () => {
                                                           )}
                                                       </td>
                                                   </tr>
-                                              )
+                                              ),
                                           )}
                                       </tbody>
                                   </table>
@@ -212,7 +211,7 @@ const Invigilator = () => {
                                                   <span className="font-medium">
                                                       {Math.min(
                                                           indexOfLastStudent,
-                                                          students?.length || 0
+                                                          students?.length || 0,
                                                       )}
                                                   </span>{" "}
                                                   of{" "}
@@ -226,7 +225,7 @@ const Invigilator = () => {
                                               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                                                   {Array.from(
                                                       { length: totalPages },
-                                                      (_, i) => i + 1
+                                                      (_, i) => i + 1,
                                                   ).map((number) => (
                                                       <button
                                                           key={number}

@@ -119,7 +119,7 @@ const AdminDashboard = () => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredExams?.slice(
         indexOfFirstItem,
-        indexOfLastItem
+        indexOfLastItem,
     );
     const totalPages = Math.ceil((filteredExams?.length || 0) / itemsPerPage);
 
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
                                                                     course.id ===
                                                                     exam.course_id
                                                                         ? course.title
-                                                                        : ""
+                                                                        : "",
                                                             )}
                                                     </div>
                                                 </td>
@@ -330,34 +330,44 @@ const AdminDashboard = () => {
                                                                 : "Inactive"}
                                                         </span>
                                                         <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    showModelAndSetExamId(
-                                                                        exam.id
-                                                                    );
-                                                                }}
-                                                                // onClick={() =>
-                                                                //     showModelAndSetExamId(
-                                                                //         exam.id
-                                                                //     )
-                                                                // }
-                                                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                                            >
-                                                                Activate
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    setexamId(
-                                                                        exam.id
-                                                                    );
-                                                                    setShowTerminateModel(
-                                                                        true
-                                                                    );
-                                                                }}
-                                                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                                            >
-                                                                Terminate
-                                                            </button>
+                                                            {exam.activated ==
+                                                            "yes" ? (
+                                                                ""
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        showModelAndSetExamId(
+                                                                            exam.id,
+                                                                        );
+                                                                    }}
+                                                                    // onClick={() =>
+                                                                    //     showModelAndSetExamId(
+                                                                    //         exam.id
+                                                                    //     )
+                                                                    // }
+                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                                >
+                                                                    Activate
+                                                                </button>
+                                                            )}
+                                                            {exam.activated ==
+                                                            "no" ? (
+                                                                ""
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setexamId(
+                                                                            exam.id,
+                                                                        );
+                                                                        setShowTerminateModel(
+                                                                            true,
+                                                                        );
+                                                                    }}
+                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                                >
+                                                                    Terminate
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -416,7 +426,7 @@ const AdminDashboard = () => {
                                     Showing {indexOfFirstItem + 1} to{" "}
                                     {Math.min(
                                         indexOfLastItem,
-                                        filteredExams?.length || 0
+                                        filteredExams?.length || 0,
                                     )}{" "}
                                     of {filteredExams?.length || 0} entries
                                 </div>
@@ -431,7 +441,7 @@ const AdminDashboard = () => {
             {showAssignInvigilator && (
                 <Model>
                     <div className="bg-white rounded-lg p-6  w-full">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between my-5">
                             <h1 className="font-bold ">Assign Invigilator</h1>
                             <button
                                 onClick={() => {
@@ -443,22 +453,24 @@ const AdminDashboard = () => {
                             </button>
                         </div>
                         <div className="flex flex-col">
-                            Choose Invigilator
+                            <p className="my-2">Choose Invigilator</p>
                             <select
                                 onChange={(e) => {
                                     setInvigilator(e.target.value);
                                 }}
                                 name="invigilator"
                                 id=""
+                                className="p-2"
                             >
                                 <option selected disabled>
                                     Select Invigilator
                                 </option>
-                                {invigilators?.map((invigilator) => (
-                                    <option value={invigilator.email}>
-                                        {invigilator.full_name}
-                                    </option>
-                                ))}
+                                {invigilators &&
+                                    invigilators.map((invigilator) => (
+                                        <option value={invigilator.email}>
+                                            {invigilator.full_name}
+                                        </option>
+                                    ))}
                             </select>
                         </div>
                         {invigilator && (
@@ -467,7 +479,7 @@ const AdminDashboard = () => {
                                     // onClick={() => handleActivateExam(examId)}
                                     onClick={() => {
                                         handleActivateExam(examId);
-                                        SetshowAssignInvigilator(false)
+                                        SetshowAssignInvigilator(false);
                                     }}
                                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                 >

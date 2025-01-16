@@ -13,10 +13,11 @@ const Home = () => {
     const [errMsg, setErrMsg] = useState("");
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrMsg('');
-        
+        setErrMsg("");
+
         if (!candidateNumber || !password) {
             setErrMsg("Please fill in all fields");
             return;
@@ -33,6 +34,10 @@ const Home = () => {
                 if (res.data.is_logged_on === "no") {
                     // navigate(`student/${res.data.id}`);
                     navigate(`/exam-instructions/${res.data.id}`);
+                }
+                if (res.data.checkin_time == null) {
+                    alert("you're not checkin");
+                    return
                 } else {
                     navigate("/logged-student");
                 }
@@ -48,8 +53,14 @@ const Home = () => {
             {/* Header */}
             <div className="py-8 text-center">
                 <div className="flex flex-col items-center">
-                    <img src={logo} className="w-24 h-24 object-contain" alt="HUK POLY Logo" />
-                    <h1 className="text-2xl font-bold text-gray-800 mt-2">HUK POLY</h1>
+                    <img
+                        src={logo}
+                        className="w-24 h-24 object-contain"
+                        alt="HUK POLY Logo"
+                    />
+                    <h1 className="text-2xl font-bold text-gray-800 mt-2">
+                        HUK POLY
+                    </h1>
                 </div>
             </div>
 
@@ -59,8 +70,12 @@ const Home = () => {
                     {/* Login Section */}
                     <div className="w-full lg:w-1/2 max-w-md">
                         <div className="mb-8">
-                            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-                            <p className="text-lg text-gray-600">Please sign in to your account</p>
+                            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-2">
+                                Welcome Back
+                            </h2>
+                            <p className="text-lg text-gray-600">
+                                Please sign in to your account
+                            </p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
@@ -77,7 +92,7 @@ const Home = () => {
                                 placeholder="Enter your candidate number"
                                 onchange={(e) => {
                                     setCandidateNumber(e.target.value);
-                                    setErrMsg(''); // Clear error when user types
+                                    setErrMsg(""); // Clear error when user types
                                 }}
                                 value={candidateNumber}
                                 className="w-full"
@@ -92,7 +107,7 @@ const Home = () => {
                                 placeholder="Enter your password"
                                 onchange={(e) => {
                                     setPassword(e.target.value);
-                                    setErrMsg(''); // Clear error when user types
+                                    setErrMsg(""); // Clear error when user types
                                 }}
                                 value={password}
                                 className="w-full"
@@ -104,7 +119,7 @@ const Home = () => {
                                 className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={loading}
                                 onClick={() => {
-                                    setErrMsg(''); // Clear any previous errors
+                                    setErrMsg(""); // Clear any previous errors
                                 }}
                             >
                                 {loading ? (
@@ -113,7 +128,7 @@ const Home = () => {
                                         Signing in...
                                     </>
                                 ) : (
-                                    'Sign In'
+                                    "Sign In"
                                 )}
                             </button>
                         </form>
@@ -123,9 +138,9 @@ const Home = () => {
                     <div className="w-full lg:w-1/2 relative">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-blue-100 rounded-full opacity-50 blur-xl"></div>
                         <div className="absolute top-1/4 right-1/4 w-48 h-48 bg-purple-100 rounded-full opacity-50 blur-xl"></div>
-                        <img 
-                            src={exam_img} 
-                            alt="Student studying" 
+                        <img
+                            src={exam_img}
+                            alt="Student studying"
                             className="relative z-10 max-w-lg mx-auto w-full h-auto"
                         />
                     </div>

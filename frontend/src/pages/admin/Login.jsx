@@ -4,8 +4,8 @@ import FormBtn from "../../components/FormBtn";
 import FormInput from "../../components/FormInput";
 import { path } from "../../../utils/path";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import ErrMsg from "../../components/ErrMsg";
+import { useNavigate, useParams } from "react-router-dom";
 const AdminLogin = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
