@@ -12,8 +12,10 @@ import { FaTimes } from "react-icons/fa";
 import useFetch from "../../hooks/useFetch";
 
 const AddQuestion = () => {
-    const { questionId, userId, examId } = useParams();
+    const { questionId, userId, courseId, examId } = useParams();
     const {data:user, loading:userLoading , error:userError} = useFetch(`/get-user/${userId}`)
+
+    console.log(courseId)
 
     const modules = {
         toolbar: [
@@ -37,6 +39,10 @@ const AddQuestion = () => {
     const [options, setOptions] = useState([]);
 
     const [error, setError] = useState("");
+    const [showQuestionBank, setShowQuestionBank] = useState(false);
+    const [questionBank, setQuestionBank] = useState([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [loading, setLoading] = useState(false);
 
     // Handle changes for each editor
     const handleQuestionChange = (content) => {
@@ -101,7 +107,7 @@ const AddQuestion = () => {
         console.log(optionToSend.option_a);
         try {
             const res = await axios.post(
-                `${path}/add-question/${questionId}/${userId}/${examId}`,
+                `${path}/add-question/${questionId}/${userId}/${courseId}/${examId}`,
                 {
                     user_id: userId,
                     exam_id: examId,
@@ -120,6 +126,34 @@ const AddQuestion = () => {
         } catch (err) {
             console.log(err);
         }
+    };
+
+    // Fetch question bank when needed
+    const fetchQuestionBank = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`${path}/question-bank/${userId}/${courseId}`);
+            setQuestionBank(response.data);
+        } catch (error) {
+            console.error("Error fetching question bank:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Filter questions based on search term
+    const filteredQuestions = questionBank.filter(q => 
+        q.question.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Function to populate form with selected question
+    const populateQuestion = (question) => {
+        setQuestion(question.question);
+        setCorrectAnswer(question.correct_answer);
+        setOptionB(question.option_b);
+        setOptionC(question.option_c || "");
+        setOptionD(question.option_d || "");
+        setShowQuestionBank(false);
     };
 
     return (
@@ -152,6 +186,20 @@ const AddQuestion = () => {
                                 <p>{error}</p>
                             </div>
                         )}
+
+                        <div className="mb-6">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowQuestionBank(true);
+                                    fetchQuestionBank();
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                            >
+                                <i className="fas fa-book mr-2"></i>
+                                Select from Question Bank
+                            </button>
+                        </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -280,6 +328,97 @@ const AddQuestion = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Question Bank Modal */}
+            {showQuestionBank && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-lg max-w-4xl w-full max-h-[80vh] flex flex-col">
+                        <div className="p-6 border-b border-gray-100">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900">Question Bank</h2>
+                                <button 
+                                    onClick={() => setShowQuestionBank(false)}
+                                    className="text-gray-400 hover:text-gray-500"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+                            <div className="mt-4">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search questions..."
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            {loading ? (
+                                <div className="p-8 text-center">
+                                    <i className="fas fa-spinner fa-spin text-blue-500"></i>
+                                </div>
+                            ) : filteredQuestions.length === 0 ? (
+                                <div className="p-8 text-center text-gray-500">
+                                    No questions found
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-gray-100">
+                                    {filteredQuestions.map((q) => (
+                                        <div 
+                                            key={q.id}
+                                            className="p-6 hover:bg-gray-50 cursor-pointer transition-colors"
+                                            onClick={() => populateQuestion(q)}
+                                        >
+                                            <p className="font-medium text-gray-900 mb-4">{q.question}</p>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                                            ✓
+                                                        </span>
+                                                        <span className="text-gray-700">{q.correct_answer}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                                            B
+                                                        </span>
+                                                        <span className="text-gray-700">{q.option_b}</span>
+                                                    </div>
+                                                </div>
+                                                {(q.option_c || q.option_d) && (
+                                                    <div className="space-y-2">
+                                                        {q.option_c && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                                                    C
+                                                                </span>
+                                                                <span className="text-gray-700">{q.option_c}</span>
+                                                            </div>
+                                                        )}
+                                                        {q.option_d && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                                                    D
+                                                                </span>
+                                                                <span className="text-gray-700">{q.option_d}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

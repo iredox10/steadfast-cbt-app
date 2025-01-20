@@ -66,7 +66,7 @@ Route::get('/get-exam-by-id/{exam_id}',[Instructor::class, 'get_exam_by_id']);
 
 Route::get('/delete-exam/{exam_id}',[Instructor::class, 'delete_exam']);
 
-Route::post('/add-question/{question_id}/{user_id}/{exam_id}',[Instructor::class, 'add_question']);
+Route::post('/add-question/{question_id}/{user_id}/{course_id}/{exam_id}',[Instructor::class, 'add_question']);
 
 Route::get('/get-questions/{exam_id}', [Instructor::class, 'get_questions']);
 
@@ -139,6 +139,9 @@ Route::get('/get-invigilators', [Admin::class, 'get_invigilators']);
 
 Route::get('/get-invigilator/{invigilator_id}', [Admin::class, 'get_invigilator']);
 
+// Question Bank routes
+Route::get('/question-bank/{user_id}/{course_Id}', [Instructor::class, 'getQuestionBank']);
+Route::get('/question-bank/{user_id}/{exam_id}', [Instructor::class, 'getExamQuestionBank']);
 
 // TODO: populate student answer table with question that the student answer
 

@@ -36,4 +36,9 @@ class Course extends Model
     {
         return $this->hasMany(Exam::class);
     }
+
+    public function questionBanks()
+    {
+        return $this->hasMany(QuestionBank::class);
+    }
 }

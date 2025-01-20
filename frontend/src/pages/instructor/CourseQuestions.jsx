@@ -10,7 +10,7 @@ import { FaTimes } from "react-icons/fa";
 import axios from "axios";
 
 const CourseQuestions = () => {
-    const { userId, examId } = useParams();
+    const { userId,courseId,examId } = useParams();
     const [showModel, setShowModel] = useState(false);
     const [question, setQuestion] = useState(null);
 
@@ -96,7 +96,7 @@ const CourseQuestions = () => {
                                     <div key={q.id} className="relative">
                                         {!q.question ? (
                                             <Link
-                                                to={`/add-question/${q.id}/${userId}/${examId}`}
+                                                to={`/add-question/${q.id}/${userId}/${courseId}/${examId}`}
                                                 className="w-12 h-12 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors duration-200"
                                             >
                                                 <span className="text-gray-600 hover:text-blue-600 font-medium">

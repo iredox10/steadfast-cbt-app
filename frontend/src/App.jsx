@@ -26,6 +26,7 @@ import Dashboard from "./pages/admin/AdminDashboard.jsx";
 import ExamInstructions from "./pages/ExamInstructions.jsx";
 import Invigilator from "./pages/Invigilator.jsx";
 import NotCheckIn from "./pages/NotCheckIn.jsx";
+import QuestionBank from './pages/instructor/QuestionBank';
 
 function App() {
     return (
@@ -46,11 +47,11 @@ function App() {
                         element={<Exams />}
                     />
                     <Route
-                        path="/exam-questions/:userId/:examId"
+                        path="/exam-questions/:userId/:courseId/:examId"
                         element={<CourseQuestions />}
                     />
                     <Route
-                        path="/add-question/:questionId/:userId/:examId"
+                        path="/add-question/:questionId/:userId/:courseId/:examId"
                         element={<AddQuestion />}
                     />
                     <Route
@@ -97,6 +98,8 @@ function App() {
                     <Route path="/invigilator/:id" element={<Invigilator />} />
 
                     <Route path="/not-check-in" element={<NotCheckIn />} />
+
+                    <Route path="/question-bank/:userId" element={<QuestionBank />} />
                 </Routes>
             </Router>
         </div>

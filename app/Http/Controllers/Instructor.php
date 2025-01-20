@@ -13,6 +13,7 @@ use App\Models\Student;
 use App\Models\StudentCourse;
 use App\Models\StudentExamScore;
 use App\Models\User;
+use App\Models\QuestionBank;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -155,18 +156,16 @@ class Instructor extends Controller
         }
     }
 
-    public function add_question(Request $request, $question_id, string $user_id, string $exam_id)
+    public function add_question(Request $request, $question_id, $user_id, $course_id, $exam_id)
     {
         $validate = request()->validate([
             'question' => 'string | required',
             'correct_answer' => 'string | required',
-            // 'option_a' => 'string | required',
             'option_b' => 'string | required',
             'option_c' => 'string | nullable',
             'option_d' => 'string | nullable',
         ]);
         try {
-
             $user = User::findOrFail($user_id);
             $exam = Exam::findOrFail($exam_id);
             $question = Question::findOrFail($question_id);
@@ -179,12 +178,12 @@ class Instructor extends Controller
 
             $question->save();
 
-            return response()->json($question, 201);
-            // Only create question bank entry if question was successfully saved
+            // Create question bank entry if question was successfully saved
             if ($question->wasChanged()) {
                 $question_bank = QuestionBank::create([
                     'exam_id' => $question->exam_id,
                     'user_id' => $question->user_id,
+                    'course_id' => $course_id,
                     'question' => $question->question,
                     'correct_answer' => $question->correct_answer,
                     'option_b' => $question->option_b,
@@ -198,21 +197,8 @@ class Instructor extends Controller
                 ], 201);
             }
 
-            // return response()->json($question, 201);
-            // Todo: implement question bank
-            // if ($question) {
-            //     $question_bank = question_bank::create([
-            //         'exam_id' => $question->exam_id,
-            //         'user_id' => $question->user_id,
-            //         'curl -sS https://getcomposer.org/installer | phpquestion' => $question->question,
-            //         'correct_answer' => $question->correct_answer,
-            //         'option_a' => $question->option_a,
-            //         'option_b' => $question->option_b,
-            //         'option_c' => $question->option_c,
-            //         'option_d' => $question->option_d,
-            //     ]);
-            //     return response()->json(data:[$question,$question_bank]);
-            // }
+            return response()->json($question, 201);
+
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 400);
         }
@@ -451,5 +437,33 @@ class Instructor extends Controller
             ]
         );
         return response()->json($question, 201);
+    }
+
+    public function getQuestionBank($user_id,$course_id)
+    {
+        try {
+            $questions = Course::findOrFail($course_id)->questionBanks;
+            // $questions = QuestionBank::where('user_id', $user_id)
+            //     ->with('exam')
+            //     ->orderBy('created_at', 'desc')
+            //     ->get();
+            return response()->json($questions);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage(), 400);
+        }
+    }
+
+    public function getExamQuestionBank($user_id, $exam_id)
+    {
+        try {
+            $questions = Course::findOrFail($course_id)->questionBanks;
+            // $questions = QuestionBank::where('user_id', $user_id)
+            //     ->where('exam_id', $exam_id)
+            //     ->orderBy('created_at', 'desc')
+            //     ->get();
+            return response()->json($questions);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage(), 400);
+        }
     }
 }

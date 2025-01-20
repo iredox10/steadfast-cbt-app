@@ -14,7 +14,6 @@ import Model from "../../components/Model";
 
 const Exams = () => {
     const { userId, courseId } = useParams();
-    // const { data, loading, err } = useFetch(`/get-exams/${userId}`);
 
     const [showModel, setshowModel] = useState(false);
     const [showDeleteModel, setShowDeleteModel] = useState(false);
@@ -141,10 +140,17 @@ const Exams = () => {
             <Sidebar>
                 <Link
                     to={`/instructor-student/${userId}/${courseId}`}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors duration-200"
+                    className="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors duration-200"
                 >
                     <i className="fas fa-users"></i>
                     <span>Candidates</span>
+                </Link>
+                
+                <Link
+                    to={`/question-bank/${userId}`}
+                    className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
+                >
+                    <span>Question Bank</span>
                 </Link>
             </Sidebar>
             <div className="p-8 col-span-5 bg-gray-50">
@@ -209,7 +215,7 @@ const Exams = () => {
                                     <tr key={exam.id} className="hover:bg-gray-50 transition-colors duration-200">
                                         <td className="py-4 px-6 text-sm text-gray-600">{indexOfFirstItem + index + 1}</td>
                                         <td className="py-4 px-6">
-                                            <Link to={`/exam-questions/${userId}/${exam.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                                            <Link to={`/exam-questions/${userId}/${courseId}/${exam.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
                                                 {course.title}
                                             </Link>
                                         </td>
