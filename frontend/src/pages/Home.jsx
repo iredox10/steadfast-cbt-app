@@ -16,6 +16,7 @@ const Home = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         setErrMsg("");
 
         if (!candidateNumber || !password) {
@@ -24,25 +25,24 @@ const Home = () => {
         }
 
         try {
-            setLoading(true);
             const res = await axios.post(`${path}/student-login`, {
                 candidate_no: candidateNumber,
                 password,
             });
 
-            if (res.status === 200) {
-                if (res.data.is_logged_on === "no") {
-                    // navigate(`student/${res.data.id}`);
-                    navigate(`/exam-instructions/${res.data.id}`);
-                }
-                if (res.data.checkin_time == null) {
-                    alert("you're not checkin");
-                    return
-                } else {
-                    navigate("/logged-student");
-                }
+            if (
+                res.status == 200 &&
+                res.data.is_logged_on == "no" &&
+                res.data.checkin_time !== null
+            ) {
+                navigate(`/exam-instruction/${res.data.id}`);
+            } else {
+                navigate("/logged-student");
             }
         } catch (err) {
+            if (err.response?.data.includes("user not checked in")) {
+                navigate("/not-check-in");
+            }
             setErrMsg(err.response?.data || "Login failed");
             setLoading(false); // Allow retrying on error
         }

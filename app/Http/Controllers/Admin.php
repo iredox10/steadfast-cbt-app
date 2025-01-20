@@ -279,6 +279,7 @@ class Admin extends Controller
     {
         try {
             $exam = Exam::findOrFail($exam_id);
+            Exam::query()->update(['invigilator' => null]);
             $students = Student::all();
 
             foreach ($students as $student) {
@@ -287,10 +288,10 @@ class Admin extends Controller
                 $student->checkout_time = null;
                 $student->save();
             }
-
+            
             $exam->activated = 'no';
             $exam->save();
-            return response()->json($students);
+            return response()->json($exam);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -396,19 +397,27 @@ class Admin extends Controller
         }
     }
 
-
-    public function get_invigilator($invigilator_id)
+    public function get_invigilators()
     {
         try {
-            $invigilator = User::findOrFail($invigilator_id);
-            $exam = Exam::where('activated', 'yes')->first();
-            // $invigilatorExam = User::where('email', $exam->invigilator)->get();
-            if ($invigilator->email == $exam->invigilator) {
-                return response()->json(['invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
-            }
-            return response()->json(['invigilator' => $invigilator, 'examAssigned' => false]);
+            $invigilators = User::where('role', 'regular')->get();
+            return response()->json($invigilators);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
+    }
+
+    public function get_invigilator($invigilator_id)
+    {
+        $invigilator = User::findOrFail($invigilator_id);
+        $exam = Exam::where('activated', 'yes')->first();
+
+        if (!$exam) {
+            return response()->json('no exam activated');
+        }
+        if ($invigilator->email == $exam->invigilator) {
+            return response()->json(['invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
+        }
+        return response()->json(['invigilator' => $invigilator, 'examAssigned' => false]);
     }
 }

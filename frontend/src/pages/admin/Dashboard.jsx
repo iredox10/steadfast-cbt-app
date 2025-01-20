@@ -41,6 +41,7 @@ const AdminDashboard = () => {
         try {
             const res = await axios(`${path}/get-exams`);
             setExams(res.data);
+            console.log(exams)
         } catch (err) {
             console.log(err);
         } finally {

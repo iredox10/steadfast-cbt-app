@@ -30,7 +30,12 @@ class Student extends Controller
             // return redirect()->back()->with('message', 'wrong password!!');
             return response()->json('wrong password!!', 404);
         }
+
+        if ($student->checkin_time == null) {
+            return response()->json('user not checked in', 400);
+        }
     }
+
     public function index()
     {
         //
@@ -42,9 +47,8 @@ class Student extends Controller
     public function get_student($student_id)
     {
         $student = \App\Models\Student::findOrFail($student_id);
-        $student->is_logged_on = 'yes';
-        $student->checkin_time = now();
-        $student->save();
+        // $student->is_logged_on = 'yes'; this should be in exam page
+        student->save();
         return response()->json($student, 200);
     }
 
