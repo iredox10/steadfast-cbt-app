@@ -50,16 +50,28 @@ const Invigilator = () => {
         }
     };
 
+    if (data == "no exam activated" || data.examAssigned == false) {
+        return (
+            <GridLayout>
+            <Sidebar />
+            <div className="col-span-5 p-5">
+                <div className="flex flex-col items-center text-gray-400">
+                    <FaExclamationTriangle className="text-[30rem] " />
+                    <p className="text-2xl font-bold">No Exam Assign To You</p>
+                </div></div>
+            </GridLayout>
+        );
+    }
+
+
     return (
         <GridLayout>
             <Sidebar />
-
             <div className="col-span-5 p-5">
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800 capitalize">
                             {/* Welcome back {data && data.Invigilator.full_name} */}
-                            {/* Welcome back {data && data.invigilator.full_name} */}
                         </h1>
                         <p className="text-gray-600">
                             Manage and Check in Student
