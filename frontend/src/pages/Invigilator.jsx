@@ -78,33 +78,61 @@ const Invigilator = () => {
                         </p>
                     </div>
                 </div>
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+                    {/* Confirmation Dialog */}
+                    <div id="confirmDialog" className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden" style={{zIndex: 1000}}>
+                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                            <div className="mt-3 text-center">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900">Confirm Check-in</h3>
+                                <div className="mt-2 px-7 py-3">
+                                    <p className="text-sm text-gray-500">
+                                        Are you sure you want to check in this student?
+                                    </p>
+                                </div>
+                                <div className="items-center px-4 py-3">
+                                    <button
+                                        id="confirmBtn"
+                                        className="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                    >
+                                        Confirm
+                                    </button>
+                                    <button
+                                        id="cancelBtn"
+                                        className="px-4 py-2 bg-gray-100 text-gray-700 text-base font-medium rounded-md w-24 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Full Name
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Candidate Number
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Department
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Programme
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Login Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Check-in Time
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Check-out Time
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -113,56 +141,69 @@ const Invigilator = () => {
                                 {currentStudents.map((student, index) => (
                                     <tr
                                         key={index}
-                                        className="hover:bg-gray-50"
+                                        className="hover:bg-blue-50 transition-colors duration-200"
                                     >
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {student.full_name}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {student.candidate_no}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {student.department}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {student.programme}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span
-                                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                    student.is_logged_on ===
-                                                    "yes"
-                                                        ? "bg-green-100 text-green-800"
-                                                        : "bg-red-100 text-red-800"
+                                                className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                    student.is_logged_on === "yes"
+                                                        ? "bg-green-100 text-green-800 ring-2 ring-green-50"
+                                                        : "bg-red-100 text-red-800 ring-2 ring-red-50"
                                                 }`}
                                             >
-                                                {student.is_logged_on ===
-                                                "yes" ? (
+                                                {student.is_logged_on === "yes" ? (
                                                     "Logged In"
                                                 ) : (
-                                                    <span> - </span>
+                                                    <span>Not Logged In</span>
                                                 )}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {student.checkin_time ||
-                                                "Not checked in"}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {student.checkin_time || 
+                                                <span className="text-gray-400 italic">Not checked in</span>
+                                            }
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {student.checkout_time ||
-                                                "Not checked out"}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {student.checkout_time || 
+                                                <span className="text-gray-400 italic">Not checked out</span>
+                                            }
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                             {student.checkin_time !== null ? (
                                                 <div className="flex justify-center">
-                                                    <FaCheck className="" />
+                                                    <FaCheck className="text-green-500 text-lg" />
                                                 </div>
                                             ) : (
                                                 <button
-                                                    onClick={() =>
-                                                        handleCheck(student.id)
-                                                    }
-                                                    className="bg-blue-500 text-white rounded-lg px-4 py-1"
+                                                    onClick={() => {
+                                                        const dialog = document.getElementById('confirmDialog');
+                                                        const confirmBtn = document.getElementById('confirmBtn');
+                                                        const cancelBtn = document.getElementById('cancelBtn');
+                                                        
+                                                        dialog.classList.remove('hidden');
+                                                        
+                                                        confirmBtn.onclick = () => {
+                                                            handleCheck(student.id);
+                                                            dialog.classList.add('hidden');
+                                                        };
+                                                        
+                                                        cancelBtn.onclick = () => {
+                                                            dialog.classList.add('hidden');
+                                                        };
+                                                    }}
+                                                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-4 py-1.5 transition-colors duration-200 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
                                                 >
                                                     Check
                                                 </button>
@@ -172,15 +213,15 @@ const Invigilator = () => {
                                 ))}
                             </tbody>
                         </table>
-                        <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                        <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 bg-gray-50">
                             <div className="flex-1 flex justify-between sm:hidden">
                                 <button
                                     onClick={() => paginate(currentPage - 1)}
                                     disabled={currentPage === 1}
-                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm ${
                                         currentPage === 1
                                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            : "bg-white text-gray-700 hover:bg-gray-50"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                                     }`}
                                 >
                                     Previous
@@ -188,10 +229,10 @@ const Invigilator = () => {
                                 <button
                                     onClick={() => paginate(currentPage + 1)}
                                     disabled={currentPage === totalPages}
-                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm ${
                                         currentPage === totalPages
                                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            : "bg-white text-gray-700 hover:bg-gray-50"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                                     }`}
                                 >
                                     Next
@@ -201,18 +242,18 @@ const Invigilator = () => {
                                 <div>
                                     <p className="text-sm text-gray-700">
                                         Showing{" "}
-                                        <span className="font-medium">
+                                        <span className="font-semibold text-gray-900">
                                             {indexOfFirstStudent + 1}
                                         </span>{" "}
-                                        -{" "}
-                                        <span className="font-medium">
+                                        to{" "}
+                                        <span className="font-semibold text-gray-900">
                                             {Math.min(
                                                 indexOfLastStudent,
                                                 students?.length || 0
                                             )}
                                         </span>{" "}
                                         of{" "}
-                                        <span className="font-medium">
+                                        <span className="font-semibold text-gray-900">
                                             {students?.length || 0}
                                         </span>{" "}
                                         results
@@ -227,9 +268,9 @@ const Invigilator = () => {
                                             <button
                                                 key={number}
                                                 onClick={() => paginate(number)}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors duration-200 ${
                                                     currentPage === number
-                                                        ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                                        ? "z-10 bg-blue-50 border-blue-500 text-blue-600 hover:bg-blue-100"
                                                         : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                                                 }`}
                                             >
@@ -242,16 +283,7 @@ const Invigilator = () => {
                         </div>
                     </div>
                 </div>
-                {students ? (
-                    ""
-                ) : (
-                    <div className="grid place-content-center text-8xl">
-                        <div className="flex flex-col items-center text-gray-400">
-                            <FaExclamationTriangle className="text-[15rem] mt-[4rem]" />
-                            <p>No Exam Assign</p>
-                        </div>
-                    </div>
-                )}
+                
             </div>
         </GridLayout>
     );
