@@ -420,4 +420,25 @@ class Admin extends Controller
         }
         return response()->json(['invigilator' => $invigilator, 'examAssigned' => false]);
     }
+
+    public function get_current_exam()
+    {
+        try {
+            $exam = Exam::where('activated', 'yes')->first();
+           $course = Course::findOrFail($exam->course_id); 
+           
+            if (!$exam) {
+                return response()->json(['message' => 'No active exam found'], 404);
+            }
+
+            return response()->json([
+                'exam_name' => $exam->title,
+                'start_time' => $exam->activated_date,
+                'duration' => $exam->exam_duration,
+                'course' => $course->title
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

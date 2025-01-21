@@ -10,6 +10,7 @@ import { path } from "../../utils/path";
 const Invigilator = () => {
     const { id } = useParams();
     const { data, loading, error } = useFetch(`/get-invigilator/${id}`);
+    const [currentExam, setCurrentExam] = useState(null);
 
     const [students, setStudents] = useState();
     const fetch = async () => {
@@ -21,8 +22,19 @@ const Invigilator = () => {
         }
     };
 
+    const fetchCurrentExam = async () => {
+        try {
+            const res = await axios(`${path}/get-current-exam`);
+            setCurrentExam(res.data);
+            console.log(res.data)
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
     useEffect(() => {
         fetch();
+        fetchCurrentExam();
     }, []);
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -70,15 +82,29 @@ const Invigilator = () => {
             <div className="col-span-5 p-5">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800 capitalize">
-                            {/* Welcome back {data && data.Invigilator.full_name} */}
+                        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                            Welcome back, {data?.Invigilator?.full_name}
                         </h1>
-                        <p className="text-gray-600">
-                            Manage and Check in Student
-                        </p>
+                        <div className="space-y-1">
+                            <p className="text-gray-600">
+                                Current Exam: <span className="font-semibold">{currentExam?.course || 'No Active Exam'}</span>
+                            </p>
+                            
+                            
+                        </div>
+                    </div>
+                    <div className="bg-blue-50 p-4 rounded-lg shadow-sm md:flex items-center gap-2">
+                        <p className="text-sm font-medium text-blue-800">Total Students:</p>
+                        <p className="text-2xl font-bold text-blue-900">{students?.length || 0}</p>
                     </div>
                 </div>
+
                 <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-white border-b border-gray-100">
+                        <h2 className="text-lg font-semibold text-gray-800">Student Check-in Management</h2>
+                        <p className="text-sm text-gray-600">Monitor and manage student attendance for the exam</p>
+                    </div>
+
                     {/* Confirmation Dialog */}
                     <div id="confirmDialog" className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden" style={{zIndex: 1000}}>
                         <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">

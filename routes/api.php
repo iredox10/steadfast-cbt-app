@@ -145,6 +145,8 @@ Route::get('/question-bank/{user_id}/{exam_id}', [Instructor::class, 'getExamQue
 
 // TODO: populate student answer table with question that the student answer
 
+Route::get('/get-current-exam', [Admin::class, 'get_current_exam']);
+
 
 
 
