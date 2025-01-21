@@ -11,7 +11,7 @@ import { FaTimes, FaTimesCircle } from "react-icons/fa";
 
 const Student = () => {
     const { studentId } = useParams();
-    const { data } = useFetch(`/get-student-exam`);
+    const { data, loading } = useFetch(`/get-student-exam`);
     const [answers, setAnswers] = useState([]);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
@@ -267,6 +267,8 @@ const Student = () => {
 
     // Add useEffect to track clicked buttons based on saved answers
     useEffect(() => {
+        if (!data || !data.questions) return; // Add early return if no data or questions
+        
         const savedAnswers = Object.keys(selectedAnswers);
         if (savedAnswers.length > 0) {
             // Find indices of questions that have answers
@@ -277,9 +279,21 @@ const Student = () => {
             // Update clickedBtns with these indices
             setClickedBtns(answeredIndices);
         }
-    }, [data.questions, selectedAnswers]);
+    }, [data?.questions, selectedAnswers]); // Update dependency array to use optional chaining
 
-    // Add console logs to debug
+    // Add a loading check at the start of the component
+    if (!data || !data.questions) {
+        return (
+            <div className="grid grid-cols-6 gap-4 min-h-screen">
+                <Sidebar />
+                <div className="col-start-2 col-end-7 flex items-center justify-center">
+                    <div className="text-center p-4">
+                        Loading exam data...
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div class="grid grid-cols-6 gap-4 min-h-screen">
@@ -312,7 +326,7 @@ const Student = () => {
                     <div>
                         <div class="">
                             <div class="bg-white/60 p-4">
-                                {data && data.questions && data.questions.map((question, index) => {
+                                {data?.questions ? data.questions.map((question, index) => {
                                     if (index === questionIndexToShow) {
                                         return (
                                             <div key={question.id} className="bg-white rounded-lg shadow-sm p-4">
@@ -398,36 +412,38 @@ const Student = () => {
                                         );
                                     }
                                     return null;
-                                })}
+                                }) : (
+                                    <div className="text-center p-4">
+                                        Loading questions...
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-lg shadow-sm mr-4">
-                    <div className="grid grid-cols-10 gap-1">
-                        {data && data.questions && data.questions.map((question, index) => (
-                            <button
-                                key={index}
-                                onClick={() => handleClick(index)}
-                                className={`
-                                    w-8 h-8 rounded-full text-sm font-medium
-                                    transition-all duration-200 ease-in-out
-                                    flex items-center justify-center
-                                    transform hover:scale-105
-                                    shadow-sm hover:shadow-md
-                                    ${activeButton === index 
-                                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white ring-2 ring-blue-400 ring-offset-2" 
-                                        : clickedBtns.includes(index)
-                                            ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
-                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                    }
-                                `}
-                            >
-                                {index + 1}
-                            </button>
-                        ))}
-                    </div>
+                <div className="bg-white p-3 rounded-lg shadow-sm mr-4 flex gap-4">
+                    {data?.questions ? data.questions.map((question, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handleClick(index)}
+                            className={`
+                                w-8 h-8 rounded-full text-sm font-medium
+                                transition-all duration-200 ease-in-out
+                                flex items-center justify-center
+                                transform hover:scale-105
+                                shadow-sm hover:shadow-md
+                                ${activeButton === index 
+                                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white ring-2 ring-blue-400 ring-offset-2" 
+                                    : clickedBtns.includes(index)
+                                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+                                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                                }
+                            `}
+                        >
+                            {index + 1}
+                        </button>
+                    )) : null}
                 </div>
                 <div className="my-6 flex justify-center">
                     <button

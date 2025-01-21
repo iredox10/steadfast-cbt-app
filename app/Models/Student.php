@@ -20,6 +20,10 @@ class Student extends Model
         'checkout_time'
     ];
 
+    protected $hidden = [
+        'password'
+    ];
+
     public function courses()
     {
         return $this->hasMany(StudentCourse::class);
@@ -42,5 +46,18 @@ class Student extends Model
     public function mentees() // Optional relationship (one-to-many)
     {
         return $this->hasMany(Student::class, 'lecturer_id'); // Specify foreign key name
+    }
+
+    public function candidate()
+    {
+        return $this->belongsTo(Candidate::class);
+    }
+
+    /**
+     * Get the candidates for the student.
+     */
+    public function candidates()
+    {
+        return $this->hasMany(Candidate::class, 'student_id');
     }
 }

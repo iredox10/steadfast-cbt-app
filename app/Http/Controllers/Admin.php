@@ -22,6 +22,7 @@ use Maatwebsite\Excel\Collections\ExcelCollection;
 // use Maatwebsite\Excel\Facades\Excel as FacadesExcel;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpParser\Node\Stmt\TryCatch;
+use App\Models\ExamArchive;
 
 class Admin extends Controller
 {
@@ -279,21 +280,59 @@ class Admin extends Controller
     {
         try {
             $exam = Exam::findOrFail($exam_id);
-            Exam::query()->update(['invigilator' => null]);
-            $students = Student::all();
-
-            foreach ($students as $student) {
-                $student->is_logged_on = 'no';
-                $student->checkin_time = null;
-                $student->checkout_time = null;
-                $student->save();
-            }
+            $course = Course::findOrFail($exam->course_id);
             
+            // Get all students who took this exam with their scores
+            $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
+                $query->where('exam_id', $exam_id);
+            })
+            ->with(['candidates' => function($query) use ($exam_id) {
+                $query->where('exam_id', $exam_id);
+            }])
+            ->get()
+            ->map(function ($student) {
+                $candidate = $student->candidates->first();
+                return [
+                    'student_id' => $student->id,
+                    'candidate_no' => $student->candidate_no,
+                    'full_name' => $student->full_name,
+                    'score' => $candidate ? $candidate->score : 0,
+                    'submission_time' => $candidate ? $candidate->created_at : null,
+                ];
+            })
+            ->toArray();
+
+            // Create exam archive
+            ExamArchive::create([
+                'exam_id' => $exam_id,
+                'exam_title' => $exam->title ?? $course->title . ' Exam',
+                'course_title' => $course->title,
+                'exam_date' => $exam->activated_date,
+                'duration' => $exam->exam_duration,
+                'student_results' => $studentResults,
+            ]);
+
+            // Reset student statuses and clear exam-related data
+            Student::query()->update([
+                'is_logged_on' => 'no',
+                'checkin_time' => null,
+                'checkout_time' => null,
+            ]);
+
+            // Clear candidates table for this exam
+            Candidate::where('exam_id', $exam_id)->delete();
+
+            // Deactivate exam and clear invigilator
+            Exam::query()->update(['invigilator' => null]);
             $exam->activated = 'no';
             $exam->save();
-            return response()->json($exam);
+
+            return response()->json([
+                'message' => 'Exam terminated and archived successfully',
+                'exam' => $exam
+            ]);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -437,6 +476,26 @@ class Admin extends Controller
                 'duration' => $exam->exam_duration,
                 'course' => $course->title
             ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getExamArchives()
+    {
+        try {
+            $archives = ExamArchive::orderBy('created_at', 'desc')->get();
+            return response()->json($archives);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getExamArchive($archive_id)
+    {
+        try {
+            $archive = ExamArchive::findOrFail($archive_id);
+            return response()->json($archive);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { path } from "../utils/path";
 import Home from "../src/pages/Home.jsx";
 import axios from "axios";
@@ -27,6 +27,8 @@ import ExamInstructions from "./pages/ExamInstructions.jsx";
 import Invigilator from "./pages/Invigilator.jsx";
 import NotCheckIn from "./pages/NotCheckIn.jsx";
 import QuestionBank from './pages/instructor/QuestionBank';
+import ExamArchives from "./pages/admin/ExamArchives";
+import ExamArchiveDetail from "./pages/admin/ExamArchiveDetail";
 
 function App() {
     return (
@@ -100,6 +102,9 @@ function App() {
                     <Route path="/not-check-in" element={<NotCheckIn />} />
 
                     <Route path="/question-bank/:userId" element={<QuestionBank />} />
+
+                    <Route path="/exam-archives" element={<ExamArchives />} />
+                    <Route path="/exam-archives/:archiveId" element={<ExamArchiveDetail />} />
                 </Routes>
             </Router>
         </div>

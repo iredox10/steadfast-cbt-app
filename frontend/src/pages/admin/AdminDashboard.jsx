@@ -102,28 +102,22 @@ const Dashboard = () => {
                         </div>
 
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
-                            <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam Archives</h3>
+                            <div className="p-6 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">Server Status</span>
-                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Operational</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">Last Backup</span>
-                                    <span className="text-gray-900">2 hours ago</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">Storage Usage</span>
-                                    <div className="w-32">
-                                        <div className="h-2 bg-gray-200 rounded-full">
-                                            <div className="h-2 bg-blue-500 rounded-full" style={{width: '45%'}}></div>
-                                        </div>
+                                    <div>
+                                        <h4 className="font-medium text-yellow-900">Access Archives</h4>
+                                        <p className="text-sm text-yellow-700 mt-1">View and manage past examinations</p>
+                                    </div>
+                                    <div className="p-3 bg-yellow-100 rounded-full">
+                                        <svg className="w-6 h-6 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                        </svg>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-600">Active Users</span>
-                                    <span className="text-gray-900">234 online</span>
-                                </div>
+                                <Link to='/exam-archives' className="mt-4 inline-block text-yellow-700 hover:text-yellow-800 font-medium">
+                                    Access Archives →
+                                </Link>
                             </div>
                         </div>
                     </div>

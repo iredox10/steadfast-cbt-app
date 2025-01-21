@@ -149,6 +149,9 @@ Route::get('/question-bank/{user_id}/{exam_id}', [Instructor::class, 'getExamQue
 
 Route::get('/get-current-exam', [Admin::class, 'get_current_exam']);
 
+Route::get('/exam-archives', [Admin::class, 'getExamArchives']);
+Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive']);
+
 
 
 

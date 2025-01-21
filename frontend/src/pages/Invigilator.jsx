@@ -11,6 +11,7 @@ const Invigilator = () => {
     const { id } = useParams();
     const { data, loading, error } = useFetch(`/get-invigilator/${id}`);
     const [currentExam, setCurrentExam] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const [students, setStudents] = useState();
     const fetch = async () => {
@@ -40,13 +41,21 @@ const Invigilator = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [studentsPerPage] = useState(8);
 
+    // Filter students based on search term
+    const filteredStudents = students?.filter(student => 
+        student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.candidate_no.toString().includes(searchTerm.toLowerCase()) ||
+        student.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.programme.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     const indexOfLastStudent = currentPage * studentsPerPage;
     const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
-    const currentStudents = students
-        ? students.slice(indexOfFirstStudent, indexOfLastStudent)
+    const currentStudents = filteredStudents
+        ? filteredStudents.slice(indexOfFirstStudent, indexOfLastStudent)
         : [];
-    const totalPages = students
-        ? Math.ceil(students.length / studentsPerPage)
+    const totalPages = filteredStudents
+        ? Math.ceil(filteredStudents.length / studentsPerPage)
         : 0;
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -101,8 +110,21 @@ const Invigilator = () => {
 
                 <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
                     <div className="p-4 bg-gradient-to-r from-blue-50 to-white border-b border-gray-100">
-                        <h2 className="text-lg font-semibold text-gray-800">Student Check-in Management</h2>
-                        <p className="text-sm text-gray-600">Monitor and manage student attendance for the exam</p>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-800">Student Check-in Management</h2>
+                                <p className="text-sm text-gray-600">Monitor and manage student attendance for the exam</p>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search students..."
+                                    className="w-64 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Confirmation Dialog */}
@@ -275,12 +297,12 @@ const Invigilator = () => {
                                         <span className="font-semibold text-gray-900">
                                             {Math.min(
                                                 indexOfLastStudent,
-                                                students?.length || 0
+                                                filteredStudents?.length || 0
                                             )}
                                         </span>{" "}
                                         of{" "}
                                         <span className="font-semibold text-gray-900">
-                                            {students?.length || 0}
+                                            {filteredStudents?.length || 0}
                                         </span>{" "}
                                         results
                                     </p>

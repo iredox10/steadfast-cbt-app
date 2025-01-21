@@ -19,7 +19,10 @@ class Candidate extends Model
         'is_checkout',
         'is_logged_on',
         'checkin_time',
-        'checkout_time'
+        'checkout_time',
+        'exam_id',
+        'student_id',
+        'score',
     ];
     public function semester() // New relationship
     {
@@ -30,5 +33,13 @@ class Candidate extends Model
     public function courses() // Existing relationship
     {
         return $this->hasMany(Course::class);
+    }
+
+    /**
+     * Get the student that owns the candidate record.
+     */
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
     }
 }
