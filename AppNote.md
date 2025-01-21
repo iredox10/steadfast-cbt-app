@@ -21,7 +21,7 @@ x Invigilator will be the one check-in student.
 
 - Student time can be pause and resume base on invigilator pausing it and resuming it for him.
 
-x Invigilator should be able to see the student list.
+- Invigilator should be able to see the student list.
 
 ### Admin
 

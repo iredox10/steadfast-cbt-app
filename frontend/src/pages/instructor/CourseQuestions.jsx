@@ -35,6 +35,7 @@ const CourseQuestions = () => {
     console.log(exam, user);
 
     const [course, setCourse] = useState();
+
     useEffect(() => {
         const fetch = async () => {
             try {

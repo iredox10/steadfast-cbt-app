@@ -146,12 +146,7 @@ const Exams = () => {
                     <span>Candidates</span>
                 </Link>
                 
-                <Link
-                    to={`/question-bank/${userId}`}
-                    className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
-                >
-                    <span>Question Bank</span>
-                </Link>
+                
             </Sidebar>
             <div className="p-8 col-span-5 bg-gray-50">
                 <div className="flex items-center justify-between mb-8">
