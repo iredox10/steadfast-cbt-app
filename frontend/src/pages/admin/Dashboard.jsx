@@ -311,7 +311,7 @@ const AdminDashboard = () => {
                                                         </div>
                                                         <div className="text-gray-500">
                                                             Duration:{" "}
-                                                            {exam.exam_duration}
+                                                            {exam.exam_duration} mins
                                                         </div>
                                                     </div>
                                                 </td>

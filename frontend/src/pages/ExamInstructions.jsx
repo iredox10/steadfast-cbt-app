@@ -39,10 +39,7 @@ const ExamInstructions = () => {
     }, [examData]);
 
     // Convert seconds to minutes
-    const durationInMinutes = examData?.exam?.exam_duration
-        ? Math.round(examData.exam.exam_duration / 60)
-        : 0;
-
+    const durationInMinutes = examData?.exam?.exam_duration || 0;
     const handleStartExam = async () => {
         try {
             // Mark student as logged in

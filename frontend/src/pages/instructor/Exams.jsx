@@ -122,9 +122,9 @@ const Exams = () => {
     };
 
     const filteredExams = exams?.filter((exam) =>
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exam.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exam.exam_duration.toString().includes(searchTerm)
+        course?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exam?.exam_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exam?.exam_duration?.toString().includes(searchTerm)
     );
 
     // Calculate pagination values
@@ -216,7 +216,7 @@ const Exams = () => {
                                         </td>
                                         <td className="py-4 px-6 text-sm text-gray-600">{exam.no_of_questions}</td>
                                         <td className="py-4 px-6 text-sm text-gray-600">{exam.actual_questions}</td>
-                                        <td className="py-4 px-6 text-sm text-gray-600">{exam.exam_duration} seconds</td>
+                                        <td className="py-4 px-6 text-sm text-gray-600">{exam.exam_duration} minutes</td>
                                         <td className="py-4 px-6">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                 exam.exam_type === 'school' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
@@ -416,7 +416,7 @@ const Exams = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Duration (seconds)
+                                        Duration (minutes)
                                     </label>
                                     <input
                                         type="number"

@@ -157,16 +157,8 @@ const AdminStudents = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             <div className="flex">
-                <Sidebar>
-                    <Link
-                        to="/admin-courses"
-                        className="flex items-center gap-2 p-4 hover:bg-gray-200"
-                    >
-                        <i className="fas fa-book"></i>
-                        <span>Courses</span>
-                    </Link>
-                </Sidebar>
-
+                <Sidebar />
+                    
                 <div className="flex-1 p-8">
                     <div className="flex justify-between items-center mb-6">
                         <div>

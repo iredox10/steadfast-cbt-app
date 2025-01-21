@@ -6,10 +6,13 @@ const Timer = ({ initialTime, onTimeUp }) => {
         const savedTime = localStorage.getItem("examTimeRemaining");
         if (savedTime) {
             const parsedTime = parseInt(savedTime);
+            // Initial time is already in minutes, convert to seconds for comparison
+            const initialTimeInSeconds = initialTime * 60;
             // Verify saved time isn't more than initial time
-            return parsedTime > initialTime ? initialTime : parsedTime;
+            return parsedTime > initialTimeInSeconds ? initialTimeInSeconds : parsedTime;
         }
-        return initialTime;
+        // Convert initial time from minutes to seconds
+        return initialTime * 60;
     });
 
     const [isActive, setIsActive] = useState(true);
