@@ -40,6 +40,8 @@ Route::get('/student-courses/{student_id}', [Student::class, 'get_courses']);
 
 Route::post('/check-student/{student_id}', [Student::class, 'check_student']);
 
+Route::post('/start-exam/{student_id}', [Student::class, 'start_exam']);
+
 
 
 // instructor

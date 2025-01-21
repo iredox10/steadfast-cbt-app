@@ -43,8 +43,17 @@ const ExamInstructions = () => {
         ? Math.round(examData.exam.exam_duration / 60)
         : 0;
 
-    const handleStartExam = () => {
-        navigate(`/student/${studentId}`);
+    const handleStartExam = async () => {
+        try {
+            // Mark student as logged in
+            await axios.post(`${path}/start-exam/${studentId}`);
+            // Navigate to exam page
+            navigate(`/student/${studentId}`);
+        } catch (error) {
+            console.error("Error starting exam:", error);
+            // Optionally show an error message to the user
+            alert("Failed to start exam. Please try again.");
+        }
     };
 
     return (

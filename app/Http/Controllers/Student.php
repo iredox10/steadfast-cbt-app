@@ -47,8 +47,19 @@ class Student extends Controller
     public function get_student($student_id)
     {
         $student = \App\Models\Student::findOrFail($student_id);
-        // $student->is_logged_on = 'yes'; this should be in exam page
         return response()->json($student, 200);
+    }
+
+    public function start_exam($student_id)
+    {
+        try {
+            $student = \App\Models\Student::findOrFail($student_id);
+            $student->is_logged_on = 'yes';
+            $student->save();
+            return response()->json($student, 200);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage(), 500);
+        }
     }
 
     /**

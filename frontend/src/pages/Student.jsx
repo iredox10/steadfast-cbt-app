@@ -57,7 +57,7 @@ const Student = () => {
         const fetch = async () => {
             try {
                 const res = await axios.get(
-                    `${path}/get-course/${data.exam.course_id}`
+                    `${path}/get-course/${data?.exam?.course_id}`
                 );
                 setCourse(res.data);
             } catch (err) {
@@ -187,7 +187,7 @@ const Student = () => {
             localStorage.removeItem('examLastTimestamp');
             localStorage.removeItem(`exam_answers_${studentId}`);
             
-            // navigate("/student-submission/" + studentId);
+            navigate("/student-submission/" + studentId);
         } catch (err) {
             console.log(err);
             alert("Error submitting exam. Please contact your administrator.");
