@@ -48,7 +48,6 @@ class Student extends Controller
     {
         $student = \App\Models\Student::findOrFail($student_id);
         // $student->is_logged_on = 'yes'; this should be in exam page
-        student->save();
         return response()->json($student, 200);
     }
 

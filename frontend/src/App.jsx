@@ -91,7 +91,7 @@ function App() {
                         element={<CourseStudents />}
                     />
                     <Route
-                        path="/exam-instructions/:studentId"
+                       path="/exam-instructions/:studentId"
                         element={<ExamInstructions />}
                     />
 

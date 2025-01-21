@@ -21,6 +21,7 @@ const Home = () => {
 
         if (!candidateNumber || !password) {
             setErrMsg("Please fill in all fields");
+            setLoading(false);
             return;
         }
 
@@ -30,21 +31,21 @@ const Home = () => {
                 password,
             });
 
-            if (
-                res.status == 200 &&
-                res.data.is_logged_on == "no" &&
-                res.data.checkin_time !== null
-            ) {
-                navigate(`/exam-instruction/${res.data.id}`);
-            } else {
-                navigate("/logged-student");
-            }
-        } catch (err) {
-            if (err.response?.data.includes("user not checked in")) {
+            if (res.data.checkin_time === null) {
                 navigate("/not-check-in");
+                setLoading(false);
+                return;
             }
+
+            if (res.data.is_logged_on === "yes") {
+                navigate("/logged-student");
+                setLoading(false);
+                return;
+            }
+            navigate(`/exam-instructions/${res.data.id}`);
+        } catch (err) {
             setErrMsg(err.response?.data || "Login failed");
-            setLoading(false); // Allow retrying on error
+            setLoading(false);
         }
     };
 
