@@ -8,7 +8,7 @@ import FormBtn from "../../components/FormBtn";
 import Btn from "../../components/Btn";
 import FormInput from "../../components/FormInput";
 import axios from "axios";
-import {format } from 'date-fns'
+import { format } from "date-fns";
 import { path } from "../../../utils/path";
 import Model from "../../components/Model";
 
@@ -121,16 +121,20 @@ const Exams = () => {
         }
     };
 
-    const filteredExams = exams?.filter((exam) =>
-        course?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exam?.exam_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exam?.exam_duration?.toString().includes(searchTerm)
+    const filteredExams = exams?.filter(
+        (exam) =>
+            course?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            exam?.exam_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            exam?.exam_duration?.toString().includes(searchTerm)
     );
 
     // Calculate pagination values
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filteredExams?.slice(indexOfFirstItem, indexOfLastItem);
+    const currentItems = filteredExams?.slice(
+        indexOfFirstItem,
+        indexOfLastItem
+    );
     const totalPages = Math.ceil((filteredExams?.length || 0) / itemsPerPage);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -145,8 +149,6 @@ const Exams = () => {
                     <i className="fas fa-users"></i>
                     <span>Candidates</span>
                 </Link>
-                
-                
             </Sidebar>
             <div className="p-8 col-span-5 bg-gray-50">
                 <div className="flex items-center justify-between mb-8">
@@ -154,7 +156,9 @@ const Exams = () => {
                         <h1 className="text-2xl font-bold text-gray-900 mb-1">
                             {course.title} Exams
                         </h1>
-                        <p className="text-gray-600">Manage and monitor course examinations</p>
+                        <p className="text-gray-600">
+                            Manage and monitor course examinations
+                        </p>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="relative">
@@ -187,72 +191,125 @@ const Exams = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S/N</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Course Name</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Questions</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actual Questions</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Created</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        S/N
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Course Name
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Questions
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Actual Questions
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Duration
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Type
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Created
+                                    </th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="9" className="text-center py-4">
+                                        <td
+                                            colSpan="9"
+                                            className="text-center py-4"
+                                        >
                                             <i className="fas fa-spinner fa-spin mr-2"></i>
                                             Loading...
                                         </td>
                                     </tr>
-                                ) : currentItems && currentItems.map((exam, index) => (
-                                    <tr key={exam.id} className="hover:bg-gray-50 transition-colors duration-200">
-                                        <td className="py-4 px-6 text-sm text-gray-600">{indexOfFirstItem + index + 1}</td>
-                                        <td className="py-4 px-6">
-                                            <Link to={`/exam-questions/${userId}/${courseId}/${exam.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
-                                                {course.title}
-                                            </Link>
-                                        </td>
-                                        <td className="py-4 px-6 text-sm text-gray-600">{exam.no_of_questions}</td>
-                                        <td className="py-4 px-6 text-sm text-gray-600">{exam.actual_questions}</td>
-                                        <td className="py-4 px-6 text-sm text-gray-600">{exam.exam_duration} minutes</td>
-                                        <td className="py-4 px-6">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                exam.exam_type === 'school' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                                            }`}>
-                                                {exam.exam_type}
-                                            </span>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            {exam.submission_status === "submitted" ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    <FaCheck className="w-3 h-3" />
-                                                    Submitted
+                                ) : (
+                                    currentItems &&
+                                    currentItems.map((exam, index) => (
+                                        <tr
+                                            key={exam.id}
+                                            className="hover:bg-gray-50 transition-colors duration-200"
+                                        >
+                                            <td className="py-4 px-6 text-sm text-gray-600">
+                                                {indexOfFirstItem + index + 1}
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <Link
+                                                    to={`/exam-questions/${userId}/${courseId}/${exam.id}`}
+                                                    className="text-sm font-medium text-gray-900 hover:text-blue-600"
+                                                >
+                                                    {course.title}
+                                                </Link>
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-gray-600">
+                                                {exam.no_of_questions}
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-gray-600">
+                                                {exam.actual_questions}
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-gray-600">
+                                                {exam.exam_duration} minutes
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        exam.exam_type ===
+                                                        "school"
+                                                            ? "bg-blue-100 text-blue-800"
+                                                            : "bg-purple-100 text-purple-800"
+                                                    }`}
+                                                >
+                                                    {exam.exam_type}
                                                 </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                    <FaTimes className="w-3 h-3" />
-                                                    Pending
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-4 px-6 text-sm text-gray-600">{format(new Date(exam.updated_at), 'Pp')}</td>
-                                        <td className="py-4 px-6">
-                                            <button
-                                                onClick={() => handleShowSubmitModel(exam.id)}
-                                                className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                                                disabled={loading}
-                                            >
-                                                {loading ? (
-                                                    <i className="fas fa-spinner fa-spin"></i>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                {exam.submission_status ===
+                                                "submitted" ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        <FaCheck className="w-3 h-3" />
+                                                        Submitted
+                                                    </span>
                                                 ) : (
-                                                    'Submit'
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                        <FaTimes className="w-3 h-3" />
+                                                        Pending
+                                                    </span>
                                                 )}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td className="py-4 px-6 text-sm text-gray-600">
+                                                {format(
+                                                    new Date(exam.updated_at),
+                                                    "Pp"
+                                                )}
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <button
+                                                    onClick={() =>
+                                                        handleShowSubmitModel(
+                                                            exam.id
+                                                        )
+                                                    }
+                                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                                    disabled={loading}
+                                                >
+                                                    {loading ? (
+                                                        <i className="fas fa-spinner fa-spin"></i>
+                                                    ) : (
+                                                        "Submit"
+                                                    )}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -260,22 +317,27 @@ const Exams = () => {
                     <div className="px-6 py-4 border-t border-gray-100">
                         <div className="flex items-center justify-between">
                             <div className="text-sm text-gray-600">
-                                Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredExams?.length || 0)} of {filteredExams?.length || 0} entries
+                                Showing {indexOfFirstItem + 1} to{" "}
+                                {Math.min(
+                                    indexOfLastItem,
+                                    filteredExams?.length || 0
+                                )}{" "}
+                                of {filteredExams?.length || 0} entries
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => paginate(currentPage - 1)}
                                     disabled={currentPage === 1 || loading}
                                     className={`px-3 py-1 text-sm font-medium rounded-md ${
                                         currentPage === 1 || loading
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                                     }`}
                                 >
                                     Previous
                                 </button>
-                                
+
                                 {[...Array(totalPages)].map((_, index) => (
                                     <button
                                         key={index + 1}
@@ -283,21 +345,23 @@ const Exams = () => {
                                         disabled={loading}
                                         className={`px-3 py-1 text-sm font-medium rounded-md ${
                                             currentPage === index + 1
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                                         }`}
                                     >
                                         {index + 1}
                                     </button>
                                 ))}
-                                
+
                                 <button
                                     onClick={() => paginate(currentPage + 1)}
-                                    disabled={currentPage === totalPages || loading}
+                                    disabled={
+                                        currentPage === totalPages || loading
+                                    }
                                     className={`px-3 py-1 text-sm font-medium rounded-md ${
                                         currentPage === totalPages || loading
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                                     }`}
                                 >
                                     Next
@@ -319,7 +383,8 @@ const Exams = () => {
                                 Submit Exam?
                             </h2>
                             <p className="text-gray-600 mb-8">
-                                Are you sure you want to submit this exam? This action cannot be undone.
+                                Are you sure you want to submit this exam? This
+                                action cannot be undone.
                             </p>
                             <div className="flex justify-center gap-4">
                                 <button
@@ -347,10 +412,15 @@ const Exams = () => {
 
             {showModel && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg max-w-2xl w-full">
+                    <form
+                        onSubmit={handleSubmit}
+                        className="bg-white rounded-xl shadow-lg max-w-2xl w-full"
+                    >
                         <div className="flex items-center justify-between p-6 border-b">
-                            <h2 className="text-xl font-bold text-gray-900">Add New Exam</h2>
-                            <button 
+                            <h2 className="text-xl font-bold text-gray-900">
+                                Add New Exam
+                            </h2>
+                            <button
                                 onClick={() => setshowModel(false)}
                                 className="text-gray-400 hover:text-gray-500 transition-colors"
                                 disabled={loading}
@@ -358,7 +428,7 @@ const Exams = () => {
                                 <FaTimes className="w-5 h-5" />
                             </button>
                         </div>
-                        
+
                         <div className="p-6 space-y-4">
                             {err && (
                                 <div className="p-4 text-red-700 bg-red-100 rounded-lg">
@@ -373,13 +443,24 @@ const Exams = () => {
                                 <div className="relative">
                                     <select
                                         className="w-full appearance-none bg-white px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-700 hover:border-gray-300"
-                                        onChange={(e) => setExamType(e.target.value)}
+                                        onChange={(e) =>
+                                            setExamType(e.target.value)
+                                        }
                                         defaultValue=""
                                         disabled={loading}
                                     >
-                                        <option value="" disabled>Select Exam Type</option>
-                                        <option value="school" className="py-2">School Examination</option>
-                                        <option value="external" className="py-2">External Assessment</option>
+                                        <option value="" disabled>
+                                            Select Exam Type
+                                        </option>
+                                        <option value="school" className="py-2">
+                                            School Examination
+                                        </option>
+                                        <option
+                                            value="external"
+                                            className="py-2"
+                                        >
+                                            External Assessment
+                                        </option>
                                     </select>
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
                                         <i className="fas fa-chevron-down"></i>
@@ -395,7 +476,9 @@ const Exams = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     rows="3"
                                     placeholder="Enter exam instructions..."
-                                    onChange={(e) => setInstructions(e.target.value)}
+                                    onChange={(e) =>
+                                        setInstructions(e.target.value)
+                                    }
                                     disabled={loading}
                                 />
                             </div>
@@ -409,7 +492,9 @@ const Exams = () => {
                                         type="number"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter max score"
-                                        onChange={(e) => setMaxScore(e.target.value)}
+                                        onChange={(e) =>
+                                            setMaxScore(e.target.value)
+                                        }
                                         disabled={loading}
                                     />
                                 </div>
@@ -422,7 +507,9 @@ const Exams = () => {
                                         type="number"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter duration in seconds"
-                                        onChange={(e) => setExmaDuration(e.target.value)}
+                                        onChange={(e) =>
+                                            setExmaDuration(e.target.value)
+                                        }
                                         disabled={loading}
                                     />
                                 </div>
@@ -435,7 +522,9 @@ const Exams = () => {
                                         type="number"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter total questions"
-                                        onChange={(e) => setNoOfQuestions(e.target.value)}
+                                        onChange={(e) =>
+                                            setNoOfQuestions(e.target.value)
+                                        }
                                         disabled={loading}
                                     />
                                 </div>
@@ -448,7 +537,9 @@ const Exams = () => {
                                         type="number"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter questions to display"
-                                        onChange={(e) => setAcutualQuestions(e.target.value)}
+                                        onChange={(e) =>
+                                            setAcutualQuestions(e.target.value)
+                                        }
                                         disabled={loading}
                                     />
                                 </div>
@@ -462,7 +553,9 @@ const Exams = () => {
                                     type="number"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder="Enter marks per question"
-                                    onChange={(e) => setMarkPerQuestion(e.target.value)}
+                                    onChange={(e) =>
+                                        setMarkPerQuestion(e.target.value)
+                                    }
                                     disabled={loading}
                                 />
                             </div>
@@ -488,7 +581,7 @@ const Exams = () => {
                                         Adding...
                                     </>
                                 ) : (
-                                    'Add Exam'
+                                    "Add Exam"
                                 )}
                             </button>
                         </div>

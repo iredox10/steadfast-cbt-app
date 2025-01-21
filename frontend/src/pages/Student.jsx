@@ -12,25 +12,9 @@ import { FaTimes, FaTimesCircle } from "react-icons/fa";
 const Student = () => {
     const { studentId } = useParams();
     const { data } = useFetch(`/get-student-exam`);
-    const [shuffledQuestions, setShuffledQuestions] = useState([]);
-
-    // Add useEffect to shuffle questions when data is loaded
-    useEffect(() => {
-        if (data?.questions) {
-            const shuffled = [...data.questions];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            setShuffledQuestions(shuffled);
-        }
-    }, [data]);
-
     const [answers, setAnswers] = useState([]);
-    // console.log(data);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
-    // console.log(student);
     const [course, setCourse] = useState();
 
     const shuffleArray = (array) => {
@@ -122,7 +106,7 @@ const Student = () => {
     };
 
     const handleNext = async (questionId, question) => {
-        if (questionIndexToShow === shuffledQuestions.length - 1) {
+        if (questionIndexToShow === data.questions.length - 1) {
             setClickedBtns((prev) => [...prev, questionIndexToShow]);
             setSubmitModel(true)
             return;
@@ -257,9 +241,9 @@ const Student = () => {
     // Add keyboard event listener
     useEffect(() => {
         const handleKeyPress = (e) => {
-            if (!shuffledQuestions[questionIndexToShow]) return;
+            if (!data.questions[questionIndexToShow]) return;
             
-            const currentQuestion = shuffledQuestions[questionIndexToShow];
+            const currentQuestion = data.questions[questionIndexToShow];
             const key = e.key.toLowerCase();
             
             // Match key press to option
@@ -279,21 +263,21 @@ const Student = () => {
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [shuffledQuestions, questionIndexToShow, shuffledOptions]);
+    }, [data, questionIndexToShow, shuffledOptions]);
 
     // Add useEffect to track clicked buttons based on saved answers
     useEffect(() => {
         const savedAnswers = Object.keys(selectedAnswers);
         if (savedAnswers.length > 0) {
             // Find indices of questions that have answers
-            const answeredIndices = shuffledQuestions
+            const answeredIndices = data.questions
                 .map((q, index) => savedAnswers.includes(q.id.toString()) ? index : null)
                 .filter(index => index !== null);
             
             // Update clickedBtns with these indices
             setClickedBtns(answeredIndices);
         }
-    }, [shuffledQuestions, selectedAnswers]);
+    }, [data.questions, selectedAnswers]);
 
     // Add console logs to debug
 
@@ -328,7 +312,7 @@ const Student = () => {
                     <div>
                         <div class="">
                             <div class="bg-white/60 p-4">
-                                {shuffledQuestions.map((question, index) => {
+                                {data && data.questions && data.questions.map((question, index) => {
                                     if (index === questionIndexToShow) {
                                         return (
                                             <div key={question.id} className="bg-white rounded-lg shadow-sm p-4">
@@ -422,7 +406,7 @@ const Student = () => {
 
                 <div className="bg-white p-3 rounded-lg shadow-sm mr-4">
                     <div className="grid grid-cols-10 gap-1">
-                        {shuffledQuestions.map((question, index) => (
+                        {data && data.questions && data.questions.map((question, index) => (
                             <button
                                 key={index}
                                 onClick={() => handleClick(index)}

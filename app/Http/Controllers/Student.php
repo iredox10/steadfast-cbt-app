@@ -115,10 +115,15 @@ class Student extends Controller
         try {
             $exam = Exam::where('activated', 'yes')->first();
             $questions = $exam->questions;
+            
+            // Shuffle the questions collection
+            $shuffledQuestions = $questions->shuffle();
+            
             $data = [
                 'exam' => $exam,
-                'questions' => $questions
+                'questions' => $shuffledQuestions->values()->all() // Reset array keys after shuffling
             ];
+            
             return response()->json($data, 200);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
