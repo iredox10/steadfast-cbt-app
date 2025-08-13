@@ -58,7 +58,7 @@ class Admin extends Controller
     public function get_acd_sessions()
     {
         try {
-            $sessions = Acd_session::all();
+            $sessions = Acd_session::with('semesters')->get();
             return response()->json($sessions);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -145,7 +145,7 @@ class Admin extends Controller
     public function get_semesters($acd_session_id)
     {
         try {
-            $semesters = Acd_session::find($acd_session_id)->semesters;
+            $semesters = Acd_session::find($acd_session_id)->semesters()->with('courses')->get();
             return response()->json($semesters);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
