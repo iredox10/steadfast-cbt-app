@@ -1,220 +1,198 @@
-import React, { useEffect, useState } from "react";
-import GridLayout from "../../components/GridLayout";
-import Sidebar from "../../components/Sidebar";
-import useFetch from "../../hooks/useFetch";
-import PlusBtn from "../../components/PlusBtn";
-import Model from "../../components/Model";
-import FormInput from "../../components/FormInput";
-import { FaTimes } from "react-icons/fa";
-import FormBtn from "../../components/FormBtn";
-import HandleSubmit from "../../components/HandleSubmit";
-import { path } from "../../../utils/path";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
-import Header from "../../components/Header";
+import { Link, useParams } from "react-router-dom";
+import { FaCalendarAlt, FaPlus, FaTimes, FaUsers, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch } from "react-icons/fa";
+import { path } from "../../../utils/path";
 
-const AdminInstructiors = () => {
-    // const { data: instructors, loading, error } = useFetch(`/get-users`);
-    const [instructors, setInstructors] = useState();
-    const [showModel, setshowModel] = useState(false);
-    const [fullname, setFullname] = useState();
-    const [email, setEmail] = useState();
-    const [role, setRole] = useState();
-    const [password, setPassword] = useState();
+const AdminInstructors = () => {
+    const { userId } = useParams();
+    const [instructors, setInstructors] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newInstructor, setNewInstructor] = useState({ full_name: "", email: "", role: "", password: "" });
+    const [errMsg, setErrMsg] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const instructorsPerPage = 10;
 
-    const fetch = async () => {
+    const fetchInstructors = async () => {
+        setLoading(true);
         try {
-            const res = await axios(`${path}/get-users`);
+            const res = await axios.get(`${path}/get-users`);
             setInstructors(res.data);
-            console.log(res.data);
         } catch (err) {
-            console.log(err);
+            console.error("Error fetching instructors:", err);
+            setErrMsg("Failed to load instructors.");
+        } finally {
+            setLoading(false);
         }
     };
+
     useEffect(() => {
-        fetch();
+        fetchInstructors();
     }, []);
 
-    const handleSubmit = async (e) => {
+    const handleAddInstructor = async (e) => {
         e.preventDefault();
+        if (!newInstructor.full_name || !newInstructor.email || !newInstructor.role || !newInstructor.password) {
+            setErrMsg("All fields are required.");
+            return;
+        }
+        setErrMsg("");
         try {
-            const res = await axios.post(`${path}/add-user`, {
-                full_name: fullname,
-                email,
-                role,
-                password,
-                status: "active",
-            });
-            console.log(res.data);
-            if (res.status == 200) {
-                fetch();
-                setshowModel(false);
-            }
+            await axios.post(`${path}/add-user`, { ...newInstructor, status: "active" });
+            setShowAddModal(false);
+            setNewInstructor({ full_name: "", email: "", role: "", password: "" });
+            fetchInstructors();
         } catch (err) {
-            console.log(err);
+            console.error("Error adding instructor:", err);
+            setErrMsg(err.response?.data || "Failed to add instructor.");
         }
     };
 
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewInstructor(prev => ({ ...prev, [name]: value }));
+    };
+
+    const filteredInstructors = useMemo(() =>
+        instructors.filter(instructor =>
+            instructor.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            instructor.email.toLowerCase().includes(searchTerm.toLowerCase())
+        ), [instructors, searchTerm]);
+
+    const paginatedInstructors = useMemo(() => {
+        const startIndex = (currentPage - 1) * instructorsPerPage;
+        return filteredInstructors.slice(startIndex, startIndex + instructorsPerPage);
+    }, [filteredInstructors, currentPage]);
+
+    const totalPages = Math.ceil(filteredInstructors.length / instructorsPerPage);
+
     return (
-        <div className="min-h-screen bg-gray-100">
-            <div className="flex">
-                <Sidebar>
-                    <Link
-                        to="/admin-dashboard"
-                        className="flex items-center gap-2 p-4 hover:bg-gray-200"
-                    >
-                        Dashboard
-                    </Link>
-                </Sidebar>
-
-                <div className="flex-1 p-8">
-                    <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            Instructors
-                        </h1>
-                        <p className="text-gray-600">
-                            Manage instructors and their roles
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div className="col-span-5">
-                            {!instructors ? (
-                                <div className="flex justify-center items-center h-48">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                                </div>
-                            ) : (
-                                <table className="min-w-full bg-white shadow-sm">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                FULL NAME
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                EMAIL
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                ROLE
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {instructors.map((instructor) => (
-                                            <tr
-                                                key={instructor.id}
-                                                className="hover:bg-gray-50"
-                                            >
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Link
-                                                        to={`/admin-instructor-courses/${instructor.id}`}
-                                                        className="block"
-                                                    >
-                                                        <span className="font-semibold text-gray-800 capitalize">
-                                                            {
-                                                                instructor.full_name
-                                                            }
-                                                        </span>
-                                                    </Link>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Link
-                                                        to={`/admin-instructor-courses/${instructor.id}`}
-                                                        className="block"
-                                                    >
-                                                        <span className="text-gray-800 capitalize">
-                                                            {instructor.email}
-                                                        </span>
-                                                    </Link>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Link
-                                                        to={`/admin-instructor-courses/${instructor.id}`}
-                                                        className="block"
-                                                    >
-                                                        <span className="text-gray-800 capitalize">
-                                                            {instructor.role}
-                                                        </span>
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-                    </div>
-
-                    <button onClick={() => setshowModel(!showModel)}>
-                        <PlusBtn />
-                    </button>
+        <div className="flex min-h-screen bg-gray-50 text-gray-800">
+            {/* Sidebar */}
+            <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
+                 <div className="flex items-center mb-10">
+                    <img src="/assets/logo.webp" alt="School Logo" className="h-10 w-10 mr-3" />
+                    <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
-            </div>
+                <nav className="space-y-2">
+                    <Link to={`/admin-dashboard/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaListAlt className="mr-3" /> Dashboard
+                    </Link>
+                    <Link to="/admin-sessions" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCalendarAlt className="mr-3" /> Sessions
+                    </Link>
+                    <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaUsers className="mr-3" /> Students
+                    </Link>
+                    <Link to="/admin-instructors" className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
+                        <FaChalkboardTeacher className="mr-3" /> Instructors
+                    </Link>
+                    <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exam Archives
+                    </Link>
+                </nav>
+                <div className="absolute bottom-6 left-6 right-6 w-52">
+                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCog className="mr-3" /> Settings
+                    </Link>
+                    <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <FaSignOutAlt className="mr-3" /> Logout
+                    </Link>
+                </div>
+            </aside>
 
-            {showModel && (
-                <Model>
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold">Add New User</h2>
-                            <button
-                                onClick={() => setshowModel(false)}
-                                className="p-2 hover:bg-gray-100 rounded-full"
-                            >
-                                <FaTimes className="text-gray-600" />
+            {/* Main Content */}
+            <main className="flex-1 p-8">
+                <header className="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-900">Manage Instructors</h2>
+                        <p className="text-gray-500">Add, view, and manage instructor records.</p>
+                    </div>
+                    <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
+                        <FaPlus className="mr-2" /> Add Instructor
+                    </button>
+                </header>
+
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="relative mb-4">
+                        <FaSearch className="absolute top-3 left-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full"
+                        />
+                    </div>
+                    <table className="min-w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {paginatedInstructors.map(instructor => (
+                                <tr key={instructor.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">{instructor.full_name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">{instructor.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap capitalize">{instructor.role}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <Link to={`/admin-instructor-courses/${instructor.id}`} className="text-blue-500 hover:underline">View Courses</Link>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                     <div className="flex justify-between items-center mt-4">
+                        <span className="text-sm text-gray-600">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50">
+                                Previous
+                            </button>
+                            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50">
+                                Next
                             </button>
                         </div>
+                    </div>
+                </div>
+            </main>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <FormInput
-                                label="Full Name"
-                                labelFor="fullname"
-                                name="fullname"
-                                onchange={(e) => setFullname(e.target.value)}
-                                placeholder="Enter full name..."
-                            />
-
-                            <FormInput
-                                label="Email"
-                                labelFor="email"
-                                name="email"
-                                type="email"
-                                onchange={(e) => setEmail(e.target.value)}
-                                placeholder="Enter email address..."
-                            />
-
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700">
-                                    Role
-                                </label>
-                                <select
-                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                    onChange={(e) => setRole(e.target.value)}
-                                    defaultValue=""
-                                >
-                                    <option value="" disabled>
-                                        Select Role
-                                    </option>
-                                    <option value="admin">Admin</option>
-                                    <option value="regular">Regular</option>
-                                    <option value="lecturer">Lecturer</option>
-                                </select>
+            {/* Add Instructor Modal */}
+            {showAddModal && (
+                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold">Add New Instructor</h3>
+                            <button onClick={() => setShowAddModal(false)}><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleAddInstructor} className="space-y-4">
+                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+                            <input type="text" name="full_name" placeholder="Full Name" value={newInstructor.full_name} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg" />
+                            <input type="email" name="email" placeholder="Email Address" value={newInstructor.email} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg" />
+                            <select name="role" value={newInstructor.role} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg">
+                                <option value="" disabled>Select Role</option>
+                                <option value="admin">Admin</option>
+                                <option value="regular">Regular</option>
+                                <option value="lecturer">Lecturer</option>
+                            </select>
+                            <input type="password" name="password" placeholder="Password" value={newInstructor.password} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg" />
+                            <div className="flex justify-end gap-4 pt-4">
+                                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Add Instructor</button>
                             </div>
-
-                            <FormInput
-                                label="Password"
-                                labelFor="password"
-                                type="password"
-                                name="password"
-                                onchange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter password..."
-                            />
-
-                            <FormBtn text="Create User" />
                         </form>
                     </div>
-                </Model>
+                </div>
             )}
         </div>
     );
 };
 
-export default AdminInstructiors;
+export default AdminInstructors;

@@ -1,227 +1,180 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { Link, useParams } from "react-router-dom";
+import { FaCalendarAlt, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch, FaUsers, FaChevronRight, FaArrowUp, FaArrowDown } from "react-icons/fa";
 import { path } from "../../../utils/path";
-import Sidebar from "../../components/Sidebar";
+import { format } from 'date-fns';
 
 const ExamArchiveDetail = () => {
-    const { archiveId } = useParams();
+    const { archiveId, userId } = useParams();
     const [archive, setArchive] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'score', direction: 'desc' });
+    const [currentPage, setCurrentPage] = useState(1);
+    const resultsPerPage = 10;
 
     useEffect(() => {
         const fetchArchiveDetails = async () => {
+            setLoading(true);
             try {
-                const response = await axios.get(`${path}/exam-archives/${archiveId}`);
-                setArchive(response.data);
-                console.log("Archive data:", response.data); // Debug log
-            } catch (error) {
-                console.error("Error fetching archive details:", error);
+                const res = await axios.get(`${path}/exam-archives/${archiveId}`);
+                setArchive(res.data);
+            } catch (err) {
+                console.error("Error fetching archive details:", err);
             } finally {
                 setLoading(false);
             }
         };
-
         fetchArchiveDetails();
     }, [archiveId]);
 
-    const sortResults = (key) => {
-        setSortConfig((current) => {
-            const direction = current.key === key && current.direction === 'asc' ? 'desc' : 'asc';
-            return { key, direction };
-        });
-    };
-
-    const getFilteredAndSortedResults = () => {
+    const sortedAndFilteredResults = useMemo(() => {
         if (!archive?.student_results) return [];
+        
+        let results = [...archive.student_results]
+            .filter(result =>
+                result.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                result.candidate_no.toLowerCase().includes(searchTerm.toLowerCase())
+            );
 
-        let results = [...archive.student_results];
-
-        // Filter results
-        results = results.filter(student => 
-            student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.candidate_no.toString().includes(searchTerm.toLowerCase())
-        );
-
-        // Sort results
-        if (sortConfig.key) {
-            results.sort((a, b) => {
-                let compareA = a[sortConfig.key];
-                let compareB = b[sortConfig.key];
-
-                // Handle numeric values
-                if (sortConfig.key === 'score') {
-                    compareA = parseFloat(compareA) || 0;
-                    compareB = parseFloat(compareB) || 0;
-                }
-
-                if (compareA < compareB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (compareA > compareB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
+        results.sort((a, b) => {
+            if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
 
         return results;
+    }, [archive, searchTerm, sortConfig]);
+
+    const paginatedResults = useMemo(() => {
+        const startIndex = (currentPage - 1) * resultsPerPage;
+        return sortedAndFilteredResults.slice(startIndex, startIndex + resultsPerPage);
+    }, [sortedAndFilteredResults, currentPage]);
+
+    const totalPages = Math.ceil(sortedAndFilteredResults.length / resultsPerPage);
+
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                <span className="ml-2">Loading...</span>
+    const SortableHeader = ({ children, name }) => (
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort(name)}>
+            <div className="flex items-center">
+                {children}
+                {sortConfig.key === name && (sortConfig.direction === 'asc' ? <FaArrowUp className="ml-2" /> : <FaArrowDown className="ml-2" />)}
             </div>
-        );
-    }
-
-    if (!archive) {
-        return (
-            <div className="text-center py-8">
-                Archive not found or error loading data
-            </div>
-        );
-    }
-
-    const results = getFilteredAndSortedResults();
+        </th>
+    );
 
     return (
-        <div className="grid grid-cols-6 gap-4 min-h-screen">
-            <Sidebar>
-                {/* Your existing sidebar links */}
-            </Sidebar>
-            <div className="col-span-5 p-5">
-                <div className="bg-white rounded-lg shadow-md p-6">
-                    {/* Header with back button */}
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <Link 
-                                to="/exam-archives" 
-                                className="text-blue-500 hover:text-blue-700 mb-4 inline-block"
-                            >
-                                ← Back to Archives
-                            </Link>
-                            <h1 className="text-2xl font-bold text-gray-800 mt-2">
-                                {archive.exam_title}
-                            </h1>
-                        </div>
-                    </div>
-
-                    {/* Exam Details */}
-                    <div className="grid grid-cols-3 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
-                        <div>
-                            <span className="font-semibold">Course:</span>{" "}
-                            {archive.course_title}
-                        </div>
-                        <div>
-                            <span className="font-semibold">Date:</span>{" "}
-                            {new Date(archive.exam_date).toLocaleDateString()}
-                        </div>
-                        <div>
-                            <span className="font-semibold">Duration:</span>{" "}
-                            {archive.duration} minutes
-                        </div>
-                    </div>
-
-                    {/* Search and Results Count */}
-                    <div className="flex justify-between items-center mb-4">
-                        <input
-                            type="search"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-64 py-2 px-4 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                            placeholder="Search students..."
-                        />
-                        <div className="text-gray-600">
-                            Total Results: {results.length}
-                        </div>
-                    </div>
-
-                    {/* Results Table */}
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th 
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                                        onClick={() => sortResults('candidate_no')}
-                                    >
-                                        Candidate No
-                                        {sortConfig.key === 'candidate_no' && (
-                                            <span className="ml-1">
-                                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </th>
-                                    <th 
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                                        onClick={() => sortResults('full_name')}
-                                    >
-                                        Full Name
-                                        {sortConfig.key === 'full_name' && (
-                                            <span className="ml-1">
-                                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </th>
-                                    <th 
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                                        onClick={() => sortResults('score')}
-                                    >
-                                        Score
-                                        {sortConfig.key === 'score' && (
-                                            <span className="ml-1">
-                                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </th>
-                                    <th 
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                                        onClick={() => sortResults('submission_time')}
-                                    >
-                                        Submission Time
-                                        {sortConfig.key === 'submission_time' && (
-                                            <span className="ml-1">
-                                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {results.length > 0 ? (
-                                    results.map((result, index) => (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {result.candidate_no}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {result.full_name}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {result.score}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {result.submission_time 
-                                                    ? new Date(result.submission_time).toLocaleString()
-                                                    : 'Not submitted'}
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                                            No results found
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+        <div className="flex min-h-screen bg-gray-50 text-gray-800">
+            {/* Sidebar */}
+            <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
+                 <div className="flex items-center mb-10">
+                    <img src="/assets/logo.webp" alt="School Logo" className="h-10 w-10 mr-3" />
+                    <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
-            </div>
+                <nav className="space-y-2">
+                    <Link to={`/admin-dashboard/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaListAlt className="mr-3" /> Dashboard
+                    </Link>
+                    <Link to="/admin-sessions" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCalendarAlt className="mr-3" /> Sessions
+                    </Link>
+                    <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaUsers className="mr-3" /> Students
+                    </Link>
+                    <Link to="/admin-instructors" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaChalkboardTeacher className="mr-3" /> Instructors
+                    </Link>
+                    <Link to="/exam-archives" className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
+                        <FaBook className="mr-3" /> Exam Archives
+                    </Link>
+                </nav>
+                <div className="absolute bottom-6 left-6 right-6 w-52">
+                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCog className="mr-3" /> Settings
+                    </Link>
+                    <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <FaSignOutAlt className="mr-3" /> Logout
+                    </Link>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 p-8">
+                <header className="mb-8">
+                    <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <Link to="/exam-archives" className="hover:underline">Exam Archives</Link>
+                        <FaChevronRight className="mx-2" />
+                        <span className="font-medium text-gray-800">{archive?.exam_title || "Archive"}</span>
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900">Exam Archive Details</h2>
+                </header>
+
+                {loading ? <p>Loading...</p> : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-white p-6 rounded-xl shadow-sm border">
+                            <div><span className="font-semibold">Exam:</span> {archive.exam_title}</div>
+                            <div><span className="font-semibold">Course:</span> {archive.course_title}</div>
+                            <div><span className="font-semibold">Date:</span> {format(new Date(archive.exam_date), 'PPP')}</div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div className="relative mb-4">
+                                <FaSearch className="absolute top-3 left-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name or candidate no..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full"
+                                />
+                            </div>
+                            <table className="min-w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <SortableHeader name="full_name">Full Name</SortableHeader>
+                                        <SortableHeader name="candidate_no">Candidate No.</SortableHeader>
+                                        <SortableHeader name="score">Score</SortableHeader>
+                                        <SortableHeader name="submission_time">Submission Time</SortableHeader>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {paginatedResults.map((result, index) => (
+                                        <tr key={index}>
+                                            <td className="px-6 py-4 whitespace-nowrap">{result.full_name}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">{result.candidate_no}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">{result.score}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">{format(new Date(result.submission_time), 'Pp')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <div className="flex justify-between items-center mt-4">
+                                <span className="text-sm text-gray-600">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50">
+                                        Previous
+                                    </button>
+                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
+            </main>
         </div>
     );
 };
 
-export default ExamArchiveDetail; 
+export default ExamArchiveDetail;
