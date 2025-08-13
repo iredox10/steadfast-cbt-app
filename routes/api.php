@@ -152,6 +152,10 @@ Route::get('/get-current-exam', [Admin::class, 'get_current_exam']);
 Route::get('/exam-archives', [Admin::class, 'getExamArchives']);
 Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive']);
 
+// Dashboard routes
+Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
+Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
+
 
 
 

@@ -42,4 +42,12 @@ class Candidate extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
+    /**
+     * Get the exam that the candidate belongs to.
+     */
+    public function exam()
+    {
+        return $this->belongsTo(Exam::class);
+    }
 }

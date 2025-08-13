@@ -7,32 +7,21 @@ import {
     FaCog,
     FaSignOutAlt,
     FaBell,
-    FaPlus,
     FaListAlt,
     FaClock,
     FaFileSignature
 } from "react-icons/fa";
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
+import { format } from 'date-fns';
+import logo from "../../../public/assets/logo.webp"; // Import the logo
 
 const AdminDashboard = () => {
     const { userId } = useParams();
     const { data: user, loading: userLoading } = useFetch(`/get-user/${userId}`);
     const { data: statsData, loading: statsLoading } = useFetch('/dashboard-stats');
-
-    // Mock data for CBT-specific components
-    const upcomingExams = [
-        { id: 1, title: "CHEM 101: Introduction to Chemistry", date: "2025-08-15", time: "10:00 AM", candidates: 120 },
-        { id: 2, title: "PHY 202: Advanced Physics", date: "2025-08-16", time: "02:00 PM", candidates: 75 },
-        { id: 3, title: "MTH 305: Complex Analysis", date: "2025-08-18", time: "09:00 AM", candidates: 90 },
-    ];
-
-    const recentSubmissions = [
-        { id: 1, student: "John Doe", exam: "CHEM 101", score: "85%", time: "2 mins ago" },
-        { id: 2, student: "Jane Smith", exam: "CHEM 101", score: "92%", time: "5 mins ago" },
-        { id: 3, student: "Peter Jones", exam: "CHEM 101", score: "78%", time: "8 mins ago" },
-        { id: 4, student: "Mary Williams", exam: "CHEM 101", score: "88%", time: "12 mins ago" },
-    ];
+    const { data: upcomingExams, loading: examsLoading } = useFetch('/upcoming-exams');
+    const { data: recentSubmissions, loading: submissionsLoading } = useFetch('/recent-submissions');
 
     const stats = [
         { title: "Total Students", value: statsLoading ? "..." : statsData?.total_students || "0", icon: <FaUsers /> },
@@ -45,7 +34,10 @@ const AdminDashboard = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             {/* Sidebar */}
             <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
-                <h1 className="text-2xl font-bold text-gray-900 mb-10">Admin Panel</h1>
+                <div className="flex items-center mb-10">
+                    <img src={logo} alt="School Logo" className="h-10 w-10 mr-3" />
+                    <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+                </div>
                 <nav className="space-y-2">
                     <Link to={`/admin-dashboard/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
                         <FaListAlt className="mr-3" /> Dashboard
@@ -86,9 +78,6 @@ const AdminDashboard = () => {
                         <button className="p-3 bg-white border rounded-full hover:bg-gray-100">
                             <FaBell className="text-gray-600"/>
                         </button>
-                        <button className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
-                            <FaPlus className="mr-2" /> Create Exam
-                        </button>
                     </div>
                 </header>
 
@@ -112,13 +101,12 @@ const AdminDashboard = () => {
                     <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Exams</h3>
                         <div className="space-y-4">
-                            {upcomingExams.map(exam => (
+                            {examsLoading ? <p>Loading...</p> : (upcomingExams || []).map(exam => (
                                 <div key={exam.id} className="p-4 bg-gray-50 rounded-lg flex items-center justify-between">
                                     <div>
                                         <h4 className="font-medium text-gray-800">{exam.title}</h4>
                                         <p className="text-sm text-gray-500 flex items-center mt-1">
-                                            <FaClock className="mr-2" /> {exam.date} at {exam.time}
-                                            <FaUsers className="ml-4 mr-2" /> {exam.candidates} Candidates
+                                            <FaClock className="mr-2" /> {format(new Date(exam.created_at), 'PPP')}
                                         </p>
                                     </div>
                                     <Link to="#" className="text-blue-500 hover:underline">View</Link>
@@ -129,13 +117,13 @@ const AdminDashboard = () => {
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Submissions</h3>
                         <ul className="space-y-3">
-                            {recentSubmissions.map(sub => (
+                            {submissionsLoading ? <p>Loading...</p> : (recentSubmissions || []).map(sub => (
                                 <li key={sub.id} className="flex items-center justify-between text-sm">
                                     <div className="flex items-center">
                                         <FaFileSignature className="mr-3 text-gray-400" />
                                         <div>
-                                            <p className="font-medium text-gray-700">{sub.student}</p>
-                                            <p className="text-gray-500">{sub.exam}</p>
+                                            <p className="font-medium text-gray-700">{sub.student?.full_name}</p>
+                                            <p className="text-gray-500">{sub.exam?.title}</p>
                                         </div>
                                     </div>
                                     <span className="font-semibold text-green-600">{sub.score}</span>

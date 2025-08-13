@@ -3,22 +3,25 @@ import axios from "axios";
 import { path } from "../../utils/path";
 
 const useFetch = (uri) => {
-    const [data, setData] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [err, setErr] = useState("");
+
     useEffect(() => {
         const fetch = async () => {
             try {
                 setLoading(true);
-                const res = await axios(`${path}${uri}`);
+                const res = await axios.get(`${path}${uri}`);
                 setData(res.data);
-                setLoading(false);
             } catch (error) {
-                console.log(error);
+                console.error("Fetch error:", error);
+                setErr(error.message || "An error occurred");
+            } finally {
+                setLoading(false);
             }
         };
         fetch();
-    }, []);
+    }, [uri]);
 
     return { data, loading, err };
 };

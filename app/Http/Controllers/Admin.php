@@ -500,4 +500,31 @@ class Admin extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getUpcomingExams()
+    {
+        try {
+            $upcomingExams = Exam::where('submission_status', 'submitted')
+                                 ->where('activated', 'no')
+                                 ->orderBy('created_at', 'desc')
+                                 ->limit(5)
+                                 ->get();
+            return response()->json($upcomingExams);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getRecentSubmissions()
+    {
+        try {
+            $recentSubmissions = Candidate::with('student', 'exam')
+                                        ->orderBy('updated_at', 'desc')
+                                        ->limit(5)
+                                        ->get();
+            return response()->json($recentSubmissions);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
