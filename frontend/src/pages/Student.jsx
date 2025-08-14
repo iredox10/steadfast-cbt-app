@@ -408,52 +408,56 @@ const Student = () => {
 
                                         {/* Answer Options */}
                                         <div className="space-y-3">
-                                            {currentShuffledOptions.map((option, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    onClick={() =>
-                                                        handleAnswer(
-                                                            option.type,
-                                                            currentQuestion.id,
-                                                            currentQuestion.question,
-                                                            option.value
-                                                        )
-                                                    }
-                                                    className={`
-                                                        flex items-center gap-4 p-4 rounded-xl border
-                                                        transition-all duration-200 cursor-pointer
-                                                        ${selectedAnswers[currentQuestion.id] === getPlainText(option.value) 
-                                                            ? 'bg-blue-50 border-blue-500 shadow-sm' 
-                                                            : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                        }
-                                                    `}
-                                                >
-                                                    <span className={`
-                                                        w-8 h-8 flex items-center justify-center rounded-full border font-medium
-                                                        ${selectedAnswers[currentQuestion.id] === getPlainText(option.value) 
-                                                            ? 'border-blue-600 bg-blue-600 text-white' 
-                                                            : 'border-gray-300 text-gray-600'
-                                                        }
-                                                    `}>
-                                                        {option.label}
-                                                    </span>
+                                            {currentShuffledOptions.map((option, idx) => {
+                                                const isSelected = selectedAnswers[currentQuestion.id] === option.value;
+                                                
+                                                return (
                                                     <div
+                                                        key={idx}
+                                                        onClick={() =>
+                                                            handleAnswer(
+                                                                option.type,
+                                                                currentQuestion.id,
+                                                                currentQuestion.question,
+                                                                option.value
+                                                            )
+                                                        }
                                                         className={`
-                                                            flex-1
-                                                            ${selectedAnswers[currentQuestion.id] === getPlainText(option.value) 
-                                                                ? 'text-blue-700 font-medium' 
-                                                                : 'text-gray-700'
+                                                            flex items-center gap-4 p-4 rounded-xl border
+                                                            transition-all duration-200 cursor-pointer
+                                                            ${isSelected
+                                                                ? 'bg-blue-100 border-blue-500 shadow-sm' 
+                                                                : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                             }
                                                         `}
-                                                        dangerouslySetInnerHTML={{
-                                                            __html: option.value,
-                                                        }}
-                                                    />
-                                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                                        Press '{idx + 1}'
-                                                    </span>
-                                                </div>
-                                            ))}
+                                                    >
+                                                        <span className={`
+                                                            w-8 h-8 flex items-center justify-center rounded-full border font-medium
+                                                            ${isSelected
+                                                                ? 'border-blue-600 bg-blue-600 text-white' 
+                                                                : 'border-gray-300 text-gray-600'
+                                                            }
+                                                        `}>
+                                                            {option.label}
+                                                        </span>
+                                                        <div
+                                                            className={`
+                                                                flex-1
+                                                                ${isSelected
+                                                                    ? 'text-blue-800 font-medium' 
+                                                                    : 'text-gray-700'
+                                                                }
+                                                            `}
+                                                            dangerouslySetInnerHTML={{
+                                                                __html: option.value,
+                                                            }}
+                                                        />
+                                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                            Press '{idx + 1}'
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ) : (
