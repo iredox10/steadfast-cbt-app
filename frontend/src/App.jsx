@@ -7,7 +7,7 @@ import Student from "./pages/Student.jsx";
 import Instructor from "./pages/instructor/Instructor.jsx";
 import AddQuestion from "./pages/instructor/AddQuestion.jsx";
 import CourseQuestions from "./pages/instructor/CourseQuestions.jsx";
-import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import AdminExam from "./pages/admin/AdminExam.jsx";
 import AdminLogin from "./pages/admin/Login.jsx";
 import AcdSession from "./pages/admin/AcdSession.jsx";
 import Exams from "./pages/instructor/Exams.jsx";
@@ -67,7 +67,7 @@ function App() {
 
                     <Route
                         path="/admin-dashboard/:id"
-                        element={<AdminDashboard />}
+                        element={<AdminExam />}
                     />
                     <Route path="/admin-login" element={<AdminLogin />} />
                     <Route path="/admin-sessions" element={<AcdSession />} />

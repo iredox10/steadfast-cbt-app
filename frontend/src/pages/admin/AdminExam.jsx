@@ -8,7 +8,7 @@ import Model from "../../components/Model";
 import { FaEye, FaCheck, FaTimes, FaSearch, FaFilter, FaUser, FaChevronDown, FaUserGraduate, FaChalkboardTeacher, FaClock } from "react-icons/fa";
 import { FaPenToSquare } from "react-icons/fa6";
 
-const AdminDashboard = () => {
+const AdminExam = () => {
     const { id } = useParams();
     
     const {
@@ -453,4 +453,4 @@ const AdminDashboard = () => {
     );
 };
 
-export default AdminDashboard;
+export default AdminExam;
