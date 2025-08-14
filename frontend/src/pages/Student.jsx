@@ -303,7 +303,7 @@ const Student = () => {
                     <div class="flex items-center justify-between capitalize py-4">
                         <h1 class="font-bold">
                             {student && student.full_name}
-                            <span class="block">{student.candidate_no}</span>
+                            <span class="block">{student && student.candidate_no}</span>
                         </h1>
                         <div>
                             <button
