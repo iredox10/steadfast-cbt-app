@@ -1,19 +1,16 @@
-import { FaEye, FaPenToSquare } from "react-icons/fa6";
-import Sidebar from "../../components/Sidebar";
-import Student from "../Student";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
-import { useEffect, useState } from "react";
-import { FaCheck, FaTimes } from "react-icons/fa";
+import Sidebar from "../../components/Sidebar";
 import Model from "../../components/Model";
-import FormBtn from "../../components/FormBtn";
+import { FaEye, FaCheck, FaTimes, FaSearch, FaFilter, FaUser, FaChevronDown, FaUserGraduate, FaChalkboardTeacher, FaClock } from "react-icons/fa";
+import { FaPenToSquare } from "react-icons/fa6";
 
 const AdminDashboard = () => {
     const { id } = useParams();
-    // const { data: exams, loading, err } = useFetch(`/get-exams`);
-
+    
     const {
         data: invigilators,
         loading: invigilatorsLoading,
@@ -41,13 +38,13 @@ const AdminDashboard = () => {
         try {
             const res = await axios(`${path}/get-exams`);
             setExams(res.data);
-            console.log(exams)
         } catch (err) {
             console.log(err);
         } finally {
             setLoading(false);
         }
     };
+    
     useEffect(() => {
         fetchExams();
     }, []);
@@ -64,17 +61,13 @@ const AdminDashboard = () => {
     useEffect(() => {
         fetchCourses();
     }, []);
-    console.log(courses);
 
     const showModelAndSetExamId = (id) => {
-        console.log(id);
-        // setShowSubmitModel(true);
         SetshowAssignInvigilator(true);
         setexamId(id);
     };
 
     const handleActivateExam = async (id) => {
-        console.log(id);
         try {
             const res = await axios.post(`${path}/activate-exam/${id}`, {
                 invigilator,
@@ -83,21 +76,18 @@ const AdminDashboard = () => {
                 setShowSubmitModel(false);
                 fetchExams();
             }
-            console.log(res);
         } catch (err) {
             console.log(err);
         }
     };
 
     const handleTerminateExam = async (id) => {
-        console.log(id);
         try {
             const res = await axios.post(`${path}/terminate-exam/${id}`);
             if (res.status == 200) {
                 fetchExams();
                 setShowTerminateModel(false);
             }
-            console.log(res);
         } catch (err) {
             console.log(err);
         }
@@ -127,244 +117,170 @@ const AdminDashboard = () => {
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
-        <div className="grid grid-cols-6 gap-4 min-h-screen">
+        <div className="flex min-h-screen bg-gray-50">
             <Sidebar>
                 <Link
                     to={"/admin-sessions"}
-                    className="flex items-center gap-2 p-3 hover:bg-gray-100 hover:text-black rounded-lg"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
                 >
-                    <i className="fas fa-clock"></i>
+                    <FaClock />
                     <span>Sessions</span>
                 </Link>
                 <Link
                     to={"/admin-instructors"}
-                    className="flex items-center gap-2 p-3 hover:bg-gray-100 hover:text-black rounded-lg"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
                 >
-                    <i className="fas fa-chalkboard-teacher"></i>
+                    <FaChalkboardTeacher />
                     <span>Instructors</span>
                 </Link>
                 <Link
                     to={`/admin-students/${id}`}
-                    className="flex items-center gap-2 p-3 hover:bg-gray-100 hover:text-black rounded-lg"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
                 >
-                    <i className="fas fa-user-graduate"></i>
+                    <FaUserGraduate />
                     <span>Students</span>
                 </Link>
-                {/* <Link to={`/admin-courses/${id}`}>courses</Link> */}
             </Sidebar>
-            <div className="col-span-5 p-5">
-                <div className="flex justify-between items-center w-full mb-4 bg-white p-6 rounded-lg shadow-sm">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">
-                            Exams Dashboard
-                        </h1>
-                        <p className="text-gray-600 mt-1">
-                            Manage and monitor exam details
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <input
-                                type="search"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-[300px] py-2 px-4 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                                placeholder="Type course, duration or type..."
-                            />
-                            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                                <i className="fas fa-search"></i>
-                            </button>
+            
+            <div className="flex-1 p-6">
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800">
+                                Exams Dashboard
+                            </h1>
+                            <p className="text-gray-600 mt-1">
+                                Manage and monitor exam details
+                            </p>
                         </div>
-
-                        <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
-                            <i className="fas fa-filter"></i>
-                        </button>
-
-                        <div className="flex items-center gap-3 border-l pl-4">
-                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                <i className="fas fa-user text-gray-600"></i>
-                            </div>
+                        <div className="flex flex-wrap items-center gap-3">
                             <div className="relative">
-                                <button className="hover:bg-gray-100 p-2 rounded-lg">
-                                    <i className="fas fa-chevron-down text-gray-600"></i>
-                                </button>
-                                <div
-                                    id="logout"
-                                    className="hidden absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100"
-                                >
-                                    <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50">
-                                        Logout
+                                <input
+                                    type="search"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full lg:w-64 py-2 px-4 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Search exams..."
+                                />
+                                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            </div>
+                            
+                            <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors">
+                                <FaFilter />
+                            </button>
+                            
+                            <div className="flex items-center gap-3 pl-4 border-l">
+                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <FaUser className="text-gray-600" />
+                                </div>
+                                <div className="relative">
+                                    <button className="hover:bg-gray-100 p-2 rounded-lg transition-colors">
+                                        <FaChevronDown className="text-gray-600" />
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div>
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        {loading ? (
-                            <div className="flex justify-center items-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                                <span className="ml-2">Loading...</span>
-                            </div>
-                        ) : currentItems && currentItems.length > 0 ? (
-                            <>
+                
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            <span className="ml-3">Loading exams...</span>
+                        </div>
+                    ) : currentItems && currentItems.length > 0 ? (
+                        <>
+                            <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
-                                    <thead>
+                                    <thead className="bg-gray-50">
                                         <tr>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 ID
                                             </th>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Course Details
                                             </th>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Questions
                                             </th>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Scoring
                                             </th>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Exam Info
                                             </th>
-                                            <th
-                                                scope="col"
-                                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                            >
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status & Actions
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {currentItems.map((exam, index) => (
-                                            <tr
-                                                key={exam.id}
-                                                className="hover:bg-gray-50"
-                                            >
+                                            <tr key={exam.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {indexOfFirstItem +
-                                                        index +
-                                                        1}
+                                                    {indexOfFirstItem + index + 1}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm font-medium text-gray-900">
-                                                        {courses &&
-                                                            courses.map(
-                                                                (course) =>
-                                                                    course.id ===
-                                                                    exam.course_id
-                                                                        ? course.title
-                                                                        : "",
-                                                            )}
+                                                        {courses && courses.find(course => course.id === exam.course_id)?.title}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-900">
-                                                        <div>
-                                                            Total:{" "}
-                                                            {
-                                                                exam.no_of_questions
-                                                            }
+                                                        <div className="font-medium">
+                                                            Total: {exam.no_of_questions}
                                                         </div>
-                                                        <div className="text-gray-500">
-                                                            Actual:{" "}
-                                                            {
-                                                                exam.actual_questions
-                                                            }
+                                                        <div className="text-gray-500 text-sm">
+                                                            Actual: {exam.actual_questions}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-900">
-                                                        <div>
-                                                            Max Score:{" "}
-                                                            {exam.max_score}
+                                                        <div className="font-medium">
+                                                            Max Score: {exam.max_score}
                                                         </div>
-                                                        <div className="text-gray-500">
-                                                            Per Question:{" "}
-                                                            {
-                                                                exam.marks_per_question
-                                                            }
+                                                        <div className="text-gray-500 text-sm">
+                                                            Per Question: {exam.marks_per_question}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-900">
-                                                        <div>
-                                                            Type:{" "}
-                                                            {exam.exam_type}
+                                                        <div className="font-medium">
+                                                            Type: {exam.exam_type}
                                                         </div>
-                                                        <div className="text-gray-500">
-                                                            Duration:{" "}
-                                                            {exam.exam_duration} mins
+                                                        <div className="text-gray-500 text-sm">
+                                                            Duration: {exam.exam_duration} mins
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <div className="flex items-center gap-4">
-                                                        <span
-                                                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                                exam.activated ===
-                                                                "yes"
-                                                                    ? "bg-green-100 text-green-800"
-                                                                    : "bg-red-100 text-red-800"
-                                                            }`}
-                                                        >
-                                                            {exam.activated ===
-                                                            "yes"
-                                                                ? "Active"
-                                                                : "Inactive"}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                            exam.activated === "yes"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : "bg-red-100 text-red-800"
+                                                        }`}>
+                                                            {exam.activated === "yes" ? "Active" : "Inactive"}
                                                         </span>
                                                         <div className="flex gap-2">
-                                                            {exam.activated ==
-                                                            "yes" ? (
-                                                                ""
-                                                            ) : (
+                                                            {exam.activated == "no" && (
                                                                 <button
-                                                                    onClick={() => {
-                                                                        showModelAndSetExamId(
-                                                                            exam.id,
-                                                                        );
-                                                                    }}
-                                                                    // onClick={() =>
-                                                                    //     showModelAndSetExamId(
-                                                                    //         exam.id
-                                                                    //     )
-                                                                    // }
-                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                                    onClick={() => showModelAndSetExamId(exam.id)}
+                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                                                                 >
                                                                     Activate
                                                                 </button>
                                                             )}
-                                                            {exam.activated ==
-                                                            "no" ? (
-                                                                ""
-                                                            ) : (
+                                                            {exam.activated == "yes" && (
                                                                 <button
                                                                     onClick={() => {
-                                                                        setexamId(
-                                                                            exam.id,
-                                                                        );
-                                                                        setShowTerminateModel(
-                                                                            true,
-                                                                        );
+                                                                        setexamId(exam.id);
+                                                                        setShowTerminateModel(true);
                                                                     }}
-                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                                                                 >
                                                                     Terminate
                                                                 </button>
@@ -376,113 +292,120 @@ const AdminDashboard = () => {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
 
-                                {/* Pagination Controls */}
-                                <div className="flex justify-center items-center gap-2 mt-4">
+                            {/* Pagination Controls */}
+                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 border-t border-gray-200">
+                                <div className="text-sm text-gray-600">
+                                    Showing {indexOfFirstItem + 1} to{" "}
+                                    {Math.min(indexOfLastItem, filteredExams?.length || 0)}{" "}
+                                    of {filteredExams?.length || 0} entries
+                                </div>
+                                
+                                <div className="flex items-center gap-2">
                                     <button
-                                        onClick={() =>
-                                            paginate(currentPage - 1)
-                                        }
+                                        onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-1 rounded ${
+                                        className={`px-3 py-1 rounded-md text-sm ${
                                             currentPage === 1
-                                                ? "bg-gray-200 cursor-not-allowed"
-                                                : "bg-blue-500 text-white hover:bg-blue-600"
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                         }`}
                                     >
                                         Previous
                                     </button>
 
-                                    {[...Array(totalPages)].map((_, index) => (
-                                        <button
-                                            key={index + 1}
-                                            onClick={() => paginate(index + 1)}
-                                            className={`px-3 py-1 rounded ${
-                                                currentPage === index + 1
-                                                    ? "bg-blue-500 text-white"
-                                                    : "bg-gray-200 hover:bg-gray-300"
-                                            }`}
-                                        >
-                                            {index + 1}
-                                        </button>
-                                    ))}
+                                    <div className="flex gap-1">
+                                        {[...Array(totalPages)].map((_, index) => (
+                                            <button
+                                                key={index + 1}
+                                                onClick={() => paginate(index + 1)}
+                                                className={`w-8 h-8 rounded-md text-sm ${
+                                                    currentPage === index + 1
+                                                        ? "bg-blue-600 text-white"
+                                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                                }`}
+                                            >
+                                                {index + 1}
+                                            </button>
+                                        ))}
+                                    </div>
 
                                     <button
-                                        onClick={() =>
-                                            paginate(currentPage + 1)
-                                        }
+                                        onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 rounded ${
+                                        className={`px-3 py-1 rounded-md text-sm ${
                                             currentPage === totalPages
-                                                ? "bg-gray-200 cursor-not-allowed"
-                                                : "bg-blue-500 text-white hover:bg-blue-600"
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                         }`}
                                     >
                                         Next
                                     </button>
                                 </div>
-
-                                {/* Items per page info */}
-                                <div className="text-center text-sm text-gray-600 mt-2">
-                                    Showing {indexOfFirstItem + 1} to{" "}
-                                    {Math.min(
-                                        indexOfLastItem,
-                                        filteredExams?.length || 0,
-                                    )}{" "}
-                                    of {filteredExams?.length || 0} entries
-                                </div>
-                            </>
-                        ) : (
-                            <p className="text-center py-4">No exams found</p>
-                        )}
-                    </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-12">
+                            <div className="text-gray-400 mb-4">
+                                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-1">No exams found</h3>
+                            <p className="text-gray-500">There are currently no exams in the system.</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
+            {/* Assign Invigilator Modal */}
             {showAssignInvigilator && (
                 <Model>
-                    <div className="bg-white rounded-lg p-6  w-full">
-                        <div className="flex justify-between my-5">
-                            <h1 className="font-bold ">Assign Invigilator</h1>
+                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-800">Assign Invigilator</h2>
                             <button
                                 onClick={() => {
                                     SetshowAssignInvigilator(false);
                                     setInvigilator("");
                                 }}
+                                className="text-gray-500 hover:text-gray-700"
                             >
                                 <FaTimes />
                             </button>
                         </div>
-                        <div className="flex flex-col">
-                            <p className="my-2">Choose Invigilator</p>
+                        
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Choose Invigilator
+                            </label>
                             <select
                                 onChange={(e) => {
                                     setInvigilator(e.target.value);
                                 }}
                                 name="invigilator"
-                                id=""
-                                className="p-2"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option selected disabled>
+                                <option value="" disabled selected>
                                     Select Invigilator
                                 </option>
-                                {invigilators &&
-                                    invigilators.map((invigilator) => (
-                                        <option value={invigilator.email}>
-                                            {invigilator.full_name}
-                                        </option>
-                                    ))}
+                                {invigilators && invigilators.map((invigilator) => (
+                                    <option key={invigilator.id} value={invigilator.email}>
+                                        {invigilator.full_name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
+                        
                         {invigilator && (
-                            <div className="flex justify-end mt-5">
+                            <div className="flex justify-end">
                                 <button
-                                    // onClick={() => handleActivateExam(examId)}
                                     onClick={() => {
                                         handleActivateExam(examId);
                                         SetshowAssignInvigilator(false);
                                     }}
-                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                                 >
                                     Assign & Activate
                                 </button>
@@ -492,55 +415,33 @@ const AdminDashboard = () => {
                 </Model>
             )}
 
-            {showSubmitModel && (
-                <Model>
-                    <div className="bg-white rounded-lg p-6  w-full">
-                        <div className="mb-6 text-center">
-                            <h2 className="text-2xl font-bold text-gray-800">
-                                Activate Exam
-                            </h2>
-                            <p className="text-gray-600 mt-2">
-                                Are you sure you want to activate this exam?
-                            </p>
-                        </div>
-                        <div className="flex justify-center gap-4">
-                            <button
-                                onClick={() => handleActivateExam(examId)}
-                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                            >
-                                Yes, Activate
-                            </button>
-                            <button
-                                onClick={() => setShowSubmitModel(false)}
-                                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </Model>
-            )}
+            {/* Terminate Exam Modal */}
             {showTerminateModel && (
                 <Model>
-                    <div className="bg-white rounded-lg p-6  w-full">
-                        <div className="mb-6 text-center">
-                            <h2 className="text-2xl font-bold text-gray-800">
-                                Activate Exam
+                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                        <div className="text-center mb-6">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-800 mt-3">
+                                Terminate Exam
                             </h2>
                             <p className="text-gray-600 mt-2">
-                                Are you sure you want to activate this exam?
+                                Are you sure you want to terminate this exam? This action cannot be undone.
                             </p>
                         </div>
-                        <div className="flex justify-center gap-4">
+                        <div className="flex justify-center gap-3">
                             <button
                                 onClick={() => handleTerminateExam(examId)}
-                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                             >
                                 Yes, Terminate
                             </button>
                             <button
                                 onClick={() => setShowTerminateModel(false)}
-                                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                             >
                                 Cancel
                             </button>
