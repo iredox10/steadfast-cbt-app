@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { FaCheck, FaExclamationTriangle, FaSearch } from "react-icons/fa";
+import { 
+  FaCheck, 
+  FaExclamationTriangle, 
+  FaSearch, 
+  FaUser, 
+  FaGraduationCap, 
+  FaChalkboardTeacher, 
+  FaClock, 
+  FaTimes
+} from "react-icons/fa";
 import GridLayout from "../components/GridLayout";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
@@ -172,9 +181,9 @@ const Invigilator = () => {
                         {currentStudents.map((student, index) => (
                             <div key={index} className="bg-white rounded-xl shadow-md border border-gray-200 p-5 transform hover:scale-105 transition-transform duration-300">
                                 <div className="flex items-center mb-4">
-                                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                                        <span className="text-2xl font-bold text-blue-600">{student.full_name.charAt(0)}</span>
-                                    </div>
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <FaGraduationCap className="text-blue-600" />
+                                </div>
                                     <div>
                                         <h3 className="font-bold text-lg text-gray-800">{student.full_name}</h3>
                                         <p className="text-sm text-gray-500">{student.candidate_no}</p>

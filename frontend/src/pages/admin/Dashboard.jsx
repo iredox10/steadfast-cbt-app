@@ -258,11 +258,10 @@ const AdminDashboard = () => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                            exam.activated === "yes"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : "bg-red-100 text-red-800"
-                                                        }`}>
+                                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${exam.activated === "yes"
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-red-100 text-red-800"
+                                                            }`}>
                                                             {exam.activated === "yes" ? "Active" : "Inactive"}
                                                         </span>
                                                         <div className="flex gap-2">
@@ -306,11 +305,10 @@ const AdminDashboard = () => {
                                     <button
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-1 rounded-md text-sm ${
-                                            currentPage === 1
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                        }`}
+                                        className={`px-3 py-1 rounded-md text-sm ${currentPage === 1
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            }`}
                                     >
                                         Previous
                                     </button>
@@ -320,11 +318,10 @@ const AdminDashboard = () => {
                                             <button
                                                 key={index + 1}
                                                 onClick={() => paginate(index + 1)}
-                                                className={`w-8 h-8 rounded-md text-sm ${
-                                                    currentPage === index + 1
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                                }`}
+                                                className={`w-8 h-8 rounded-md text-sm ${currentPage === index + 1
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                                    }`}
                                             >
                                                 {index + 1}
                                             </button>
@@ -334,11 +331,10 @@ const AdminDashboard = () => {
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 rounded-md text-sm ${
-                                            currentPage === totalPages
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                        }`}
+                                        className={`px-3 py-1 rounded-md text-sm ${currentPage === totalPages
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            }`}
                                     >
                                         Next
                                     </button>
