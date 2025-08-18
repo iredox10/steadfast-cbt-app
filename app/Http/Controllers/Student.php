@@ -23,17 +23,16 @@ class Student extends Controller
         if (!$student) {
             return response()->json('user not found', 404);
         }
-        if (Hash::check($request->input('password'), $student->password)) {
-            // if ($request->input('password') == $student->password) {
-            return response()->json($student);
-        } else {
-            // return redirect()->back()->with('message', 'wrong password!!');
+        if (!Hash::check($request->input('password'), $student->password)) {
             return response()->json('wrong password!!', 404);
         }
-
+        
+        // Check if student is checked in by invigilator
         if ($student->checkin_time == null) {
             return response()->json('user not checked in', 400);
         }
+        
+        return response()->json($student);
     }
 
     public function index()

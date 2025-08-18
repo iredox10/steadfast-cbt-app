@@ -30,20 +30,29 @@ const Home = () => {
                 password,
             });
 
-            if (res.data.checkin_time === null) {
+            // Check if student is checked in
+            if (res.data.checkin_time === null || res.data.checkin_time === undefined) {
                 navigate("/not-check-in");
                 setLoading(false);
                 return;
             }
 
+            // Check if student is already logged in/exam started
             if (res.data.is_logged_on === "yes") {
                 navigate("/logged-student");
                 setLoading(false);
                 return;
             }
+            
+            // Student is checked in, proceed to exam instructions
             navigate(`/exam-instructions/${res.data.id}`);
         } catch (err) {
-            setErrMsg(err.response?.data || "Login failed");
+            // Handle different error types
+            if (err.response?.status === 400 && err.response?.data === 'user not checked in') {
+                navigate("/not-check-in");
+            } else {
+                setErrMsg(err.response?.data || "Login failed");
+            }
             setLoading(false);
         }
     };
