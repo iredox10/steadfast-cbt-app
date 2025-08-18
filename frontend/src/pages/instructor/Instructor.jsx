@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import Sidebar from "../../components/Sidebar";
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
@@ -7,8 +7,8 @@ import {
     FaChalkboardTeacher,
     FaUsers,
     FaQuestionCircle,
-    FaPlus,
-    FaChevronRight
+    FaFileAlt,
+    FaChartBar
 } from "react-icons/fa";
 
 const Instructor = () => {
@@ -20,12 +20,12 @@ const Instructor = () => {
         err: userErr,
     } = useFetch(`/get-user/${id}`);
 
-    // Mock stats data
+    // Stats based on what instructors can actually access
     const stats = [
-        { title: "Total Courses", value: courses ? courses.length : 0, icon: <FaBook /> },
-        { title: "Total Questions", value: "124", icon: <FaQuestionCircle /> },
-        { title: "Active Exams", value: "8", icon: <FaChalkboardTeacher /> },
-        { title: "Students", value: "245", icon: <FaUsers /> },
+        { title: "Your Courses", value: courses ? courses.length : 0, icon: <FaBook />, color: "bg-blue-100 text-blue-500" },
+        { title: "Active Exams", value: "0", icon: <FaFileAlt />, color: "bg-yellow-100 text-yellow-500" },
+        { title: "Total Questions", value: "0", icon: <FaQuestionCircle />, color: "bg-green-100 text-green-500" },
+        { title: "Students", value: "0", icon: <FaUsers />, color: "bg-purple-100 text-purple-500" },
     ];
 
     return (
@@ -56,7 +56,7 @@ const Instructor = () => {
                     to="#"
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <FaChalkboardTeacher />
+                    <FaFileAlt />
                     <span>Exams</span>
                 </Link>
             </Sidebar>
@@ -67,7 +67,7 @@ const Instructor = () => {
                         <h1 className="text-3xl font-bold text-gray-900">
                             Welcome back, {user?.full_name || 'Instructor'}!
                         </h1>
-                        <p className="text-gray-600 mt-1">Manage your courses and exams</p>
+                        <p className="text-gray-600 mt-1">Manage your assigned courses and exams</p>
                     </div>
                     <div className="flex items-center space-x-4">
                         <button className="p-3 bg-white border border-gray-200 rounded-full hover:bg-gray-100 transition-colors">
@@ -86,7 +86,7 @@ const Instructor = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {stats.map((stat, index) => (
                         <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                            <div className="p-4 bg-blue-100 rounded-full text-blue-500">
+                            <div className={`p-4 rounded-full ${stat.color}`}>
                                 {stat.icon}
                             </div>
                             <div>
@@ -100,16 +100,26 @@ const Instructor = () => {
                 {/* Courses Section */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-gray-900">Your Courses</h2>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                            <FaPlus />
-                            <span>Add Course</span>
-                        </button>
+                        <h2 className="text-xl font-bold text-gray-900">Your Assigned Courses</h2>
+                        <div className="text-sm text-gray-500">
+                            Courses assigned by administrator
+                        </div>
                     </div>
 
                     {userLoading ? (
                         <div className="flex items-center justify-center h-64">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : err ? (
+                        <div className="text-center py-8">
+                            <i className="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
+                            <p className="text-gray-600">Error loading courses</p>
+                        </div>
+                    ) : !courses || courses.length === 0 ? (
+                        <div className="text-center py-12">
+                            <i className="fas fa-book text-gray-300 text-5xl mb-4"></i>
+                            <h3 className="text-xl font-medium text-gray-900 mb-2">No Courses Assigned</h3>
+                            <p className="text-gray-600 mb-6">Contact your administrator to assign courses to you</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -135,12 +145,12 @@ const Instructor = () => {
                                                 </div>
                                             </div>
                                             <div className="bg-gray-50 group-hover:bg-blue-100 p-2 rounded-full transition-colors duration-200">
-                                                <FaChevronRight className="text-gray-400 group-hover:text-blue-600" />
+                                                <i className="fas fa-chevron-right text-gray-400 group-hover:text-blue-600"></i>
                                             </div>
                                         </div>
                                         <div className="flex justify-between text-sm text-gray-500">
-                                            <span>12 Questions</span>
-                                            <span>Active</span>
+                                            <span>0 Questions</span>
+                                            <span>0 Exams</span>
                                         </div>
                                     </div>
                                 </Link>
@@ -149,42 +159,78 @@ const Instructor = () => {
                     )}
                 </div>
 
-                {/* Recent Activity */}
+                {/* Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Questions Added</h3>
-                        <div className="space-y-4">
-                            <div className="p-4 bg-gray-50 rounded-lg">
-                                <h4 className="font-medium text-gray-800">What is the time complexity of binary search?</h4>
-                                <p className="text-sm text-gray-500 mt-1">Computer Science 101</p>
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-lg">
-                                <h4 className="font-medium text-gray-800">Explain the concept of polymorphism</h4>
-                                <p className="text-sm text-gray-500 mt-1">Object Oriented Programming</p>
-                            </div>
-                            <div className="p-4 bg-gray-50 rounded-lg">
-                                <h4 className="font-medium text-gray-800">Database normalization techniques</h4>
-                                <p className="text-sm text-gray-500 mt-1">Database Systems</p>
-                            </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                        <div className="space-y-3">
+                            <Link 
+                                to={courses && courses.length > 0 ? `/exams/${id}/${courses[0]?.course_id}` : "#"}
+                                className={`flex items-center gap-3 p-4 rounded-lg transition-colors ${
+                                    courses && courses.length > 0 
+                                        ? "bg-blue-50 hover:bg-blue-100" 
+                                        : "bg-gray-100 cursor-not-allowed"
+                                }`}
+                            >
+                                <div className={`p-3 rounded-lg ${
+                                    courses && courses.length > 0 
+                                        ? "bg-blue-500 text-white" 
+                                        : "bg-gray-300 text-gray-500"
+                                }`}>
+                                    <FaFileAlt />
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-gray-900">Manage Exams</h4>
+                                    <p className="text-sm text-gray-600">Create and manage course exams</p>
+                                </div>
+                            </Link>
+                            
+                            <Link 
+                                to={courses && courses.length > 0 ? `/question-bank/${id}/${courses[0]?.course_id}` : "#"}
+                                className={`flex items-center gap-3 p-4 rounded-lg transition-colors ${
+                                    courses && courses.length > 0 
+                                        ? "bg-green-50 hover:bg-green-100" 
+                                        : "bg-gray-100 cursor-not-allowed"
+                                }`}
+                            >
+                                <div className={`p-3 rounded-lg ${
+                                    courses && courses.length > 0 
+                                        ? "bg-green-500 text-white" 
+                                        : "bg-gray-300 text-gray-500"
+                                }`}>
+                                    <FaQuestionCircle />
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-gray-900">Question Bank</h4>
+                                    <p className="text-sm text-gray-600">Access and manage questions</p>
+                                </div>
+                            </Link>
                         </div>
                     </div>
                     
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Exams</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                         <div className="space-y-4">
-                            <div className="p-4 bg-gray-50 rounded-lg flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-gray-800">Midterm Exam</h4>
-                                    <p className="text-sm text-gray-500">Computer Science 101</p>
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-blue-100 text-blue-500 rounded-full mt-1">
+                                    <FaBook className="text-sm" />
                                 </div>
-                                <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded">In 3 days</span>
+                                <div>
+                                    <h4 className="font-medium text-gray-900">Course Access</h4>
+                                    <p className="text-sm text-gray-600">Accessed your assigned courses</p>
+                                    <p className="text-xs text-gray-500 mt-1">Today</p>
+                                </div>
                             </div>
-                            <div className="p-4 bg-gray-50 rounded-lg flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-gray-800">Final Exam</h4>
-                                    <p className="text-sm text-gray-500">Database Systems</p>
+                            
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-green-100 text-green-500 rounded-full mt-1">
+                                    <FaQuestionCircle className="text-sm" />
                                 </div>
-                                <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">In 2 weeks</span>
+                                <div>
+                                    <h4 className="font-medium text-gray-900">Questions Viewed</h4>
+                                    <p className="text-sm text-gray-600">Reviewed question bank</p>
+                                    <p className="text-xs text-gray-500 mt-1">Yesterday</p>
+                                </div>
                             </div>
                         </div>
                     </div>

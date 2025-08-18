@@ -49,7 +49,9 @@ const Exams = () => {
     };
 
     useEffect(() => {
-        fetchExams();
+        if (userId && courseId) {
+            fetchExams();
+        }
     }, [userId, courseId]);
 
     const handleSubmit = async (e) => {
@@ -145,11 +147,11 @@ const Exams = () => {
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                     <Link
-                        to={`/instructor-student/${userId}/${courseId}`}
+                        to={`/instructor/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-users"></i>
-                        <span>Candidates</span>
+                        <i className="fas fa-book"></i>
+                        <span>Courses</span>
                     </Link>
                 </Sidebar>
                 <div className="flex-1 flex items-center justify-center">
@@ -167,11 +169,11 @@ const Exams = () => {
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                     <Link
-                        to={`/instructor-student/${userId}/${courseId}`}
+                        to={`/instructor/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-users"></i>
-                        <span>Candidates</span>
+                        <i className="fas fa-book"></i>
+                        <span>Courses</span>
                     </Link>
                 </Sidebar>
                 <div className="flex-1 flex items-center justify-center">
@@ -195,18 +197,25 @@ const Exams = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to={`/instructor-student/${userId}/${courseId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <i className="fas fa-users"></i>
-                    <span>Candidates</span>
-                </Link>
-                <Link
                     to={`/instructor/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
                     <i className="fas fa-book"></i>
-                    <span>All Courses</span>
+                    <span>Courses</span>
+                </Link>
+                <Link
+                    to={`/instructor-student/${userId}/${courseId}`}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                    <i className="fas fa-users"></i>
+                    <span>Students</span>
+                </Link>
+                <Link
+                    to={`/question-bank/${userId}/${courseId}`}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                    <i className="fas fa-question-circle"></i>
+                    <span>Question Bank</span>
                 </Link>
             </Sidebar>
             
@@ -217,7 +226,7 @@ const Exams = () => {
                             {course?.title || "Course"} Exams
                         </h1>
                         <p className="text-gray-600">
-                            Manage and monitor course examinations
+                            Manage and monitor exams for this course
                         </p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -586,6 +595,7 @@ const Exams = () => {
                                 </label>
                                 <input
                                     type="number"
+                                    step="0.01"
                                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder="Enter marks per question"
                                     value={marksPerQuestion}
