@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import useFetch from "../../hooks/useFetch";
 import Model from "../../components/Model";
 import FormInput from "../../components/FormInput";
 import axios from "axios";
 import FormBtn from "../../components/FormBtn";
+import { FaClock, FaUserGraduate, FaChalkboardTeacher } from "react-icons/fa";
 
 const AdminCourses = () => {
     const { data: sessions, loading, error } = useFetch(`/get-acd-sessions`);
@@ -24,7 +26,36 @@ const AdminCourses = () => {
 
     return (
         <div className="grid grid-cols-6 gap-4 min-h-screen">
-            <Sidebar />
+            <Sidebar>
+                <Link
+                    to={"/admin-dashboard"}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaClock />
+                    <span>Exams</span>
+                </Link>
+                <Link
+                    to={"/admin-sessions"}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaClock />
+                    <span>Sessions</span>
+                </Link>
+                <Link
+                    to={"/admin-instructors"}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaChalkboardTeacher />
+                    <span>Instructors</span>
+                </Link>
+                <Link
+                    to={"/admin-students"}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaUserGraduate />
+                    <span>Students</span>
+                </Link>
+            </Sidebar>
             <div className="col-span-5 p-5 grid grid-cols-4 grid-rows-12">
                 {sessions &&
                     sessions.map((session) => (

@@ -66,7 +66,7 @@ function App() {
                     />
 
                     <Route
-                        path="/admin-dashboard/:id"
+                        path="/admin-exam/:id"
                         element={<AdminExam />}
                     />
                     <Route path="/admin-login" element={<AdminLogin />} />
@@ -93,7 +93,7 @@ function App() {
                         element={<CourseStudents />}
                     />
                     <Route
-                       path="/exam-instructions/:studentId"
+                        path="/exam-instructions/:studentId"
                         element={<ExamInstructions />}
                     />
 

@@ -39,7 +39,7 @@ const AdminDashboard = () => {
                     <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
                 <nav className="space-y-2">
-                    <Link to={`/admin-dashboard/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
+                    <Link to={`/dashboard/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
                         <FaListAlt className="mr-3" /> Dashboard
                     </Link>
                     <Link to="/admin-sessions" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
@@ -54,9 +54,12 @@ const AdminDashboard = () => {
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaBook className="mr-3" /> Exam Archives
                     </Link>
+                    <Link to={`/admin-exam/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exams
+                    </Link>
                 </nav>
                 <div className="absolute bottom-6 left-6 right-6 w-52">
-                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaCog className="mr-3" /> Settings
                     </Link>
                     <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -76,7 +79,7 @@ const AdminDashboard = () => {
                     </div>
                     <div className="flex items-center space-x-4">
                         <button className="p-3 bg-white border rounded-full hover:bg-gray-100">
-                            <FaBell className="text-gray-600"/>
+                            <FaBell className="text-gray-600" />
                         </button>
                     </div>
                 </header>

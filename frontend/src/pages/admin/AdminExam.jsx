@@ -120,6 +120,13 @@ const AdminDashboard = () => {
         <div className="flex min-h-screen bg-gray-50">
             <Sidebar>
                 <Link
+                    to={`/admin-dashboard/${id}`}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaClock />
+                    <span>Exams</span>
+                </Link>
+                <Link
                     to={"/admin-sessions"}
                     className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
                 >

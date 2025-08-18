@@ -1,9 +1,10 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import GridLayout from "../../components/GridLayout";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
+import { FaClock, FaUserGraduate, FaChalkboardTeacher } from "react-icons/fa";
 
 const CourseStudents = () => {
     const { id } = useParams();
@@ -13,7 +14,36 @@ const CourseStudents = () => {
     console.log(students)
     return (
         <GridLayout>
-            <Sidebar />
+            <Sidebar>
+                <Link
+                    to={`/admin-dashboard/${id}`}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaClock />
+                    <span>Exams</span>
+                </Link>
+                <Link
+                    to={"/admin-sessions"}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaClock />
+                    <span>Sessions</span>
+                </Link>
+                <Link
+                    to={"/admin-instructors"}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaChalkboardTeacher />
+                    <span>Instructors</span>
+                </Link>
+                <Link
+                    to={`/admin-students/${id}`}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaUserGraduate />
+                    <span>Students</span>
+                </Link>
+            </Sidebar>
             <div className="col-start-2 col-end-7 p-5">
                 <Header
                     title={course && `${course.title} Students`}

@@ -12,7 +12,6 @@ const Student = () => {
     const { studentId } = useParams();
     const { data, loading } = useFetch(`/get-student-exam`);
     const [answers, setAnswers] = useState([]);
-    const [timeRemaining, setTimeRemaining] = useState(null);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
     const [course, setCourse] = useState();
@@ -189,6 +188,10 @@ const Student = () => {
             // Clear localStorage after successful submission
             localStorage.removeItem(localStorageKey);
             
+            // Clear timer data as well
+            localStorage.removeItem("examTimeRemaining");
+            localStorage.removeItem("examLastTimestamp");
+            
             navigate(`/student-submission/${studentId}`);
         } catch (err) {
             console.log(err);
@@ -288,9 +291,8 @@ const Student = () => {
                                 <div className="text-right">
                                     {data && (
                                         <Timer
-                                            initialTime={data && data.exam.exam_duration}
+                                            initialTime={data?.exam?.exam_duration || 0}
                                             onTimeUp={handleSubmit}
-                                            reminder={timeRemaining}
                                         />
                                     )}
                                     <p className="text-xs text-gray-500">Time Remaining</p>
