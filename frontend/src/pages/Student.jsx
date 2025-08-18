@@ -179,11 +179,17 @@ const Student = () => {
 
     const handleSubmit = async (timeUp = false) => {
         try {
-            const res = await axios.post(`${path}/submit-exam`, {
-                student_id: studentId,
-                answers: answers,
-                time_up: timeUp,
-            });
+            // First, submit each answer individually
+            for (const answer of answers) {
+                await axios.post(`${path}/answer-question/${studentId}/${answer.question_id}/${data?.exam?.course_id}`, {
+                    selected_answer: answer.answer,
+                    question: answer.question,
+                    course_id: data?.exam?.course_id
+                });
+            }
+
+            // Then submit the exam
+            const res = await axios.get(`${path}/submit-exam/${studentId}/${data?.exam?.course_id}`);
 
             // Clear localStorage after successful submission
             localStorage.removeItem(localStorageKey);
@@ -194,7 +200,7 @@ const Student = () => {
 
             navigate(`/student-submission/${studentId}`);
         } catch (err) {
-            console.log(err);
+            console.log("Error submitting exam:", err);
             // Don't clear localStorage on error, so student can retry
             alert("Error submitting exam. Please try again.");
         }

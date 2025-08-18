@@ -36,12 +36,26 @@ Route::post('/answer-question/{student_id}/{question_id}/{course_id}',[Student::
 
 Route::get('/submit-exam/{student_id}/{course_id}', [Student::class,'submit_exam']);
 
+// Adding POST route for submit-exam to match frontend expectations
+Route::post('/submit-exam', function (Request $request) {
+    $studentId = $request->input('student_id');
+    $courseId = $request->input('course_id');
+    
+    if (!$studentId || !$courseId) {
+        return response()->json(['error' => 'Missing student_id or course_id'], 400);
+    }
+    
+    return app()->call('App\Http\Controllers\Student@submit_exam', [
+        'student_id' => $studentId,
+        'course_id' => $courseId
+    ]);
+});
+
 Route::get('/student-courses/{student_id}', [Student::class, 'get_courses']);
 
 Route::post('/check-student/{student_id}', [Student::class, 'check_student']);
 
 Route::post('/start-exam/{student_id}', [Student::class, 'start_exam']);
-
 
 
 // instructor
@@ -155,7 +169,3 @@ Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive']);
 // Dashboard routes
 Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
 Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
-
-
-
-

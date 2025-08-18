@@ -176,11 +176,11 @@ class Student extends Controller
                         'candidate_id' => $student_id,
                     ],
                     [
-                        'is_correct' => true, // Assume you're getting these from the request as boolean  
+                        'is_correct' => true,
                         'question' => request('question'),
                         'choice' => request('selected_answer'),
                         'course_id' => request('course_id'),
-                        'answered' => true,     // Adjust if necessary based on your input names  
+                        'answered' => true,
                     ]
                 );
                 return response()->json($answer);
@@ -191,11 +191,11 @@ class Student extends Controller
                     'candidate_id' => $student_id,
                 ],
                 [
-                    'is_correct' => false, // Assume you're getting these from the request as boolean  
+                    'is_correct' => false,
                     'question' => request('question'),
                     'choice' => request('selected_answer'),
                     'course_id' => request('course_id'),
-                    'answered' => true,     // Adjust if necessary based on your input names  
+                    'answered' => true,
                 ]
             );
             return response()->json($answer);
@@ -204,24 +204,37 @@ class Student extends Controller
         }
     }
 
-    public function submit_exam(Request $request, $student_id, $course_id)
+    public function submit_exam($student_id, $course_id)
     {
         try {
             $student = \App\Models\Student::findOrFail($student_id);
             $student_answered_questions = Answers::where('candidate_id', $student_id)->where('course_id', $course_id)->get();
             $student->checkout_time = now();
             $student->save();
-            $marks = Answers::where('is_correct', true)->count();
-            return response()->json([$student_answered_questions, $marks]);
+            
+            // Count correct answers
+            $correct_answers_count = Answers::where('candidate_id', $student_id)
+                ->where('course_id', $course_id)
+                ->where('is_correct', true)
+                ->count();
+                
+            return response()->json([
+                'message' => 'Exam submitted successfully',
+                'answered_questions' => $student_answered_questions,
+                'correct_answers_count' => $correct_answers_count
+            ], 200);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json([
+                'error' => 'Failed to submit exam',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
     public function get_courses($student_id)
     {
         try {
-            $courses = StudentCourse::findOrFail($student_id);
+            $courses = StudentCourse::where('student_id', $student_id)->get();
             return response()->json($courses);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
