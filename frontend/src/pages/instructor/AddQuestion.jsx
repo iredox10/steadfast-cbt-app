@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
-import { FaPlus, FaTimes, FaBook, FaSave } from "react-icons/fa";
+import { FaPlus, FaTimes, FaBook, FaSave, FaArrowLeft } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -56,52 +56,47 @@ const AddQuestion = () => {
     };
 
     const addOption = () => {
-        if (optionEditor == "") {
+        if (optionEditor === "") {
             setError("Option can't be empty");
             return;
         }
-        if (options.length == 4) {
+        if (options.length >= 4) {
             setError("You can't add more than 4 options");
             return;
         }
         setOptions((prev) => [...prev, optionEditor]);
         setOptionEditor("");
-        if (options.length == 1) {
-            setCorrectAnswer(options[0]);
-        }
     };
 
     const removeOption = (i) => {
         const newValue = options.filter((option, index) => index !== i);
         setOptions(newValue);
-        if (newValue.length !== 0) {
-            setCorrectAnswer(newValue[0]);
-        }
-        if (newValue.length == 0) {
+        if (newValue.length === 0) {
             setCorrectAnswer("");
-        }
-        if (newValue.length == 1) {
-            setCorrectAnswer(newValue[0]);
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!question || !correctAnswer || !options) {
-            setError("Fields can't be empty");
+        if (!question || !correctAnswer) {
+            setError("Question and correct answer are required");
             return;
         }
-        if (!options || options.length < 2 || options.length > 4) {
-            setError("Options can't be less than 2 or more than 4");
+        if (options.length < 2) {
+            setError("At least 2 options are required");
             return;
         }
         setError("");
-        const keys = ["option_a", "option_b", "option_c", "option_d"];
-        const optionToSend = keys.reduce((acc, key, index) => {
-            acc[key] = options[index];
-            return acc;
-        }, {});
+        
+        // Map options to the required format
+        const optionMap = {
+            option_b: options[1] || "",
+            option_c: options[2] || "",
+            option_d: options[3] || ""
+        };
+
         try {
+            setLoading(true);
             const res = await axios.post(
                 `${path}/add-question/${questionId}/${userId}/${courseId}/${examId}`,
                 {
@@ -109,16 +104,17 @@ const AddQuestion = () => {
                     exam_id: examId,
                     question,
                     correct_answer: correctAnswer,
-                    option_b: optionToSend.option_b,
-                    option_c: optionToSend.option_c,
-                    option_d: optionToSend.option_d,
+                    ...optionMap
                 }
             );
-            if (res.status == 201) {
+            if (res.status === 201) {
                 navigate(-1);
             }
         } catch (err) {
+            setError(err.response?.data?.message || "Error creating question");
             console.log(err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -130,8 +126,10 @@ const AddQuestion = () => {
                 `${path}/question-bank/${userId}/${courseId}`
             );
             setQuestionBank(response.data);
+            setShowQuestionBank(true);
         } catch (error) {
-            console.error("Error fetching question bank:", error);
+            setError(error.response?.data?.message || "Error fetching question bank");
+            console.log(error);
         } finally {
             setLoading(false);
         }
@@ -151,7 +149,7 @@ const AddQuestion = () => {
             question.option_b,
             question.option_c,
             question.option_d
-        ].filter(Boolean));
+        ].filter(Boolean)); // Remove any null/undefined/empty options
         setShowQuestionBank(false);
     };
 
@@ -159,25 +157,18 @@ const AddQuestion = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg transition-colors duration-200"
+                    to={`/exam-questions/${userId}/${courseId}/${examId}`}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <FaBook />
-                    <span>Courses</span>
+                    <FaArrowLeft />
+                    <span>Back to Questions</span>
                 </Link>
                 <Link
-                    to="#"
+                    to={`/exams/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
                     <FaBook />
-                    <span>Questions</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaUsers />
-                    <span>Students</span>
+                    <span>Exams</span>
                 </Link>
             </Sidebar>
             
@@ -214,11 +205,9 @@ const AddQuestion = () => {
                             <div className="mb-6">
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setShowQuestionBank(true);
-                                        fetchQuestionBank();
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                                    onClick={fetchQuestionBank}
+                                    disabled={loading}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 disabled:opacity-50"
                                 >
                                     <FaBook />
                                     <span>Select from Question Bank</span>
@@ -237,6 +226,7 @@ const AddQuestion = () => {
                                             theme="snow"
                                             modules={modules}
                                             className="min-h-[200px]"
+                                            placeholder="Enter your question here..."
                                         />
                                     </div>
                                 </div>
@@ -249,7 +239,8 @@ const AddQuestion = () => {
                                         <button
                                             type="button"
                                             onClick={addOption}
-                                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                                            disabled={options.length >= 4 || loading}
+                                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
                                         >
                                             <FaPlus />
                                             <span>Add Option</span>
@@ -262,6 +253,7 @@ const AddQuestion = () => {
                                             theme="snow"
                                             modules={modules}
                                             className="min-h-[150px]"
+                                            placeholder="Enter an answer option..."
                                         />
                                     </div>
                                 </div>
@@ -269,10 +261,20 @@ const AddQuestion = () => {
                                 <div className="pt-4">
                                     <button
                                         type="submit"
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+                                        disabled={loading}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50"
                                     >
-                                        <FaSave />
-                                        <span>Save Question</span>
+                                        {loading ? (
+                                            <>
+                                                <i className="fas fa-spinner fa-spin"></i>
+                                                <span>Saving...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaSave />
+                                                <span>Save Question</span>
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </form>
@@ -295,9 +297,12 @@ const AddQuestion = () => {
                                     </p>
                                 </div>
                             </div>
-                            <button className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                                <i className="fas fa-sign-out-alt"></i>
-                                <span>Logout</span>
+                            <button 
+                                onClick={() => navigate(-1)}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                                <FaArrowLeft />
+                                <span>Back</span>
                             </button>
                         </div>
 
@@ -328,7 +333,7 @@ const AddQuestion = () => {
                                             Answer Options
                                         </h2>
                                         <p className="text-sm text-gray-500">
-                                            The first option is the correct answer
+                                            Options for this question
                                         </p>
                                     </div>
                                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
@@ -351,7 +356,8 @@ const AddQuestion = () => {
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <button
                                                     onClick={() => removeOption(i)}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    disabled={loading}
+                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                     title="Remove option"
                                                 >
                                                     <FaTimes />
@@ -368,32 +374,29 @@ const AddQuestion = () => {
                 {/* Question Bank Modal */}
                 {showQuestionBank && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-xl shadow-lg max-w-4xl w-full max-h-[80vh] flex flex-col">
-                            <div className="p-6 border-b border-gray-100">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-xl font-bold text-gray-900">
-                                        Question Bank
-                                    </h2>
-                                    <button
-                                        onClick={() => setShowQuestionBank(false)}
-                                        className="text-gray-400 hover:text-gray-500"
-                                    >
-                                        <FaTimes />
-                                    </button>
-                                </div>
-                                <div className="mt-4">
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            placeholder="Search questions..."
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            value={searchTerm}
-                                            onChange={(e) =>
-                                                setSearchTerm(e.target.value)
-                                            }
-                                        />
-                                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                    </div>
+                        <div className="bg-white rounded-xl shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    Question Bank
+                                </h2>
+                                <button
+                                    onClick={() => setShowQuestionBank(false)}
+                                    className="text-gray-400 hover:text-gray-500"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                <div className="relative mb-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Search questions..."
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                                 </div>
                             </div>
 
@@ -420,10 +423,10 @@ const AddQuestion = () => {
                                                         __html: q.question,
                                                     }}
                                                 ></div>
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                                        <div className="flex items-start gap-2">
+                                                            <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-700 rounded-full text-sm font-medium mt-1">
                                                                 ✓
                                                             </span>
                                                             <div
@@ -432,8 +435,8 @@ const AddQuestion = () => {
                                                                 }}
                                                             ></div>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                                        <div className="flex items-start gap-2">
+                                                            <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium mt-1">
                                                                 B
                                                             </span>
                                                             <div
@@ -446,8 +449,8 @@ const AddQuestion = () => {
                                                     {(q.option_c || q.option_d) && (
                                                         <div className="space-y-2">
                                                             {q.option_c && (
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                                                <div className="flex items-start gap-2">
+                                                                    <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium mt-1">
                                                                         C
                                                                     </span>
                                                                     <div
@@ -458,8 +461,8 @@ const AddQuestion = () => {
                                                                 </div>
                                                             )}
                                                             {q.option_d && (
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                                                                <div className="flex items-start gap-2">
+                                                                    <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium mt-1">
                                                                         D
                                                                     </span>
                                                                     <div
