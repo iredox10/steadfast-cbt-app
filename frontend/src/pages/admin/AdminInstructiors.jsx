@@ -72,8 +72,8 @@ const AdminInstructors = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             {/* Sidebar */}
             <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
-                 <div className="flex items-center mb-10">
-                    <img src="/assets/logo.webp" alt="School Logo" className="h-10 w-10 mr-3" />
+                <div className="flex items-center mb-10">
+                    <img src="/assets/buk.png" alt="School Logo" className="h-10 w-10 mr-3" />
                     <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
                 <nav className="space-y-2">
@@ -92,9 +92,12 @@ const AdminInstructors = () => {
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaBook className="mr-3" /> Exam Archives
                     </Link>
+                    <Link to={`/admin-exam/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exams
+                    </Link>
                 </nav>
                 <div className="absolute bottom-6 left-6 right-6 w-52">
-                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaCog className="mr-3" /> Settings
                     </Link>
                     <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -148,7 +151,7 @@ const AdminInstructors = () => {
                             ))}
                         </tbody>
                     </table>
-                     <div className="flex justify-between items-center mt-4">
+                    <div className="flex justify-between items-center mt-4">
                         <span className="text-sm text-gray-600">
                             Page {currentPage} of {totalPages}
                         </span>
@@ -166,7 +169,7 @@ const AdminInstructors = () => {
 
             {/* Add Instructor Modal */}
             {showAddModal && (
-                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-8 max-w-md w-full">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-2xl font-bold">Add New Instructor</h3>

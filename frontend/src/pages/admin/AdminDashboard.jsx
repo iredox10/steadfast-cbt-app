@@ -14,7 +14,7 @@ import {
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import { format } from 'date-fns';
-import logo from "../../../public/assets/logo.webp"; // Import the logo
+import logo from "../../../public/assets/buk.png"; // Import the logo
 
 const AdminDashboard = () => {
     const { userId } = useParams();

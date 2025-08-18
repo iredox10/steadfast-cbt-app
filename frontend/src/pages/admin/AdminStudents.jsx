@@ -93,8 +93,8 @@ const AdminStudents = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             {/* Sidebar */}
             <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
-                 <div className="flex items-center mb-10">
-                    <img src="/assets/logo.webp" alt="School Logo" className="h-10 w-10 mr-3" />
+                <div className="flex items-center mb-10">
+                    <img src="/assets/buk.png" alt="School Logo" className="h-10 w-10 mr-3" />
                     <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
                 <nav className="space-y-2">
@@ -113,9 +113,12 @@ const AdminStudents = () => {
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaBook className="mr-3" /> Exam Archives
                     </Link>
+                    <Link to={`/admin-exam/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exams
+                    </Link>
                 </nav>
                 <div className="absolute bottom-6 left-6 right-6 w-52">
-                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaCog className="mr-3" /> Settings
                     </Link>
                     <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -178,7 +181,7 @@ const AdminStudents = () => {
 
             {/* Add Student Modal */}
             {showAddModal && (
-                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-8 max-w-md w-full">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-2xl font-bold">Register New Student</h3>
@@ -186,10 +189,10 @@ const AdminStudents = () => {
                         </div>
                         <form onSubmit={handleAddStudent} className="space-y-4">
                             {errMsg && <p className="text-red-500">{errMsg}</p>}
-                            <input type="text" placeholder="Full Name" value={newStudent.full_name} onChange={e => setNewStudent({...newStudent, full_name: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Candidate Number" value={newStudent.candidate_no} onChange={e => setNewStudent({...newStudent, candidate_no: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Department" value={newStudent.department} onChange={e => setNewStudent({...newStudent, department: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Programme" value={newStudent.programme} onChange={e => setNewStudent({...newStudent, programme: e.target.value})} className="w-full px-4 py-2 border rounded-lg" />
+                            <input type="text" placeholder="Full Name" value={newStudent.full_name} onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                            <input type="text" placeholder="Candidate Number" value={newStudent.candidate_no} onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                            <input type="text" placeholder="Department" value={newStudent.department} onChange={e => setNewStudent({ ...newStudent, department: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                            <input type="text" placeholder="Programme" value={newStudent.programme} onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Register</button>

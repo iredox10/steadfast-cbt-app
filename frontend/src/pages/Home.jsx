@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../utils/path";
-import logo from "../../public/assets/logo.webp";
+import logo from "../../public/assets/buk.png";
 import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaLock } from "react-icons/fa";
 
 const Home = () => {
@@ -43,7 +43,7 @@ const Home = () => {
                 setLoading(false);
                 return;
             }
-            
+
             // Student is checked in, proceed to exam instructions
             navigate(`/exam-instructions/${res.data.id}`);
         } catch (err) {
@@ -69,7 +69,7 @@ const Home = () => {
                             alt="HUK POLY Logo"
                         />
                         <div>
-                            <h1 className="text-xl font-bold text-gray-800">HUK POLY</h1>
+                            <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
                             <p className="text-xs text-gray-600">Computer Based Test Portal</p>
                         </div>
                     </div>
@@ -95,7 +95,7 @@ const Home = () => {
                                 <h1 className="text-2xl font-bold text-white">Student Login</h1>
                                 <p className="text-gray-300 mt-1">Access your examination portal</p>
                             </div>
-                            
+
                             {/* Card Body */}
                             <div className="p-6">
                                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -176,7 +176,7 @@ const Home = () => {
                                         </div>
                                         <div className="text-sm">
                                             <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                                                Forgot?
+                                                Forgot Password?
                                             </a>
                                         </div>
                                     </div>
@@ -266,7 +266,7 @@ const Home = () => {
                     </div>
                     <div className="mt-6 pt-6 border-t border-gray-700 text-center text-gray-400 text-sm">
                         <p>
-                            &copy; {new Date().getFullYear()} HUK Polytechnic. All rights reserved. | 
+                            &copy; {new Date().getFullYear()} HUK Polytechnic. All rights reserved. |
                             Designed with <FaHeart className="text-red-500 inline" /> for Education
                         </p>
                     </div>

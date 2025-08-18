@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../../utils/path";
-import logo from "../../../public/assets/logo.webp";
+import logo from "../../../public/assets/buk.png";
 import { FaEnvelope, FaLock, FaSignInAlt, FaUserShield, FaUniversity } from "react-icons/fa";
 
 const AdminLogin = () => {
@@ -47,7 +47,7 @@ const AdminLogin = () => {
                 {/* Background decorative elements */}
                 <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500 rounded-full filter blur-3xl opacity-10 -translate-x-32 -translate-y-32"></div>
                 <div className="absolute bottom-0 right-0 w-64 h-64 bg-purple-500 rounded-full filter blur-3xl opacity-10 translate-x-32 translate-y-32"></div>
-                
+
                 <div className="relative z-10 max-w-xl text-center">
                     <div className="mb-12">
                         <div className="flex justify-center mb-6">
@@ -60,14 +60,14 @@ const AdminLogin = () => {
                             </div>
                         </div>
                         <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-                            Hassan Usman Katsina Polytechnic
+                            Bayero University Kano
                         </h1>
                         <div className="h-1 w-20 bg-blue-500 mx-auto mb-6"></div>
                         <p className="text-xl text-gray-300">
                             Computer Based Test (CBT) Portal
                         </p>
                     </div>
-                    
+
                     <div className="mt-12">
                         <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
                             <FaUniversity className="text-blue-400 mr-3 text-xl" />
@@ -90,7 +90,7 @@ const AdminLogin = () => {
                             />
                         </div>
                     </div>
-                    
+
                     <div className="text-center mb-10">
                         <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                             <FaUserShield className="text-gray-600 text-2xl" />

@@ -3,25 +3,25 @@ import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
-import { 
-  FaEye, 
-  FaTimes, 
-  FaSearch, 
-  FaBook, 
-  FaListAlt,
-  FaPlay,
-  FaStop,
-  FaUsers,
-  FaQuestionCircle,
-  FaRegClock,
-  FaMedal,
-  FaCog,
-  FaSignOutAlt,
-  FaBell,
-  FaChalkboardTeacher,
-  FaCalendarAlt
+import {
+    FaEye,
+    FaTimes,
+    FaSearch,
+    FaBook,
+    FaListAlt,
+    FaPlay,
+    FaStop,
+    FaUsers,
+    FaQuestionCircle,
+    FaRegClock,
+    FaMedal,
+    FaCog,
+    FaSignOutAlt,
+    FaBell,
+    FaChalkboardTeacher,
+    FaCalendarAlt
 } from "react-icons/fa";
-import logo from "../../../public/assets/logo.webp";
+import logo from "../../../public/assets/buk.png";
 
 const AdminExam = () => {
     const { userId } = useParams();
@@ -109,13 +109,13 @@ const AdminExam = () => {
         const courseName =
             courses?.find((course) => course.id === exam.course_id)?.title ||
             "";
-        
+
         // Apply search filter
-        const matchesSearch = 
+        const matchesSearch =
             courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             exam.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
             exam.exam_duration.toString().includes(searchTerm);
-        
+
         // Apply status filter
         let matchesStatus = true;
         if (filterStatus === "active") {
@@ -123,7 +123,7 @@ const AdminExam = () => {
         } else if (filterStatus === "inactive") {
             matchesStatus = exam.activated === "no";
         }
-        
+
         return matchesSearch && matchesStatus;
     });
 
@@ -235,7 +235,7 @@ const AdminExam = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        
+
                         <div className="flex gap-2">
                             <select
                                 value={filterStatus}
@@ -349,11 +349,10 @@ const AdminExam = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                            exam.activated === "yes"
+                                                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${exam.activated === "yes"
                                                                 ? "bg-green-100 text-green-800"
                                                                 : "bg-red-100 text-red-800"
-                                                        }`}>
+                                                            }`}>
                                                             {exam.activated === "yes" ? "Active" : "Inactive"}
                                                         </span>
                                                     </td>
@@ -399,11 +398,10 @@ const AdminExam = () => {
                                     <button
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-1 rounded-md text-sm ${
-                                            currentPage === 1
+                                        className={`px-3 py-1 rounded-md text-sm ${currentPage === 1
                                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                                 : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-                                        }`}
+                                            }`}
                                     >
                                         Previous
                                     </button>
@@ -420,16 +418,15 @@ const AdminExam = () => {
                                             } else {
                                                 pageNum = currentPage - 2 + index;
                                             }
-                                            
+
                                             return (
                                                 <button
                                                     key={pageNum}
                                                     onClick={() => paginate(pageNum)}
-                                                    className={`w-8 h-8 rounded-md text-sm ${
-                                                        currentPage === pageNum
+                                                    className={`w-8 h-8 rounded-md text-sm ${currentPage === pageNum
                                                             ? "bg-blue-500 text-white"
                                                             : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {pageNum}
                                                 </button>
@@ -440,11 +437,10 @@ const AdminExam = () => {
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 rounded-md text-sm ${
-                                            currentPage === totalPages
+                                        className={`px-3 py-1 rounded-md text-sm ${currentPage === totalPages
                                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                                 : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-                                        }`}
+                                            }`}
                                     >
                                         Next
                                     </button>
@@ -457,13 +453,13 @@ const AdminExam = () => {
                                 <FaListAlt className="mx-auto h-12 w-12" />
                             </div>
                             <h3 className="text-lg font-medium text-gray-900 mb-1">
-                                {searchTerm || filterStatus !== 'all' 
-                                    ? "No exams match your search/filter criteria" 
+                                {searchTerm || filterStatus !== 'all'
+                                    ? "No exams match your search/filter criteria"
                                     : "No exams found"}
                             </h3>
                             <p className="text-gray-500">
-                                {searchTerm || filterStatus !== 'all' 
-                                    ? "Try adjusting your search or filter criteria" 
+                                {searchTerm || filterStatus !== 'all'
+                                    ? "Try adjusting your search or filter criteria"
                                     : "Get started by creating a new exam"}
                             </p>
                         </div>
@@ -522,11 +518,10 @@ const AdminExam = () => {
                                     handleActivateExam(examId);
                                 }}
                                 disabled={!invigilator}
-                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                    invigilator 
-                                        ? "bg-blue-500 text-white hover:bg-blue-600" 
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${invigilator
+                                        ? "bg-blue-500 text-white hover:bg-blue-600"
                                         : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                }`}
+                                    }`}
                             >
                                 Assign & Activate
                             </button>

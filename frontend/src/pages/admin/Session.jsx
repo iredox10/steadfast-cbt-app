@@ -74,7 +74,7 @@ const Session = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             {/* Sidebar */}
             <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
-                 <div className="flex items-center mb-10">
+                <div className="flex items-center mb-10">
                     <img src="/assets/logo.webp" alt="School Logo" className="h-10 w-10 mr-3" />
                     <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
@@ -94,9 +94,12 @@ const Session = () => {
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaBook className="mr-3" /> Exam Archives
                     </Link>
+                    <Link to={`/admin-exam/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exams
+                    </Link>
                 </nav>
                 <div className="absolute bottom-6 left-6 right-6 w-52">
-                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaCog className="mr-3" /> Settings
                     </Link>
                     <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
@@ -133,11 +136,10 @@ const Session = () => {
                                         <p className="text-gray-500">Contains {semester.courses?.length || 0} courses.</p>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                            semester.status === "active"
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${semester.status === "active"
                                                 ? "bg-green-100 text-green-800"
                                                 : "bg-gray-100 text-gray-800"
-                                        }`}>
+                                            }`}>
                                             {semester.status}
                                         </span>
                                         <Link to={`/semester/${semester.id}`} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
