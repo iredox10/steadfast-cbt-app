@@ -244,7 +244,7 @@ const Home = () => {
                                     alt="HUK POLY Logo"
                                 />
                                 <div>
-                                    <h3 className="text-lg font-bold">HUK POLY</h3>
+                                    <h3 className="text-lg font-bold">BUK KANO</h3>
                                     <p className="text-gray-400 text-sm">Computer Based Test Portal</p>
                                 </div>
                             </div>
@@ -266,8 +266,8 @@ const Home = () => {
                     </div>
                     <div className="mt-6 pt-6 border-t border-gray-700 text-center text-gray-400 text-sm">
                         <p>
-                            &copy; {new Date().getFullYear()} HUK Polytechnic. All rights reserved. |
-                            Designed with <FaHeart className="text-red-500 inline" /> for Education
+                            &copy; {new Date().getFullYear()} BUK KANO. All rights reserved. |
+                            Developed by  <a href="https://steadfast.com.ng" className="text-blue-500"> Steadfast Limited</a>
                         </p>
                     </div>
                 </div>

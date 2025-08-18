@@ -1,6 +1,6 @@
 import React from "react";
 import { FaExclamationTriangle, FaUserCheck, FaInfoCircle } from "react-icons/fa";
-import logo from "../../public/assets/logo.webp";
+import logo from "../../public/assets/buk.png";
 
 const NotCheckIn = () => {
     return (
@@ -15,7 +15,7 @@ const NotCheckIn = () => {
                             alt="HUK POLY Logo"
                         />
                         <div>
-                            <h1 className="text-xl font-bold text-gray-800">HUK POLY</h1>
+                            <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
                             <p className="text-xs text-gray-600">Computer Based Test Portal</p>
                         </div>
                     </div>
@@ -37,7 +37,7 @@ const NotCheckIn = () => {
                                 <h1 className="text-2xl font-bold text-white">Check-In Required</h1>
                                 <p className="text-yellow-100 mt-1">Exam Access Restricted</p>
                             </div>
-                            
+
                             {/* Card Body */}
                             <div className="p-8">
                                 <div className="text-center mb-8">
@@ -101,7 +101,7 @@ const NotCheckIn = () => {
                                         After being checked in by your invigilator, you can try logging in again.
                                     </p>
                                     <div className="text-center">
-                                        <button 
+                                        <button
                                             onClick={() => window.location.reload()}
                                             className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 transition flex items-center justify-center mx-auto shadow-lg"
                                         >
@@ -127,7 +127,7 @@ const NotCheckIn = () => {
                 <div className="container mx-auto px-4">
                     <div className="text-center">
                         <p className="text-gray-400 text-sm">
-                            © {new Date().getFullYear()} HUK Polytechnic. All rights reserved.
+                            © {new Date().getFullYear()} BUK KANO. All rights reserved.
                         </p>
                     </div>
                 </div>
