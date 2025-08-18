@@ -4,202 +4,296 @@
     crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 <div class="grid grid-cols-6 h-screen">
-
     <x-sidebar>
-        <a href="#" class="text-start bg-secondary-color text-black rounded-l-3xl w-full p-3 ">Course</a>
-        <a href="#" class="p-3">Questions</a>
-        <a href="#" class="p-3">Candidates</a>
+        <a href="#" class="text-start bg-white text-black rounded-l-3xl w-full p-3 font-semibold">Course</a>
+        <a href="#" class="p-3 hover:bg-gray-800 transition duration-300">Questions</a>
+        <a href="#" class="p-3 hover:bg-gray-800 transition duration-300">Candidates</a>
     </x-sidebar>
-    <div id="" class="flex gap-5 capitalize col-start-2 col-end-7 p-5">
-        <div class='w-full '>
-            <h1 class="text-end">course - name</h1>
-            <div id="questionsWrapper">
-                <div class='bg-white/70 p-5'>
-                    <p class="my-2">Discuss the role of nonverbal communication in public speaking. How can a speaker
-                        effectively use
-                        body language, facial expressions, and eye contact to enhance their message</p>
-
-                    <div class="flex justify-end gap-5">
-                        <button id="view-question">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button id="edit-question">
-                            <i class="fas fa-pen-to-square"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="question-model" class="hidden absolute bg-secondary-color/50 h-screen w-full top-0">
-            <div class="absolute top-[50%] left-[50%] -translate-x-[70%] -translate-y-[50%] bg-white p-8">
-                <div class="flex justify-end">
-                    <button id="close-model">
-                        <i class="fas fa-circle-xmark"></i>
+    
+    <div class="col-span-5 p-5 bg-gray-100">
+        <div class="mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">Course - <span class="text-blue-600">Computer Science 101</span></h1>
+                <div class="flex gap-2">
+                    <button class="bg-white text-gray-700 px-4 py-2 rounded-lg shadow hover:bg-gray-50 transition flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Courses
                     </button>
                 </div>
-                <div>
-                    <h1 class="font-bold my-2">Question</h1>
-                    <p>Discuss the role of nonverbal communication in public speaking. How can a speaker effectively use
-                        body language, facial expressions, and eye contact to enhance their message</p>
+            </div>
+            <p class="text-gray-600 mt-1">Manage questions for this course</p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Questions List Section -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Questions Bank</h2>
+                    <span class="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">24 Questions</span>
                 </div>
-                <div>
-
-                    <h1 class="font-bold my-2">Answer</h1>
-
-                    <p>Discuss the role of nonverbal communication in public speaking. How can a speaker effectively use
-                        body language, facial expressions, and eye contact to enhance their message</p>
-                </div>
-                <div class="my-4">
-                    <h1 class="font-bold my-2">Options</h1>
-                    <div class="border-2 border-black">
-                        <div>
-                            <p class="my-2 p-2">1) <span>Nonverbal communication has no impact on public speaking; only
-                                    the spoken words
-                                    matter.</span></p>
-                            <p class="my-2 p-2">2) <span>Nonverbal communication has no impact on public speaking; only
-                                    the spoken words
-                                    matter.</span></p>
-                            <p class="my-2 p-2">3) <span>Nonverbal communication has no impact on public speaking; only
-                                    the spoken words
-                                    matter.</span></p>
+                
+                <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                    <!-- Question Item 1 -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition duration-300">
+                        <p class="text-gray-800 font-medium mb-3">What is the time complexity of binary search algorithm?</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Multiple Choice</span>
+                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Medium</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition">
+                                    <i class="fas fa-pen-to-square"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex justify-end">
-                    <button><i class="fas fa-pen-to-square"></i></button>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="flex-1 w-full bg-white/70 p-4">
-            <form action="#">
-                <h3>Add Question</h3>
-                <div class="mb-3">
-                    <label for="question" class="my-4 block">question</label>
-                    <textarea id="question" name="question" placeholder="Write Question Here ..." id="" cols="30"
-                        rows="10" class="bg-secondary-color rounded-lg p-2 "></textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="correctAnswer" class="my-4 block">Correct Answer</label>
-                    <textarea id="answer" name="correctAnswer" placeholder="Write Correct Answer Here ..." id="" cols="30"
-                        rows="10" class="bg-secondary-color rounded-lg p-2 "></textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="option" class="my-4 block">Options</label>
-                    <textarea id="option" name="option" placeholder="Write option Here ..." id="" cols="30" rows="10"
-                        class="bg-secondary-color rounded-lg p-2 "></textarea>
-                    <div class="flex justify-end my-4">
-                        {{-- <x-form_button text='add option' type='button' onClick="hello()" /> --}}
-                        <button type="button" id="add-optionBtn"
-                            class="px-5 py-2 bg-black text-secondary-color capitalize">add option</button>
+                    
+                    <!-- Question Item 2 -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition duration-300">
+                        <p class="text-gray-800 font-medium mb-3">Explain the concept of object-oriented programming with real-world examples.</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">Long Answer</span>
+                                <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Hard</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition">
+                                    <i class="fas fa-pen-to-square"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <div>
-                        <div id="option-wrapper" class="my-4 hidden">
-                            <h1 class="font-bold my-2">Options</h1>
-                            <div class="border-2 border-black">
-                                <div id="option-container"></div>
+                    
+                    <!-- Question Item 3 -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition duration-300">
+                        <p class="text-gray-800 font-medium mb-3">Which of the following is NOT a valid Python data type?</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Multiple Choice</span>
+                                <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Easy</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition">
+                                    <i class="fas fa-pen-to-square"></i>
+                                </button>
+                                <button class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div>
-                    <button id="submit" type="submit" class="bg-black p-3 w-full text-white capitalize">add
-                        question</button>
+            </div>
+            
+            <!-- Add Question Form Section -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">Add New Question</h2>
+                    <div class="flex gap-2">
+                        <button class="btn-secondary px-4 py-2 rounded-lg font-semibold">
+                            Save Draft
+                        </button>
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
+                            Publish
+                        </button>
+                    </div>
                 </div>
-            </form>
+                
+                <form>
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="question-type">
+                            Question Type
+                        </label>
+                        <select id="question-type" class="input-field bg-white">
+                            <option>Multiple Choice</option>
+                            <option>True/False</option>
+                            <option>Short Answer</option>
+                            <option>Long Answer</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="question">
+                            Question
+                        </label>
+                        <textarea id="question" rows="3" placeholder="Enter your question here..." 
+                            class="input-field"></textarea>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="correct-answer">
+                            Correct Answer
+                        </label>
+                        <textarea id="correct-answer" rows="2" placeholder="Enter the correct answer..." 
+                            class="input-field"></textarea>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-gray-700 font-medium">
+                                Options
+                            </label>
+                            <button type="button" class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                <i class="fas fa-plus mr-1"></i> Add Option
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    <input id="option1" type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                </div>
+                                <div class="ml-3 w-full">
+                                    <input type="text" placeholder="Option 1" class="input-field">
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    <input id="option2" type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                </div>
+                                <div class="ml-3 w-full">
+                                    <input type="text" placeholder="Option 2" class="input-field">
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="flex items-center h-5">
+                                    <input id="option3" type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                </div>
+                                <div class="ml-3 w-full">
+                                    <input type="text" placeholder="Option 3" class="input-field">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">
+                                Difficulty Level
+                            </label>
+                            <div class="flex gap-2">
+                                <button type="button" class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition">
+                                    Easy
+                                </button>
+                                <button type="button" class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium hover:bg-yellow-200 transition">
+                                    Medium
+                                </button>
+                                <button type="button" class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium hover:bg-red-200 transition">
+                                    Hard
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
+                            Add Question
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div>
+    </div>
+    
+    <!-- Question Preview Modal -->
+    <div id="question-model" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Question Preview</h3>
+                    <button id="close-model" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-700 mb-2">Question:</h4>
+                    <p class="text-gray-800">What is the time complexity of binary search algorithm?</p>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-700 mb-2">Options:</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center h-5">
+                                <input type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <label class="ml-3 text-gray-700">O(n)</label>
+                        </div>
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center h-5">
+                                <input type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
+                            </div>
+                            <label class="ml-3 text-gray-700 font-medium">O(log n)</label>
+                        </div>
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center h-5">
+                                <input type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <label class="ml-3 text-gray-700">O(n log n)</label>
+                        </div>
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center h-5">
+                                <input type="radio" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            </div>
+                            <label class="ml-3 text-gray-700">O(1)</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-bold text-gray-700 mb-2">Explanation:</h4>
+                    <p class="text-gray-700">Binary search has a time complexity of O(log n) because it divides the search space in half with each iteration.</p>
+                </div>
+                
+                <div class="flex justify-end gap-3">
+                    <button class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                        Edit Question
+                    </button>
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-
 <script>
-    const viewQuestionBtn = document.querySelector('#view-question')
-    const closeModel = document.querySelector('#close-model')
-    const optionWrapper = document.querySelector('#option-wrapper')
-    const form = document.forms[0]
-
-    const options = []
-    options.length >= 0 ? optionWrapper.classList.add('hidden') : optionWrapper.classList.remove('hidden')
-
-    form.addEventListener('click', (e) => {
-        e.preventDefault()
-        const option = document.querySelector('#option')
-        const optionContainer = document.querySelector('#option-container')
-        const questionsWrapper = document.querySelector('#questionsWrapper')
-
-        const question = document.querySelector('#question')
-        const answer = document.querySelector('#answer')
-
-
-        const div = document.createElement('div')
-        const p = document.createElement('p')
-        const span = document.createElement('span')
-
-        const questionContainer = document.createElement('div')
-        const questionP = document.createElement('p')
-
-
-        const optionsDiv = document.createElement('div')
-        const viewBtn = document.createElement('button')
-        const editBtn = document.createElement('button')
-        const viewIcon = document.createElement('i')
-        const editIcon = document.createElement('i')
-
-        if (e.target.id == 'add-optionBtn') {
-            if (option.value !== '') {
-                optionWrapper.classList.remove('hidden')
-                options.push(option.value)
-                option.value = ' '
-                options.forEach((option, index) => {
-                    p.textContent = `${index+1}) ${option}`
-                    p.classList.add('my-2', 'p-2')
-                    p.appendChild(span)
-                    optionContainer.appendChild(p)
-                });
-            }
-        }
-        if (e.target.id == 'submit') {
-            if (!question.value || !answer.value || options.length <= 0) {
-                console.log('empty inputs')
-                return
-            } else {
-                questionContainer.classList.add('bg-white/70', 'p-5', 'my-5')
-                questionP.classList.add('my-2')
-                questionP.textContent = question.value
-                questionContainer.appendChild(questionP)
-
-                optionsDiv.classList.add('flex', 'justify-end', 'gap-5')
-                viewBtn.setAttribute('id', 'view-question') 
-                viewIcon.classList.add('fas', 'fa-eye')
-                viewBtn.appendChild(viewIcon)
-
-
-                editBtn.setAttribute('id', 'edit-question') 
-                editIcon.classList.add('fas', 'fa-pen-to-square')
-                editBtn.appendChild(editIcon)
-
-                optionsDiv.appendChild(viewBtn)
-                optionsDiv.appendChild(editBtn)
-                questionContainer.appendChild(optionsDiv)
-                questionsWrapper.appendChild(questionContainer)
-                console.log('hlll')
-            }
-        }
-    })
-
-    viewQuestionBtn.addEventListener('click', () => {
-        const questionModel = document.querySelector('#question-model')
-        questionModel.classList.toggle('hidden')
-    })
-
+    // Modal functionality
+    const viewQuestionBtns = document.querySelectorAll('#view-question');
+    const closeModel = document.querySelector('#close-model');
+    const questionModel = document.querySelector('#question-model');
+    
+    viewQuestionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            questionModel.classList.remove('hidden');
+        });
+    });
+    
     closeModel.addEventListener('click', () => {
-        const questionModel = document.querySelector('#question-model')
-        questionModel.classList.toggle('hidden')
-    })
+        questionModel.classList.add('hidden');
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        if (e.target === questionModel) {
+            questionModel.classList.add('hidden');
+        }
+    });
 </script>

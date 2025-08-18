@@ -1,23 +1,28 @@
 import { Link } from 'react-router-dom';
-import logo from '../../public/assets/logo.webp'
-const Sidebar = ({children}) => {
+import logo from '../../public/assets/logo.webp';
+import { FaSignOutAlt, FaQuestionCircle } from 'react-icons/fa';
+
+const Sidebar = ({ children }) => {
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-blue-900 to-black text-white">
-            <Link to={'/'} className="flex flex-col items-center p-6">
+        <div className="w-64 bg-white flex-shrink-0 border-r border-gray-200 flex flex-col h-screen">
+            <div className="flex flex-col items-center p-6 border-b border-gray-200">
                 <img src={logo} className="w-16 h-16 object-contain" alt="HUK POLY Logo" />
-            </Link>
+                <h1 className="text-xl font-bold text-gray-900 mt-2">HUK POLY</h1>
+            </div>
+            
             <div className="flex flex-col justify-between flex-1">
-                <div className="flex flex-col gap-4 px-8 mt-8">
+                <div className="flex flex-col gap-2 px-4 py-6">
                     {children}
                 </div>
-                <div className="p-8 flex flex-col gap-4 text-gray-300">
-                    <Link to="/" className="hover:text-white flex items-center gap-2">
-                        <i className="fas fa-sign-out-alt"></i>
-                        <span>Log out</span>
-                    </Link>
-                    <Link to="" className="hover:text-white flex items-center gap-2">
-                        <i className="fas fa-question-circle"></i>
+                
+                <div className="p-6 border-t border-gray-200">
+                    <Link to="" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                        <FaQuestionCircle />
                         <span>Help Center</span>
+                    </Link>
+                    <Link to="/" className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200 mt-2">
+                        <FaSignOutAlt />
+                        <span>Log out</span>
                     </Link>
                 </div>
             </div>

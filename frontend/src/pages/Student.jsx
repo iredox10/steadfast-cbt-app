@@ -21,7 +21,7 @@ const Student = () => {
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [showModel, setShowModel] = useState(false);
     const [sumbitModel, setSubmitModel] = useState(false);
-    
+
     // Store shuffled options for each question to prevent reshuffling
     const [shuffledOptions, setShuffledOptions] = useState({});
 
@@ -86,7 +86,7 @@ const Student = () => {
                     `${path}/get-course-exam-questions/${data?.exam?.course_id}`
                 );
                 setCourse(res.data);
-            } catch (err) {}
+            } catch (err) { }
         };
         fetch();
     }, [data]);
@@ -110,12 +110,12 @@ const Student = () => {
     // Function to get or create shuffled options for a question
     const getShuffledOptions = (question) => {
         if (!question) return [];
-        
+
         // If we already have shuffled options for this question, return them
         if (shuffledOptions[question.id]) {
             return shuffledOptions[question.id];
         }
-        
+
         // Create new shuffled options for this question
         const options = [
             { label: "A", value: question.option_a, type: "a" },
@@ -123,15 +123,15 @@ const Student = () => {
             { label: "C", value: question.option_c, type: "c" },
             { label: "D", value: question.option_d, type: "d" },
         ];
-        
+
         const shuffled = shuffleArray(options);
-        
+
         // Store the shuffled options
         setShuffledOptions(prev => ({
             ...prev,
             [question.id]: shuffled
         }));
-        
+
         return shuffled;
     };
 
@@ -184,14 +184,14 @@ const Student = () => {
                 answers: answers,
                 time_up: timeUp,
             });
-            
+
             // Clear localStorage after successful submission
             localStorage.removeItem(localStorageKey);
-            
+
             // Clear timer data as well
             localStorage.removeItem("examTimeRemaining");
             localStorage.removeItem("examLastTimestamp");
-            
+
             navigate(`/student-submission/${studentId}`);
         } catch (err) {
             console.log(err);
@@ -221,7 +221,7 @@ const Student = () => {
 
     // Get current question
     const currentQuestion = data?.questions?.[questionIndexToShow];
-    
+
     // Get shuffled options for current question (consistent order)
     const currentShuffledOptions = currentQuestion ? getShuffledOptions(currentQuestion) : [];
 
@@ -247,11 +247,11 @@ const Student = () => {
                                 <FaGraduationCap className="text-white" />
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-800">HUK POLY</h1>
+                                <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
                                 <p className="text-xs text-gray-600">Computer Based Test</p>
                             </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-6">
                             {/* Student Info */}
                             <div className="flex items-center space-x-3">
@@ -267,7 +267,7 @@ const Student = () => {
                                     </p>
                                 </div>
                             </div>
-                            
+
                             {/* Course Info */}
                             <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
@@ -282,7 +282,7 @@ const Student = () => {
                                     </p>
                                 </div>
                             </div>
-                            
+
                             {/* Timer */}
                             <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -321,8 +321,8 @@ const Student = () => {
                                             w-10 h-10 rounded-lg text-sm font-medium
                                             transition-all duration-200
                                             flex items-center justify-center
-                                            ${activeButton === index 
-                                                ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-1" 
+                                            ${activeButton === index
+                                                ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-1"
                                                 : selectedAnswers[question.id]
                                                     ? "bg-green-500 text-white"  // Green for answered questions
                                                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -337,7 +337,7 @@ const Student = () => {
                                     </div>
                                 )}
                             </div>
-                            
+
                             <div className="mt-6 pt-4 border-t border-gray-100">
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-600">Answered:</span>
@@ -373,22 +373,20 @@ const Student = () => {
                                         <button
                                             onClick={() => handlePrev()}
                                             disabled={questionIndexToShow === 0}
-                                            className={`px-4 py-2 rounded-lg font-medium text-sm ${
-                                                questionIndexToShow === 0
+                                            className={`px-4 py-2 rounded-lg font-medium text-sm ${questionIndexToShow === 0
                                                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                            }`}
+                                                }`}
                                         >
                                             Previous
                                         </button>
                                         <button
                                             onClick={() => handleNext()}
                                             disabled={questionIndexToShow === (data?.questions?.length || 0) - 1}
-                                            className={`px-4 py-2 rounded-lg font-medium text-sm ${
-                                                questionIndexToShow === (data?.questions?.length || 0) - 1
+                                            className={`px-4 py-2 rounded-lg font-medium text-sm ${questionIndexToShow === (data?.questions?.length || 0) - 1
                                                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                                     : "bg-blue-600 text-white hover:bg-blue-700"
-                                            }`}
+                                                }`}
                                         >
                                             Next
                                         </button>
@@ -401,7 +399,7 @@ const Student = () => {
                                 {currentQuestion ? (
                                     <div className="space-y-6">
                                         {/* Question Text */}
-                                        <div 
+                                        <div
                                             className="text-gray-800 text-lg leading-relaxed"
                                             dangerouslySetInnerHTML={{
                                                 __html: currentQuestion.question,
@@ -412,7 +410,7 @@ const Student = () => {
                                         <div className="space-y-3">
                                             {currentShuffledOptions.map((option, idx) => {
                                                 const isSelected = selectedAnswers[currentQuestion.id] === option.value;
-                                                
+
                                                 return (
                                                     <div
                                                         key={idx}
@@ -428,7 +426,7 @@ const Student = () => {
                                                             flex items-center gap-4 p-4 rounded-xl border
                                                             transition-all duration-200 cursor-pointer
                                                             ${isSelected
-                                                                ? 'bg-blue-100 border-blue-500 shadow-sm' 
+                                                                ? 'bg-blue-100 border-blue-500 shadow-sm'
                                                                 : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                             }
                                                         `}
@@ -436,7 +434,7 @@ const Student = () => {
                                                         <span className={`
                                                             w-8 h-8 flex items-center justify-center rounded-full border font-medium
                                                             ${isSelected
-                                                                ? 'border-blue-600 bg-blue-600 text-white' 
+                                                                ? 'border-blue-600 bg-blue-600 text-white'
                                                                 : 'border-gray-300 text-gray-600'
                                                             }
                                                         `}>
@@ -446,7 +444,7 @@ const Student = () => {
                                                             className={`
                                                                 flex-1
                                                                 ${isSelected
-                                                                    ? 'text-blue-800 font-medium' 
+                                                                    ? 'text-blue-800 font-medium'
                                                                     : 'text-gray-700'
                                                                 }
                                                             `}
@@ -493,14 +491,14 @@ const Student = () => {
                             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-6">
                                 <FaExclamationTriangle className="h-8 w-8 text-yellow-600" />
                             </div>
-                            
+
                             <h3 className="text-2xl font-bold text-gray-900 mb-2">
                                 Submit Exam?
                             </h3>
                             <p className="text-gray-600 mb-8">
                                 Are you sure you want to submit your exam? This action cannot be undone.
                             </p>
-                            
+
                             <div className="flex flex-col sm:flex-row justify-center gap-4">
                                 <button
                                     onClick={() => setSubmitModel(false)}

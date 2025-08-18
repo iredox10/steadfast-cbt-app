@@ -34,7 +34,7 @@ const ExamInstructions = () => {
 
     // Convert seconds to minutes
     const durationInMinutes = examData?.exam?.exam_duration || 0;
-    
+
     const handleStartExam = async () => {
         try {
             // Mark student as logged in
@@ -58,11 +58,11 @@ const ExamInstructions = () => {
                             <FaGraduationCap className="text-white" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-800">HUK POLY</h1>
+                            <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
                             <p className="text-xs text-gray-600">Computer Based Test Portal</p>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={() => navigate(-1)}
                         className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition flex items-center"
                     >
@@ -158,7 +158,7 @@ const ExamInstructions = () => {
                                         Total number of questions in this exam
                                     </p>
                                 </div>
-                                
+
                                 <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                                     <div className="flex items-center mb-3">
                                         <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
@@ -172,7 +172,7 @@ const ExamInstructions = () => {
                                         Marks awarded for each correct answer
                                     </p>
                                 </div>
-                                
+
                                 <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
                                     <div className="flex items-center mb-3">
                                         <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
@@ -221,33 +221,12 @@ const ExamInstructions = () => {
                                                 The exam timer will start as soon as you click "Start Exam" and cannot be paused.
                                             </p>
                                         </li>
+
+
+
                                         <li className="p-4 flex items-start">
                                             <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
                                                 <span className="text-blue-600 text-xs">2</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                You cannot navigate back to previous questions once you've moved forward.
-                                            </p>
-                                        </li>
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">3</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                Make sure you have a stable internet connection throughout the exam.
-                                            </p>
-                                        </li>
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">4</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                Do not refresh or close the browser window during the exam.
-                                            </p>
-                                        </li>
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">5</span>
                                             </div>
                                             <p className="text-gray-700">
                                                 Your exam will be automatically submitted when the timer reaches zero.
@@ -264,8 +243,8 @@ const ExamInstructions = () => {
                                     <div>
                                         <h3 className="font-bold text-yellow-800 mb-2">Important Declaration</h3>
                                         <p className="text-yellow-700 text-sm">
-                                            By clicking "Start Exam", you confirm that you have read and understood all instructions, 
-                                            and agree to comply with the examination rules. Any violation of exam rules may result in 
+                                            By clicking "Start Exam", you confirm that you have read and understood all instructions,
+                                            and agree to comply with the examination rules. Any violation of exam rules may result in
                                             disqualification.
                                         </p>
                                     </div>
@@ -297,7 +276,7 @@ const ExamInstructions = () => {
                 <div className="container mx-auto px-4">
                     <div className="text-center">
                         <p className="text-gray-400 text-sm">
-                            © {new Date().getFullYear()} HUK Polytechnic. All rights reserved.
+                            © {new Date().getFullYear()} BUK KANO. All rights reserved.
                         </p>
                     </div>
                 </div>
