@@ -281,7 +281,7 @@ class Admin extends Controller
         try {
             $exam = Exam::findOrFail($exam_id);
             $course = Course::findOrFail($exam->course_id);
-            
+
             // Get all students who took this exam with their scores
             $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
                 $query->where('exam_id', $exam_id);
@@ -464,8 +464,8 @@ class Admin extends Controller
     {
         try {
             $exam = Exam::where('activated', 'yes')->first();
-           $course = Course::findOrFail($exam->course_id); 
-           
+           $course = Course::findOrFail($exam->course_id);
+
             if (!$exam) {
                 return response()->json(['message' => 'No active exam found'], 404);
             }
@@ -527,4 +527,47 @@ class Admin extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Create a new admin user
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function createAdminUser(Request $request)
+    {
+        // Validate the request data
+        $validatedData = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        try {
+            // Create the admin user
+            $user = new User();
+            $user->full_name = $validatedData['full_name'];
+            $user->email = $validatedData['email'];
+            $user->password = bcrypt($validatedData['password']);
+            $user->role = 'admin';
+            $user->status = 'active';
+            $user->save();
+
+            // Remove password from response for security
+            $userData = $user->toArray();
+            unset($userData['password']);
+
+            return response()->json([
+                'message' => 'Admin user created successfully',
+                'user' => $userData
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to create admin user',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
+
+

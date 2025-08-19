@@ -8,6 +8,10 @@ use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', function(){
+            return response()->json('hlooo');
+});
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -40,11 +44,11 @@ Route::get('/submit-exam/{student_id}/{course_id}', [Student::class,'submit_exam
 Route::post('/submit-exam', function (Request $request) {
     $studentId = $request->input('student_id');
     $courseId = $request->input('course_id');
-    
+
     if (!$studentId || !$courseId) {
         return response()->json(['error' => 'Missing student_id or course_id'], 400);
     }
-    
+
     return app()->call('App\Http\Controllers\Student@submit_exam', [
         'student_id' => $studentId,
         'course_id' => $courseId
@@ -169,3 +173,6 @@ Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive']);
 // Dashboard routes
 Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
 Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
+
+// Admin user management
+Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum', 'can:admin']);
