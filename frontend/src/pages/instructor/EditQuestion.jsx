@@ -27,7 +27,6 @@ const EditQuestion = () => {
 
     const navigate = useNavigate();
     const [question, setQuestion] = useState("");
-    const [correctAnswer, setCorrectAnswer] = useState("");
     const [optionEditor, setOptionEditor] = useState("");
     const [options, setOptions] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -40,16 +39,14 @@ const EditQuestion = () => {
                 const res = await axios(`${path}/get-question/${questionId}`);
                 if (res.status === 200) {
                     setQuestion(res.data.question);
-                    setCorrectAnswer(res.data.correct_answer);
-                    const backendOptions = [
+                    // Create options array with correct_answer as first option
+                    const allOptions = [
+                        res.data.correct_answer,
                         res.data.option_b,
                         res.data.option_c,
                         res.data.option_d,
-                    ].filter((option) => option !== null);
-                    setOptions([
-                        res.data.correct_answer,
-                        ...backendOptions,
-                    ]);
+                    ].filter((option) => option !== null && option !== "");
+                    setOptions(allOptions);
                 }
             } catch (error) {
                 console.log(error);
@@ -67,7 +64,14 @@ const EditQuestion = () => {
     };
 
     const handleAnswerChange = (content) => {
-        setCorrectAnswer(content);
+        // Update the first option as the correct answer
+        if (options.length > 0) {
+            const newOptions = [...options];
+            newOptions[0] = content;
+            setOptions(newOptions);
+        } else {
+            setOptions([content]);
+        }
     };
 
     const handleOptionEditor = (content) => {
@@ -90,15 +94,12 @@ const EditQuestion = () => {
     const removeOption = (i) => {
         const newValue = options.filter((option, index) => index !== i);
         setOptions(newValue);
-        if (newValue.length === 0) {
-            setCorrectAnswer("");
-        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!question || !correctAnswer) {
-            setError("Question and correct answer are required");
+        if (!question || options.length === 0) {
+            setError("Question and at least one option are required");
             return;
         }
         if (options.length < 2) {
@@ -106,6 +107,9 @@ const EditQuestion = () => {
             return;
         }
         setError("");
+        
+        // Use the first option as the correct answer
+        const correctAnswer = options[0];
         
         try {
             setLoading(true);
@@ -276,8 +280,8 @@ const EditQuestion = () => {
                             <div className="mb-6">
                                 <h2 className="text-lg font-semibold text-gray-900 mb-2">Correct Answer</h2>
                                 <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
-                                    {correctAnswer ? (
-                                        <div dangerouslySetInnerHTML={{ __html: correctAnswer }}></div>
+                                    {options && options.length > 0 ? (
+                                        <div dangerouslySetInnerHTML={{ __html: options[0] }}></div>
                                     ) : (
                                         <p className="text-gray-500 text-sm">No correct answer selected yet</p>
                                     )}
@@ -291,12 +295,12 @@ const EditQuestion = () => {
                                         <p className="text-sm text-gray-500">Options for this question</p>
                                     </div>
                                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                        {options?.length || 0} options
+                                        {options?.length > 0 ? options.length - 1 : 0} additional options
                                     </span>
                                 </div>
 
                                 <div className="space-y-3">
-                                    {options && options.map((option, i) => (
+                                    {options && options.slice(1).map((option, i) => (
                                         <div
                                             key={i}
                                             className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
@@ -304,7 +308,7 @@ const EditQuestion = () => {
                                             <div className="flex-1 mr-4 break-words overflow-auto max-h-32" dangerouslySetInnerHTML={{ __html: option }} />
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <button
-                                                    onClick={() => removeOption(i)}
+                                                    onClick={() => removeOption(i + 1)}
                                                     disabled={loading}
                                                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                     title="Remove option"

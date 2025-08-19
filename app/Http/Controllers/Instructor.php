@@ -427,16 +427,17 @@ class Instructor extends Controller
 
     public function edit_question(Request $request, $question_Id)
     {
-        $question = Question::where('id', $question_Id)->update(
-            [
-                'question' => $request->question,
-                'correct_answer' => $request->correct_answer,
-                'option_b' => $request->option_b,
-                'option_c' => $request->option_c,
-                'option_d' => $request->option_d
-            ]
-        );
-        return response()->json($question, 201);
+        $question = Question::findOrFail($question_Id);
+        
+        $question->question = $request->question;
+        $question->correct_answer = $request->correct_answer;
+        $question->option_b = $request->option_b;
+        $question->option_c = $request->option_c;
+        $question->option_d = $request->option_d;
+        
+        $question->save();
+        
+        return response()->json($question, 200);
     }
 
     public function getQuestionBank($user_id,$course_id)
