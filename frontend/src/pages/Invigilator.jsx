@@ -21,7 +21,7 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
-import logo from "/assets/logo.webp";
+import logo from "/assets/buk.png";
 
 const Invigilator = () => {
     const { id } = useParams();
@@ -189,7 +189,7 @@ const Invigilator = () => {
             const response = await axios.post(`${path}/invigilator/generate-ticket`, {
                 student_id: studentId
             });
-            
+
             console.log('Ticket generation response:', response);
 
             if (response.status === 200) {
