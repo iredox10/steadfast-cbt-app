@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
-import { FaPlus, FaTimes, FaSave, FaArrowLeft } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaArrowLeft, FaCheck, FaInfoCircle } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -29,6 +29,7 @@ const EditQuestion = () => {
     const [question, setQuestion] = useState("");
     const [optionEditor, setOptionEditor] = useState("");
     const [options, setOptions] = useState([]);
+    const [correctAnswerIndex, setCorrectAnswerIndex] = useState(0); // Track which option is correct
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -39,7 +40,7 @@ const EditQuestion = () => {
                 const res = await axios(`${path}/get-question/${questionId}`);
                 if (res.status === 200) {
                     setQuestion(res.data.question);
-                    // Create options array with correct_answer as first option
+                    // Create options array with all options
                     const allOptions = [
                         res.data.correct_answer,
                         res.data.option_b,
@@ -47,6 +48,9 @@ const EditQuestion = () => {
                         res.data.option_d,
                     ].filter((option) => option !== null && option !== "");
                     setOptions(allOptions);
+                    // Set the first option as the default correct answer (maintaining current behavior)
+                    // Note: In the future, we could enhance this to determine which option is actually correct
+                    setCorrectAnswerIndex(0);
                 }
             } catch (error) {
                 console.log(error);
@@ -64,7 +68,7 @@ const EditQuestion = () => {
     };
 
     const handleAnswerChange = (content) => {
-        // Update the first option as the correct answer
+        // Update the first option as the correct answer (for backward compatibility)
         if (options.length > 0) {
             const newOptions = [...options];
             newOptions[0] = content;
@@ -91,9 +95,22 @@ const EditQuestion = () => {
         setOptionEditor("");
     };
 
-    const removeOption = (i) => {
-        const newValue = options.filter((option, index) => index !== i);
+    const removeOption = (index) => {
+        const newValue = options.filter((option, i) => i !== index);
         setOptions(newValue);
+        
+        // If we're removing the correct answer, reset to first option
+        if (index === correctAnswerIndex) {
+            setCorrectAnswerIndex(0);
+        } 
+        // If we're removing an option before the correct answer, adjust the index
+        else if (index < correctAnswerIndex) {
+            setCorrectAnswerIndex(correctAnswerIndex - 1);
+        }
+        // If we're removing the last option and it was the correct answer, reset to first option
+        else if (correctAnswerIndex >= newValue.length) {
+            setCorrectAnswerIndex(0);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -107,9 +124,9 @@ const EditQuestion = () => {
             return;
         }
         setError("");
-        
-        // Use the first option as the correct answer
-        const correctAnswer = options[0];
+
+        // Get the correct answer based on selected index
+        const correctAnswer = options[correctAnswerIndex] || options[0];
         
         try {
             setLoading(true);
@@ -232,6 +249,19 @@ const EditQuestion = () => {
                                     </div>
 
                                     <div className="pt-4">
+                                        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+                                            <div className="flex">
+                                                <div className="flex-shrink-0">
+                                                    <FaInfoCircle className="h-5 w-5 text-blue-400" />
+                                                </div>
+                                                <div className="ml-3">
+                                                    <p className="text-sm text-blue-700">
+                                                        <strong>How to set the correct answer:</strong> After adding all options, 
+                                                        select which one is the correct answer in the preview panel on the right.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <button
                                             type="submit"
                                             disabled={loading}
@@ -278,12 +308,53 @@ const EditQuestion = () => {
 
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-8">
                             <div className="mb-6">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-2">Correct Answer</h2>
-                                <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
-                                    {options && options.length > 0 ? (
-                                        <div dangerouslySetInnerHTML={{ __html: options[0] }}></div>
-                                    ) : (
-                                        <p className="text-gray-500 text-sm">No correct answer selected yet</p>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">Select Correct Answer</h2>
+                                <p className="text-sm text-gray-500 mb-4">Choose which option is the correct answer for this question</p>
+                                
+                                <div className="space-y-3">
+                                    {options && options.map((option, index) => (
+                                        <div
+                                            key={index}
+                                            className={`flex items-start p-4 border rounded-lg transition-colors ${
+                                                correctAnswerIndex === index
+                                                    ? 'border-green-500 bg-green-50'
+                                                    : 'border-gray-200 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                id={`correct-answer-${index}`}
+                                                name="correct-answer"
+                                                value={index}
+                                                checked={correctAnswerIndex === index}
+                                                onChange={() => setCorrectAnswerIndex(index)}
+                                                className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500"
+                                            />
+                                            <label 
+                                                htmlFor={`correct-answer-${index}`}
+                                                className="ml-3 flex-1 cursor-pointer"
+                                            >
+                                                <div className="font-medium text-gray-900 mb-1">
+                                                    Option {String.fromCharCode(65 + index)}
+                                                </div>
+                                                <div 
+                                                    className="text-gray-700 break-words overflow-auto max-h-32"
+                                                    dangerouslySetInnerHTML={{ __html: option }} 
+                                                />
+                                                {correctAnswerIndex === index && (
+                                                    <span className="inline-flex items-center mt-2 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                                        <FaCheck className="mr-1" /> Selected as correct answer
+                                                    </span>
+                                                )}
+                                            </label>
+                                        </div>
+                                    ))}
+                                    
+                                    {(!options || options.length === 0) && (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>No options available yet</p>
+                                            <p className="text-sm mt-1">Add options below to select the correct answer</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -295,20 +366,39 @@ const EditQuestion = () => {
                                         <p className="text-sm text-gray-500">Options for this question</p>
                                     </div>
                                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                        {options?.length > 0 ? options.length - 1 : 0} additional options
+                                        {options?.length || 0} options
                                     </span>
                                 </div>
 
                                 <div className="space-y-3">
-                                    {options && options.slice(1).map((option, i) => (
+                                    {options && options.map((option, index) => (
                                         <div
-                                            key={i}
-                                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                                            key={index}
+                                            className={`flex items-center justify-between p-4 bg-white border rounded-lg hover:border-gray-300 transition-colors ${
+                                                correctAnswerIndex === index
+                                                    ? 'border-green-500 bg-green-50'
+                                                    : 'border-gray-200'
+                                            }`}
                                         >
-                                            <div className="flex-1 mr-4 break-words overflow-auto max-h-32" dangerouslySetInnerHTML={{ __html: option }} />
+                                            <div className="flex-1 mr-4">
+                                                <div className="flex items-center mb-2">
+                                                    <span className="font-medium text-gray-900 mr-2">
+                                                        Option {String.fromCharCode(65 + index)}
+                                                    </span>
+                                                    {correctAnswerIndex === index && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                                            <FaCheck className="mr-1" /> Correct Answer
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div 
+                                                    className="text-gray-700 break-words overflow-auto max-h-32"
+                                                    dangerouslySetInnerHTML={{ __html: option }} 
+                                                />
+                                            </div>
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <button
-                                                    onClick={() => removeOption(i + 1)}
+                                                    onClick={() => removeOption(index)}
                                                     disabled={loading}
                                                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                                                     title="Remove option"

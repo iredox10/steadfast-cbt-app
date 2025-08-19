@@ -83,6 +83,12 @@ class InvigilatorController extends Controller
                     $student->ticket_no = $candidate ? $candidate->ticket_no : null;
                     // Add candidate ID for potential future use
                     $student->candidate_id = $candidate ? $candidate->id : null;
+                    
+                    // Add score if available
+                    $score_record = \App\Models\StudentExamScore::where('student_id', $student->id)
+                        ->where('course_id', $course_id)
+                        ->first();
+                    $student->score = $score_record ? $score_record->score : null;
                 }
                 $student_list[] = $student;
             }

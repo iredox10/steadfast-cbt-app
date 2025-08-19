@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import {
@@ -17,11 +17,12 @@ import {
     FaSignOutAlt,
     FaBell,
     FaSync,
-    FaInfoCircle
+    FaInfoCircle,
+    FaDownload
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
-import logo from "/assets/buk.png";
+// import logo from "../../assets/buk.png";
 
 const Invigilator = () => {
     const { id } = useParams();
@@ -260,6 +261,46 @@ const Invigilator = () => {
         } else {
             setSortField(field);
             setSortDirection('asc');
+        }
+    };
+
+    const downloadScores = async () => {
+        try {
+            // Get course ID from userData
+            const courseId = userData?.exam?.course_id;
+            if (!courseId) {
+                alert("No active exam found");
+                return;
+            }
+
+            // Fetch scores data
+            const response = await axios.get(`${path}/get-students-score/${courseId}`);
+            const scoresData = response.data;
+
+            // Create CSV content
+            let csvContent = "Student ID,Full Name,Department,Programme,Score\n";
+
+            // Merge with current students data to get full information
+            currentStudents.forEach(student => {
+                const scoreRecord = scoresData.find(s => parseInt(s.student_id) === parseInt(student.id));
+                const score = scoreRecord ? scoreRecord.score : "N/A";
+
+                csvContent += `"${student.candidate_no}","${student.full_name}","${student.department}","${student.programme}","${score}"\n`;
+            });
+
+            // Create blob and download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `exam_scores_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Error downloading scores:", error);
+            alert("Failed to download scores. Please try again.");
         }
     };
 
@@ -565,6 +606,20 @@ const Invigilator = () => {
                             >
                                 <FaFilter className="mr-2" /> Reset Filters
                             </button>
+
+                            <button
+                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+                                onClick={downloadScores}
+                            >
+                                <FaDownload className="mr-2" /> Download Scores
+                            </button>
+
+                            <button
+                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+                                onClick={fetchStudents}
+                            >
+                                <FaSync className="mr-2" /> Refresh Data
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -609,6 +664,9 @@ const Invigilator = () => {
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Ticket Number
+                                            </th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Score
                                             </th>
                                             <th
                                                 scope="col"
@@ -668,6 +726,18 @@ const Invigilator = () => {
                                                     ) : (
                                                         <div className="text-sm text-gray-500">
                                                             Not generated
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                {/* Score */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {student.score !== null && student.score !== undefined ? (
+                                                        <div className="text-sm font-medium text-green-600">
+                                                            {student.score}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-sm text-gray-500">
+                                                            Not available
                                                         </div>
                                                     )}
                                                 </td>
