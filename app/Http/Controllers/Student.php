@@ -37,18 +37,26 @@ class Student extends Controller
             if (!$candidate) {
                 return response()->json('invalid ticket number', 404);
             }
+            
+            // Update the student's checkin_time to match the candidate's checkin_time
+            // This ensures the frontend check still works
+            $student->checkin_time = $candidate->checkin_time;
+            $student->save();
+            
+            // Reload the student to ensure we have the latest data
+            $student->refresh();
         } else if ($password) {
             // Validate using password (legacy method)
             if (!Hash::check($password, $student->password)) {
                 return response()->json('wrong password!!', 404);
             }
+            
+            // For legacy password login, check if student has been checked in
+            if ($student->checkin_time == null) {
+                return response()->json('user not checked in', 400);
+            }
         } else {
             return response()->json('ticket number or password required', 400);
-        }
-        
-        // Check if student is checked in by invigilator
-        if ($student->checkin_time == null) {
-            return response()->json('user not checked in', 400);
         }
         
         return response()->json($student);
