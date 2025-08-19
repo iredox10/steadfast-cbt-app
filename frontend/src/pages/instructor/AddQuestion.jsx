@@ -32,7 +32,6 @@ const AddQuestion = () => {
     const navigate = useNavigate();
 
     const [question, setQuestion] = useState("");
-    const [correctAnswer, setCorrectAnswer] = useState("");
     const [optionEditor, setOptionEditor] = useState("");
     const [options, setOptions] = useState([]);
 
@@ -48,7 +47,14 @@ const AddQuestion = () => {
     };
 
     const handleAnswerChange = (content) => {
-        setCorrectAnswer(content);
+        // Update the first option as the correct answer
+        if (options.length > 0) {
+            const newOptions = [...options];
+            newOptions[0] = content;
+            setOptions(newOptions);
+        } else {
+            setOptions([content]);
+        }
     };
 
     const handleOptionEditor = (content) => {
@@ -71,15 +77,12 @@ const AddQuestion = () => {
     const removeOption = (i) => {
         const newValue = options.filter((option, index) => index !== i);
         setOptions(newValue);
-        if (newValue.length === 0) {
-            setCorrectAnswer("");
-        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!question || !correctAnswer) {
-            setError("Question and correct answer are required");
+        if (!question || options.length === 0) {
+            setError("Question and at least one option are required");
             return;
         }
         if (options.length < 2) {
@@ -87,6 +90,9 @@ const AddQuestion = () => {
             return;
         }
         setError("");
+        
+        // Use the first option as the correct answer
+        const correctAnswer = options[0];
         
         // Map options to the required format
         const optionMap = {
@@ -143,7 +149,6 @@ const AddQuestion = () => {
     // Function to populate form with selected question
     const populateQuestion = (question) => {
         setQuestion(question.question);
-        setCorrectAnswer(question.correct_answer);
         setOptions([
             question.correct_answer,
             question.option_b,
@@ -312,10 +317,10 @@ const AddQuestion = () => {
                                     Correct Answer
                                 </h2>
                                 <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
-                                    {correctAnswer ? (
+                                    {options && options.length > 0 ? (
                                         <div
                                             dangerouslySetInnerHTML={{
-                                                __html: correctAnswer,
+                                                __html: options[0],
                                             }}
                                         ></div>
                                     ) : (
