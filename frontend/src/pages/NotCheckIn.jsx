@@ -77,7 +77,7 @@ const NotCheckIn = () => {
                                                 <span className="text-yellow-800 font-bold text-sm">3</span>
                                             </div>
                                             <p className="text-yellow-700">
-                                                Wait for the invigilator to check you in to the system
+                                                Wait for the invigilator to check you in and generate a ticket number
                                             </p>
                                         </div>
                                         <div className="flex items-start">
@@ -85,7 +85,7 @@ const NotCheckIn = () => {
                                                 <span className="text-yellow-800 font-bold text-sm">4</span>
                                             </div>
                                             <p className="text-yellow-700">
-                                                Once checked in, you can log back in to access your exam
+                                                Use your candidate number and ticket number to log in to the exam
                                             </p>
                                         </div>
                                     </div>
@@ -111,10 +111,28 @@ const NotCheckIn = () => {
                                 </div>
 
                                 {/* Contact Info */}
-                                <div className="text-center text-gray-500 text-sm">
+                                <div className="text-center text-gray-500 text-sm mb-6">
                                     <p>
                                         If you're having trouble, please contact the examination administrator.
                                     </p>
+                                </div>
+                                
+                                {/* Ticket System Info */}
+                                <div className="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
+                                    <h4 className="font-bold text-blue-800 mb-2 text-center">Ticket-Based Access System</h4>
+                                    <p className="text-blue-700 text-sm text-center">
+                                        For security purposes, each student must be checked in by an authorized invigilator 
+                                        who will generate a unique ticket number. This ticket number is required to access your exam.
+                                    </p>
+                                </div>
+
+                                <div className="text-center">
+                                    <button 
+                                        onClick={() => window.location.reload()}
+                                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-medium"
+                                    >
+                                        Try Logging In Again
+                                    </button>
                                 </div>
                             </div>
                         </div>

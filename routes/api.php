@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor;
+use App\Http\Controllers\InvigilatorController;
 use App\Http\Controllers\Student;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -176,3 +177,7 @@ Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
 
 // Admin user management
 Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum', 'can:admin']);
+
+// Invigilator routes
+Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'generate_ticket']);
+Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, 'get_students']);

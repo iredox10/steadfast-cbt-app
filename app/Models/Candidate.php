@@ -16,13 +16,14 @@ class Candidate extends Model
         'image',
         'password',
         'is_checkout',
-        'is_checkout',
         'is_logged_on',
         'checkin_time',
         'checkout_time',
         'exam_id',
         'student_id',
         'score',
+        'ticket_no',
+        'status',
     ];
     public function semester() // New relationship
     {

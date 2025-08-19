@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../utils/path";
 import logo from "../../public/assets/buk.png";
-import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaLock } from "react-icons/fa";
+import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaTicketAlt } from "react-icons/fa";
 
 const Home = () => {
     const [candidateNumber, setCandidateNumber] = useState("");
-    const [password, setPassword] = useState("");
+    const [ticketNumber, setTicketNumber] = useState("");
     const [errMsg, setErrMsg] = useState("");
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
@@ -18,7 +18,7 @@ const Home = () => {
         setLoading(true);
         setErrMsg("");
 
-        if (!candidateNumber || !password) {
+        if (!candidateNumber || !ticketNumber) {
             setErrMsg("Please fill in all fields");
             setLoading(false);
             return;
@@ -27,7 +27,7 @@ const Home = () => {
         try {
             const res = await axios.post(`${path}/student-login`, {
                 candidate_no: candidateNumber,
-                password,
+                ticket_no: ticketNumber,
             });
 
             // Check if student is checked in
@@ -134,24 +134,24 @@ const Home = () => {
                                         </div>
                                     </div>
 
-                                    {/* Password */}
+                                    {/* Ticket Number */}
                                     <div>
-                                        <label htmlFor="password" className="block text-gray-700 font-medium mb-2">
-                                            Password
+                                        <label htmlFor="ticketNumber" className="block text-gray-700 font-medium mb-2">
+                                            Ticket Number
                                         </label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <FaLock className="text-gray-400" />
+                                                <FaTicketAlt className="text-gray-400" />
                                             </div>
                                             <input
-                                                id="password"
-                                                type="password"
-                                                name="password"
-                                                placeholder="Enter your password"
+                                                id="ticketNumber"
+                                                type="text"
+                                                name="ticketNumber"
+                                                placeholder="Enter your ticket number"
                                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                                value={password}
+                                                value={ticketNumber}
                                                 onChange={(e) => {
-                                                    setPassword(e.target.value);
+                                                    setTicketNumber(e.target.value);
                                                     setErrMsg("");
                                                 }}
                                                 disabled={loading}
@@ -176,7 +176,7 @@ const Home = () => {
                                         </div>
                                         <div className="text-sm">
                                             <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                                                Forgot Password?
+                                                Forgot Ticket Number?
                                             </a>
                                         </div>
                                     </div>
@@ -204,10 +204,7 @@ const Home = () => {
                                 {/* Help Text */}
                                 <div className="mt-6 text-center">
                                     <p className="text-gray-600 text-sm">
-                                        Don't have an account?{" "}
-                                        <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                                            Contact Administrator
-                                        </a>
+                                        Don't have a ticket number? Contact your invigilator to get checked in.
                                     </p>
                                 </div>
                             </div>
@@ -217,15 +214,15 @@ const Home = () => {
                         <div className="mt-8 grid grid-cols-2 gap-4">
                             <div className="bg-white p-4 rounded-xl shadow-sm text-center">
                                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
-                                    <FaLock className="text-blue-600" />
+                                    <FaTicketAlt className="text-blue-600" />
                                 </div>
-                                <h3 className="font-medium text-gray-800 text-sm">Secure</h3>
+                                <h3 className="font-medium text-gray-800 text-sm">Ticket-Based Access</h3>
                             </div>
                             <div className="bg-white p-4 rounded-xl shadow-sm text-center">
                                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
                                     <FaGraduationCap className="text-green-600" />
                                 </div>
-                                <h3 className="font-medium text-gray-800 text-sm">Reliable</h3>
+                                <h3 className="font-medium text-gray-800 text-sm">Secure Exams</h3>
                             </div>
                         </div>
                     </div>

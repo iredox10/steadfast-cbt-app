@@ -23,8 +23,27 @@ class Student extends Controller
         if (!$student) {
             return response()->json('user not found', 404);
         }
-        if (!Hash::check($request->input('password'), $student->password)) {
-            return response()->json('wrong password!!', 404);
+        
+        // Check if using ticket number or password
+        $ticketNo = $request->input('ticket_no');
+        $password = $request->input('password');
+        
+        if ($ticketNo) {
+            // Validate using ticket number
+            $candidate = \App\Models\Candidate::where('student_id', $student->id)
+                ->where('ticket_no', $ticketNo)
+                ->first();
+                
+            if (!$candidate) {
+                return response()->json('invalid ticket number', 404);
+            }
+        } else if ($password) {
+            // Validate using password (legacy method)
+            if (!Hash::check($password, $student->password)) {
+                return response()->json('wrong password!!', 404);
+            }
+        } else {
+            return response()->json('ticket number or password required', 400);
         }
         
         // Check if student is checked in by invigilator

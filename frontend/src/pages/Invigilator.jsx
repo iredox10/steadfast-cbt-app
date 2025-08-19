@@ -1,23 +1,23 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
-import { 
-  FaCheck, 
-  FaExclamationTriangle, 
-  FaSearch, 
-  FaGraduationCap, 
-  FaClock, 
-  FaFilter,
-  FaSort,
-  FaChalkboardTeacher,
-  FaBook,
-  FaUsers,
-  FaCalendarAlt,
-  FaCog,
-  FaSignOutAlt,
-  FaBell,
-  FaSync,
-  FaInfoCircle
+import {
+    FaCheck,
+    FaExclamationTriangle,
+    FaSearch,
+    FaGraduationCap,
+    FaClock,
+    FaFilter,
+    FaSort,
+    FaChalkboardTeacher,
+    FaBook,
+    FaUsers,
+    FaCalendarAlt,
+    FaCog,
+    FaSignOutAlt,
+    FaBell,
+    FaSync,
+    FaInfoCircle
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -37,6 +37,7 @@ const Invigilator = () => {
     const [loadingStudents, setLoadingStudents] = useState(true);
     const [checkingIn, setCheckingIn] = useState(null); // Track which student is being checked in
     const [showSuccess, setShowSuccess] = useState(false);
+    const [generatedTicket, setGeneratedTicket] = useState(null);
     const [stats, setStats] = useState({
         total: 0,
         checkedIn: 0,
@@ -44,24 +45,35 @@ const Invigilator = () => {
     });
 
     const fetchStudents = async () => {
+        console.log('fetchStudents called', { loadingStudents, userData });
         setLoadingStudents(true);
         try {
-            const res = await axios(`${path}/get-students`);
-            const studentsData = res.data || [];
-            setStudents(studentsData);
-            
-            // Update stats
-            const total = studentsData.length;
-            const checkedIn = studentsData.filter(student => student.checkin_time && student.is_logged_on !== "yes").length;
-            const examStarted = studentsData.filter(student => student.is_logged_on === "yes").length;
-            setStats({
-                total,
-                checkedIn: checkedIn + examStarted,
-                notCheckedIn: total - checkedIn - examStarted
-            });
+            // Get the active course from the exam data
+            if (userData?.exam?.course_id) {
+                console.log('Fetching students for course:', userData.exam.course_id);
+                const res = await axios(`${path}/invigilator/students/${userData.exam.course_id}`);
+                const studentsData = res.data || [];
+                console.log('Received student data:', studentsData);
+
+                setStudents(studentsData);
+
+                // Calculate stats
+                const total = studentsData.length;
+                const checkedIn = studentsData.filter(s => s.ticket_no).length;
+                const notCheckedIn = total - checkedIn;
+
+                setStats({
+                    total,
+                    checkedIn,
+                    notCheckedIn
+                });
+            } else {
+                console.log('No course ID available in userData:', userData);
+            }
         } catch (err) {
-            console.log(err);
+            console.log("Error fetching students:", err);
         } finally {
+            console.log('Setting loadingStudents to false');
             setLoadingStudents(false);
         }
     };
@@ -76,16 +88,22 @@ const Invigilator = () => {
     };
 
     useEffect(() => {
-        fetchStudents();
-        fetchCurrentExam();
-        
-        // Set up polling for real-time updates (every 15 seconds for better responsiveness)
-        const interval = setInterval(() => {
+        // Only fetch if we have userData and it's not still loading
+        console.log('useEffect triggered', { userData, userLoading });
+        if (userData && !userLoading) {
+            console.log('Fetching students and exam data');
             fetchStudents();
-        }, 15000);
-        
-        return () => clearInterval(interval);
-    }, []);
+            fetchCurrentExam();
+
+            // Set up polling for real-time updates (every 15 seconds for better responsiveness)
+            const interval = setInterval(() => {
+                console.log('Polling for student updates');
+                fetchStudents();
+            }, 15000);
+
+            return () => clearInterval(interval);
+        }
+    }, [userData, userLoading]);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -94,18 +112,18 @@ const Invigilator = () => {
     // Filter and sort students
     const processedStudents = useMemo(() => {
         let result = students;
-        
+
         // Apply search filter
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
-            result = result.filter(student => 
+            result = result.filter(student =>
                 student.full_name.toLowerCase().includes(term) ||
                 student.candidate_no.toString().includes(term) ||
                 student.department.toLowerCase().includes(term) ||
                 student.programme.toLowerCase().includes(term)
             );
         }
-        
+
         // Apply status filter
         if (filterStatus !== 'all') {
             result = result.filter(student => {
@@ -119,34 +137,34 @@ const Invigilator = () => {
                 return true;
             });
         }
-        
+
         // Apply sorting
         result = [...result].sort((a, b) => {
             let aValue = a[sortField];
             let bValue = b[sortField];
-            
+
             if (aValue == null) aValue = '';
             if (bValue == null) bValue = '';
-            
+
             if (sortField === 'checkin_time') {
                 const aHasTime = !!aValue;
                 const bHasTime = !!bValue;
-                
+
                 if (aHasTime && !bHasTime) return -1;
                 if (!aHasTime && bHasTime) return 1;
                 if (!aHasTime && !bHasTime) return 0;
             }
-            
+
             aValue = aValue.toString();
             bValue = bValue.toString();
-            
+
             if (sortDirection === 'asc') {
                 return aValue.localeCompare(bValue);
             } else {
                 return bValue.localeCompare(aValue);
             }
         });
-        
+
         return result;
     }, [students, searchTerm, filterStatus, sortField, sortDirection]);
 
@@ -157,51 +175,63 @@ const Invigilator = () => {
     const currentStudents = processedStudents.slice(indexOfFirstStudent, indexOfLastStudent);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
-    
+
     // Reset to first page when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, filterStatus, sortField, sortDirection]);
+    }, [searchTerm, filterStatus, sortField, sortDirection, students]);
 
     const handleCheck = async (studentId) => {
         setCheckingIn(studentId); // Set loading state
         try {
-            // Optimistically update the UI immediately
-            setStudents(prevStudents => 
-                prevStudents.map(student => 
-                    student.id === studentId 
-                        ? { 
-                            ...student, 
-                            is_logged_on: "yes",
-                            checkin_time: new Date().toISOString()
-                        } 
-                        : student
-                )
-            );
+            console.log('Generating ticket for student:', studentId);
+            // Make the API call to generate ticket
+            const response = await axios.post(`${path}/invigilator/generate-ticket`, {
+                student_id: studentId
+            });
             
-            // Update stats immediately
-            setStats(prevStats => ({
-                ...prevStats,
-                checkedIn: prevStats.checkedIn + 1,
-                notCheckedIn: prevStats.notCheckedIn - 1
-            }));
-            
-            // Show success message
-            setShowSuccess(true);
-            setTimeout(() => setShowSuccess(false), 3000); // Hide after 3 seconds
-            
-            // Make the API call (we'll ignore the response since it's not reliable)
-            try {
-                await axios.post(`${path}/check-student/${studentId}`);
-                console.log("Check-in API call successful");
-            } catch (apiError) {
-                console.log("API call failed, but we'll keep the optimistic update:", apiError);
+            console.log('Ticket generation response:', response);
+
+            if (response.status === 200) {
+                const candidate = response.data;
+                console.log('Candidate data received:', candidate);
+
+                // Update the student list with the ticket number
+                setStudents(prevStudents => {
+                    const updatedStudents = prevStudents.map(student =>
+                        student.id === studentId
+                            ? {
+                                ...student,
+                                ticket_no: candidate.ticket_no,
+                                checkin_time: candidate.checkin_time,
+                                is_logged_on: candidate.is_logged_on ? "yes" : "no"
+                            }
+                            : student
+                    );
+                    console.log('Updated students list:', updatedStudents);
+                    return updatedStudents;
+                });
+
+                // Update stats immediately
+                setStats(prevStats => ({
+                    ...prevStats,
+                    checkedIn: prevStats.checkedIn + 1,
+                    notCheckedIn: prevStats.notCheckedIn - 1
+                }));
+
+                // Show success message with ticket number
+                setGeneratedTicket(candidate.ticket_no);
+                setShowSuccess(true);
+                setTimeout(() => {
+                    setShowSuccess(false);
+                    setGeneratedTicket(null);
+                }, 5000); // Hide after 5 seconds
+
+                // Add a small delay then refresh to get actual data
+                setTimeout(() => {
+                    fetchStudents();
+                }, 1000);
             }
-            
-            // Add a small delay then refresh to get actual data
-            setTimeout(() => {
-                fetchStudents();
-            }, 1000);
         } catch (err) {
             console.log("Check-in error:", err);
             // Revert the optimistic update on error
@@ -305,7 +335,7 @@ const Invigilator = () => {
                     <div className="flex flex-col items-center justify-center min-h-[70vh] text-gray-500">
                         <FaExclamationTriangle className="text-5xl mb-4 text-yellow-500" />
                         <p className="text-xl font-medium mb-4">An error occurred</p>
-                        <button 
+                        <button
                             onClick={() => window.location.reload()}
                             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                         >
@@ -406,11 +436,14 @@ const Invigilator = () => {
             <main className="flex-1 p-8 overflow-y-auto">
                 {/* Success Message */}
                 {showSuccess && (
-                    <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
-                        Student checked in successfully!
+                    <div className="fixed top-4 right-4 z-50">
+                        <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center">
+                            <FaCheck className="mr-2" />
+                            <span>Ticket {generatedTicket} generated successfully!</span>
+                        </div>
                     </div>
                 )}
-                
+
                 {/* Header - Matching Admin Dashboard */}
                 <header className="flex justify-between items-center mb-8">
                     <div>
@@ -420,7 +453,7 @@ const Invigilator = () => {
                         <p className="text-gray-500">Managing students for: <span className="font-semibold">{currentExam?.course || 'No Active Exam'}</span></p>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <button 
+                        <button
                             onClick={fetchStudents}
                             disabled={loadingStudents}
                             className="flex items-center px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-100 transition-colors text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -455,7 +488,7 @@ const Invigilator = () => {
                             <h3 className="text-sm font-medium text-blue-800">Invigilator Role</h3>
                             <div className="mt-2 text-sm text-blue-700">
                                 <p>
-                                    You must check in each student before they can access their exam. 
+                                    You must check in each student before they can access their exam.
                                     Only checked-in students will be able to proceed to the exam instructions page.
                                 </p>
                             </div>
@@ -467,11 +500,10 @@ const Invigilator = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {statCards.map((stat, index) => (
                         <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                            <div className={`p-4 rounded-full ${
-                                stat.color === 'blue' ? 'bg-blue-100 text-blue-500' :
+                            <div className={`p-4 rounded-full ${stat.color === 'blue' ? 'bg-blue-100 text-blue-500' :
                                 stat.color === 'green' ? 'bg-green-100 text-green-500' :
-                                'bg-red-100 text-red-500'
-                            }`}>
+                                    'bg-red-100 text-red-500'
+                                }`}>
                                 {stat.icon}
                             </div>
                             <div>
@@ -497,7 +529,7 @@ const Invigilator = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        
+
                         <div className="flex gap-2">
                             <select
                                 value={filterStatus}
@@ -509,8 +541,8 @@ const Invigilator = () => {
                                 <option value="checked-in">Checked In (Ready for Exam)</option>
                                 <option value="exam-started">Exam Started</option>
                             </select>
-                            
-                            <button 
+
+                            <button
                                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
                                 onClick={() => {
                                     setSearchTerm('');
@@ -533,8 +565,8 @@ const Invigilator = () => {
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th 
-                                                scope="col" 
+                                            <th
+                                                scope="col"
                                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                                 onClick={() => handleSort('full_name')}
                                             >
@@ -545,8 +577,8 @@ const Invigilator = () => {
                                                     )}
                                                 </div>
                                             </th>
-                                            <th 
-                                                scope="col" 
+                                            <th
+                                                scope="col"
                                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                                 onClick={() => handleSort('candidate_no')}
                                             >
@@ -563,14 +595,17 @@ const Invigilator = () => {
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Programme
                                             </th>
-                                            <th 
-                                                scope="col" 
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Ticket Number
+                                            </th>
+                                            <th
+                                                scope="col"
                                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                             >
                                                 Check-in Status
                                             </th>
-                                            <th 
-                                                scope="col" 
+                                            <th
+                                                scope="col"
                                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                                 onClick={() => handleSort('checkin_time')}
                                             >
@@ -587,94 +622,107 @@ const Invigilator = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
+                                        {console.log('Rendering students:', currentStudents)}
                                         {currentStudents.map((student) => (
-                                                                                    <tr key={student.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                                        <FaGraduationCap className="text-blue-500" />
+                                            <tr key={student.id} className="hover:bg-gray-50">
+                                                {console.log('Student data:', student)}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                            <FaGraduationCap className="text-blue-500" />
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900">{student.full_name}</div>
+                                                            <div className="text-sm text-gray-500">{student.email}</div>
+                                                        </div>
                                                     </div>
-                                                    <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900">{student.full_name}</div>
-                                                        <div className="text-sm text-gray-500">{student.email}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{student.candidate_no}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{student.department}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{student.programme}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                    student.is_logged_on === "yes"
-                                                        ? "bg-green-100 text-green-800"
-                                                        : student.checkin_time 
-                                                            ? "bg-yellow-100 text-yellow-800"
-                                                            : "bg-red-100 text-red-800"
-                                                }`}>
-                                                    {student.is_logged_on === "yes" 
-                                                        ? "Exam Started" 
-                                                        : student.checkin_time 
-                                                            ? "Checked In" 
-                                                            : "Not Checked In"}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {student.checkin_time ? (
-                                                    <div className="text-sm text-gray-900">
-                                                        {new Date(student.checkin_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-sm text-gray-500">
-                                                        Not checked in
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                {!student.checkin_time ? (
-                                                    <button
-                                                        onClick={() => handleCheck(student.id)}
-                                                        disabled={checkingIn === student.id}
-                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {checkingIn === student.id ? (
-                                                            <>
-                                                                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                                </svg>
-                                                                Checking...
-                                                            </>
-                                                        ) : "Check In"}
-                                                    </button>
-                                                ) : student.is_logged_on !== "yes" ? (
-                                                    <button
-                                                        onClick={() => handleCheck(student.id)}
-                                                        disabled={checkingIn === student.id}
-                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {checkingIn === student.id ? (
-                                                            <>
-                                                                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                                </svg>
-                                                                Re-check
-                                                            </>
-                                                        ) : "Re-check"}
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-green-500 flex items-center justify-end">
-                                                        <FaCheck className="mr-1" /> In Progress
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
+                                                </td>
+                                                {/* Student ID */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">{student.candidate_no}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">{student.department}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">{student.programme}</div>
+                                                </td>
+                                                {/* Ticket Number */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {student.ticket_no ? (
+                                                        <div className="text-sm font-medium text-blue-600">
+                                                            {student.ticket_no}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-sm text-gray-500">
+                                                            Not generated
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                {/* Status */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {student.ticket_no ? (
+                                                        <div>
+                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                                <FaCheck className="mr-1" /> Checked In
+                                                            </span>
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                Ready for exam
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div>
+                                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                                <FaExclamationTriangle className="mr-1" /> Not Checked In
+                                                            </span>
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                Awaiting ticket
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {student.checkin_time ? (
+                                                        <div className="text-sm text-gray-900">
+                                                            {new Date(student.checkin_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-sm text-gray-500 italic">
+                                                            Not checked in
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                {/* Actions */}
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    {!student.ticket_no ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                console.log('Generate ticket button clicked for student:', student.id);
+                                                                handleCheck(student.id);
+                                                            }}
+                                                            disabled={checkingIn === student.id}
+                                                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                                                        >
+                                                            {checkingIn === student.id ? (
+                                                                <span className="flex items-center">
+                                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                    </svg>
+                                                                    Generating...
+                                                                </span>
+                                                            ) : (
+                                                                "Generate Ticket"
+                                                            )}
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center justify-end">
+                                                            <span className="text-green-600 font-medium">Ticket Generated</span>
+                                                            <FaCheck className="ml-1 text-green-600" />
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
                                         ))}
                                     </tbody>
                                 </table>
@@ -690,11 +738,10 @@ const Invigilator = () => {
                                     <button
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-1 rounded-md text-sm ${
-                                            currentPage === 1
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-                                        }`}
+                                        className={`px-3 py-1 rounded-md text-sm ${currentPage === 1
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                            }`}
                                     >
                                         Previous
                                     </button>
@@ -711,16 +758,15 @@ const Invigilator = () => {
                                             } else {
                                                 pageNum = currentPage - 2 + index;
                                             }
-                                            
+
                                             return (
                                                 <button
                                                     key={pageNum}
                                                     onClick={() => paginate(pageNum)}
-                                                    className={`w-8 h-8 rounded-md text-sm ${
-                                                        currentPage === pageNum
-                                                            ? "bg-blue-500 text-white"
-                                                            : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-                                                    }`}
+                                                    className={`w-8 h-8 rounded-md text-sm ${currentPage === pageNum
+                                                        ? "bg-blue-500 text-white"
+                                                        : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                                        }`}
                                                 >
                                                     {pageNum}
                                                 </button>
@@ -731,11 +777,10 @@ const Invigilator = () => {
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 rounded-md text-sm ${
-                                            currentPage === totalPages
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
-                                        }`}
+                                        className={`px-3 py-1 rounded-md text-sm ${currentPage === totalPages
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                            }`}
                                     >
                                         Next
                                     </button>
@@ -748,13 +793,13 @@ const Invigilator = () => {
                                 <FaGraduationCap className="mx-auto h-12 w-12" />
                             </div>
                             <h3 className="text-lg font-medium text-gray-900 mb-1">
-                                {searchTerm || filterStatus !== 'all' 
-                                    ? `No students match your search/filter criteria` 
+                                {searchTerm || filterStatus !== 'all'
+                                    ? `No students match your search/filter criteria`
                                     : "No students found"}
                             </h3>
                             <p className="text-gray-500">
-                                {searchTerm || filterStatus !== 'all' 
-                                    ? "Try adjusting your search or filter criteria" 
+                                {searchTerm || filterStatus !== 'all'
+                                    ? "Try adjusting your search or filter criteria"
                                     : "There are currently no students registered for this exam"}
                             </p>
                         </div>
