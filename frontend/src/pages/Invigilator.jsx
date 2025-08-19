@@ -59,7 +59,7 @@ const Invigilator = () => {
 
                 // Calculate stats
                 const total = studentsData.length;
-                const checkedIn = studentsData.filter(s => s.ticket_no).length;
+                const checkedIn = studentsData.filter(s => s.ticket_no && s.ticket_no !== 'null').length;
                 const notCheckedIn = total - checkedIn;
 
                 setStats({
@@ -198,17 +198,29 @@ const Invigilator = () => {
 
                 // Update the student list with the ticket number
                 setStudents(prevStudents => {
-                    const updatedStudents = prevStudents.map(student =>
-                        student.id === studentId
-                            ? {
+                    console.log('Previous students:', prevStudents);
+                    console.log('Looking for student with ID:', studentId);
+                    let foundStudent = false;
+                    const updatedStudents = prevStudents.map(student => {
+                        console.log(`Checking student ${student.id}:`, student);
+                        if (student.id === studentId) {
+                            foundStudent = true;
+                            console.log('Found matching student, updating with ticket:', candidate.ticket_no);
+                            const updatedStudent = {
                                 ...student,
                                 ticket_no: candidate.ticket_no,
                                 checkin_time: candidate.checkin_time,
                                 is_logged_on: candidate.is_logged_on ? "yes" : "no"
-                            }
-                            : student
-                    );
-                    console.log('Updated students list:', updatedStudents);
+                            };
+                            console.log('Updated student:', updatedStudent);
+                            return updatedStudent;
+                        }
+                        return student;
+                    });
+                    if (!foundStudent) {
+                        console.log('WARNING: Did not find student with ID', studentId);
+                    }
+                    console.log('Final updated students list:', updatedStudents);
                     return updatedStudents;
                 });
 
@@ -649,7 +661,7 @@ const Invigilator = () => {
                                                 </td>
                                                 {/* Ticket Number */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    {student.ticket_no ? (
+                                                    {student.ticket_no && student.ticket_no !== 'null' ? (
                                                         <div className="text-sm font-medium text-blue-600">
                                                             {student.ticket_no}
                                                         </div>
@@ -661,7 +673,7 @@ const Invigilator = () => {
                                                 </td>
                                                 {/* Status */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    {student.ticket_no ? (
+                                                    {(student.ticket_no && student.ticket_no !== 'null') ? (
                                                         <div>
                                                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                                                 <FaCheck className="mr-1" /> Checked In
@@ -694,7 +706,7 @@ const Invigilator = () => {
                                                 </td>
                                                 {/* Actions */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    {!student.ticket_no ? (
+                                                    {(!student.ticket_no || student.ticket_no === 'null') ? (
                                                         <button
                                                             onClick={() => {
                                                                 console.log('Generate ticket button clicked for student:', student.id);
