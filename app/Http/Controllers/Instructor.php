@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Answer;
 use App\Models\Answers;
+use App\Models\Candidate;
 use App\Models\Course;
 use App\Models\Exam;
-use App\Models\LecturerCourse;
 use App\Models\Question;
-use App\Models\question_bank;
+use App\Models\QuestionBank;
 use App\Models\Student;
 use App\Models\StudentCourse;
 use App\Models\StudentExamScore;
 use App\Models\User;
-use App\Models\QuestionBank;
+use Carbon\Carbon;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -415,13 +415,83 @@ class Instructor extends Controller
         }
     }
 
-    public function get_students_score($course_id)
+    public function get_student_scores_for_course($course_id)
     {
         try {
+            // Get student scores for this course
             $scores = StudentExamScore::where('course_id', $course_id)->get();
-            return response()->json($scores);
+            
+            // Enhance the data with student information
+            $enhancedScores = [];
+            foreach ($scores as $score) {
+                $student = Student::find($score->student_id);
+                if ($student) {
+                    $enhancedScores[] = [
+                        'id' => $score->id,
+                        'student_id' => $student->id,
+                        'student' => [
+                            'id' => $student->id,
+                            'full_name' => $student->full_name,
+                            'candidate_no' => $student->candidate_no,
+                            'department' => $student->department,
+                            'programme' => $student->programme,
+                        ],
+                        'course_name' => $score->course_name,
+                        'score' => $score->score,
+                        'submitted_at' => $score->created_at,
+                        'updated_at' => $score->updated_at,
+                    ];
+                }
+            }
+            
+            return response()->json($enhancedScores);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function export_student_scores($course_id)
+    {
+        try {
+            // Validate course exists
+            $course = Course::findOrFail($course_id);
+            
+            // Get student scores for this course
+            $scores = StudentExamScore::where('course_id', $course_id)->get();
+            
+            // Create CSV content
+            $csvContent = "Student ID,Candidate Number,Full Name,Department,Programme,Course Name,Score,Submitted At\n";
+            
+            // Add data rows
+            foreach ($scores as $score) {
+                $student = Student::find($score->student_id);
+                if ($student) {
+                    $csvRow = [
+                        $student->id,
+                        '"' . $student->candidate_no . '"',
+                        '"' . $student->full_name . '"',
+                        '"' . $student->department . '"',
+                        '"' . $student->programme . '"',
+                        '"' . $score->course_name . '"',
+                        $score->score,
+                        $score->created_at ? $score->created_at->format('Y-m-d H:i:s') : 'N/A'
+                    ];
+                    $csvContent .= implode(',', $csvRow) . "\n";
+                }
+            }
+            
+            // Set headers for download
+            $filename = 'student_scores_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $course->code) . '_' . date('Y-m-d') . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+            
+            return response($csvContent, 200, $headers);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Course not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

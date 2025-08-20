@@ -4,7 +4,7 @@ import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
-import { FaSearch, FaFileCsv, FaFileExcel, FaFilePdf } from "react-icons/fa";
+import { FaSearch, FaFileCsv, FaFileExcel, FaFilePdf, FaInfoCircle, FaSync } from "react-icons/fa";
 
 const ExamSubmissions = () => {
     const { userId, courseId } = useParams();
@@ -14,7 +14,7 @@ const ExamSubmissions = () => {
         loading,
         error,
         refetch
-    } = useFetch(`/exam-submissions-by-course/${courseId}`);
+    } = useFetch(`/student-scores-for-course/${courseId}`);
     
     const { data: course } = useFetch(`/get-course/${courseId}`);
 
@@ -43,19 +43,26 @@ const ExamSubmissions = () => {
     // Handle export
     const handleExport = async (format) => {
         try {
-            const response = await axios.get(`${path}/exam-submissions/export/${format}`, {
-                responseType: 'blob'
-            });
-            
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `exam_submissions.${format}`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            // For CSV export, we'll use our new endpoint
+            if (format === 'csv') {
+                const response = await axios.get(`${path}/export-student-scores/${courseId}`, {
+                    responseType: 'blob'
+                });
+                
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `student_scores_${course?.code || 'course'}_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } else {
+                // For other formats, fall back to the original method or show an alert
+                alert(`Export to ${format.toUpperCase()} is not yet implemented. Please use CSV format.`);
+            }
         } catch (error) {
             console.error("Export failed:", error);
+            alert("Export failed. Please try again.");
         }
     };
 
@@ -153,50 +160,58 @@ const ExamSubmissions = () => {
             </Sidebar>
             
             <main className="flex-1 p-8 overflow-y-auto">
-                <header className="flex items-center justify-between mb-8">
+                <header className=\"flex items-center justify-between mb-8\">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-1">
-                            {course?.title || "Course"} Exam Submissions
+                        <h1 className=\"text-3xl font-bold text-gray-900 mb-1\">
+                            {course?.title || \"Course\"} Student Exam Scores
                         </h1>
-                        <p className="text-gray-600">
-                            View and export student exam submissions
+                        <p className=\"text-gray-600\">
+                            View and download student exam scores for {course?.title || 'this course'}
                         </p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
+                    <div className=\"flex items-center gap-4\">
+                        <div className=\"relative\">
                             <input
-                                type="text"
-                                placeholder="Search submissions..."
-                                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                type=\"text\"
+                                placeholder=\"Search submissions...\"
+                                className=\"pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent\"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
-                            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <FaSearch className=\"absolute left-3 top-1/2 -translate-y-1/2 text-gray-400\" />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <FaInfoCircle className="h-5 w-5 text-blue-400" />
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-blue-700">
+                                        <strong>About this data:</strong> This table shows student exam scores for {course?.title || 'this course'}. 
+                                        You can download all student scores and information as a CSV file for further analysis or record keeping.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleExport('csv')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    title="Download Student Scores as CSV"
+                                >
+                                    <FaFileCsv />
+                                    <span>Download Scores (CSV)</span>
+                                </button>
+                            </div>
                             <button
-                                onClick={() => handleExport('csv')}
-                                className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                title="Export to CSV"
+                                onClick={refetch}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                title="Refresh data"
                             >
-                                <FaFileCsv />
-                                <span className="hidden sm:inline">CSV</span>
-                            </button>
-                            <button
-                                onClick={() => handleExport('excel')}
-                                className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                                title="Export to Excel"
-                            >
-                                <FaFileExcel />
-                                <span className="hidden sm:inline">Excel</span>
-                            </button>
-                            <button
-                                onClick={() => handleExport('pdf')}
-                                className="flex items-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                title="Export to PDF"
-                            >
-                                <FaFilePdf />
-                                <span className="hidden sm:inline">PDF</span>
+                                <FaSync />
+                                <span>Refresh</span>
                             </button>
                         </div>
                     </div>
@@ -209,9 +224,9 @@ const ExamSubmissions = () => {
                                 <tr className="bg-gray-50 border-b border-gray-100">
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S/N</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student Name</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Questions</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Answered</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Correct Answers</th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Candidate No</th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Programme</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Score</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted At</th>
                                 </tr>
@@ -225,13 +240,13 @@ const ExamSubmissions = () => {
                                                 {submission.student?.full_name || "N/A"}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                {submission.total_questions}
+                                                {submission.student?.candidate_no || "N/A"}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                {submission.answered_questions}
+                                                {submission.student?.department || "N/A"}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                {submission.correct_answers}
+                                                {submission.student?.programme || "N/A"}
                                             </td>
                                             <td className="py-4 px-6">
                                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -239,7 +254,7 @@ const ExamSubmissions = () => {
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                {new Date(submission.submitted_at).toLocaleString()}
+                                                {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : "N/A"}
                                             </td>
                                         </tr>
                                     ))
@@ -247,7 +262,7 @@ const ExamSubmissions = () => {
                                     <tr>
                                         <td colSpan="7" className="text-center py-8">
                                             <i className="fas fa-file-alt text-gray-300 text-3xl mb-3"></i>
-                                            <p className="text-gray-500">No exam submissions found</p>
+                                            <p className="text-gray-500">No exam scores found</p>
                                             <p className="text-gray-400 text-sm mt-1">Students have not submitted any exams yet</p>
                                         </td>
                                     </tr>

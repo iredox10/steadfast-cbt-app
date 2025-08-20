@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaCalendarAlt, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch, FaUsers, FaChevronRight, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { FaCalendarAlt, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch, FaUsers, FaChevronRight, FaArrowUp, FaArrowDown, FaFilePdf, FaFileExcel } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import { format } from 'date-fns';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 const ExamArchiveDetail = () => {
     const { archiveId, userId } = useParams();
@@ -71,6 +74,40 @@ const ExamArchiveDetail = () => {
         </th>
     );
 
+    const handleDownloadPdf = () => {
+        const doc = new jsPDF();
+        doc.text(`Exam Results for ${archive.exam_title}`, 14, 15);
+        doc.text(`Course: ${archive.course_title}`, 14, 22);
+        doc.text(`Date: ${format(new Date(archive.exam_date), 'PPP')}`, 14, 29);
+
+        autoTable(doc, {
+            startY: 35,
+            head: [['Full Name', 'Candidate No.', 'Score', 'Submission Time']],
+            body: sortedAndFilteredResults.map(result => [
+                result.full_name,
+                result.candidate_no,
+                result.score,
+                format(new Date(result.submission_time), 'Pp')
+            ]),
+        });
+
+        doc.save(`exam-results-${archive.exam_title}.pdf`);
+    };
+
+    const handleDownloadExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet(
+            sortedAndFilteredResults.map(result => ({
+                'Full Name': result.full_name,
+                'Candidate No.': result.candidate_no,
+                'Score': result.score,
+                'Submission Time': format(new Date(result.submission_time), 'Pp')
+            }))
+        );
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
+        XLSX.writeFile(workbook, `exam-results-${archive.exam_title}.xlsx`);
+    };
+
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             {/* Sidebar */}
@@ -114,7 +151,17 @@ const ExamArchiveDetail = () => {
                         <FaChevronRight className="mx-2" />
                         <span className="font-medium text-gray-800">{archive?.exam_title || "Archive"}</span>
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900">Exam Archive Details</h2>
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-3xl font-bold text-gray-900">Exam Archive Details</h2>
+                        <div className="flex gap-2">
+                            <button onClick={handleDownloadPdf} className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2">
+                                <FaFilePdf /> PDF
+                            </button>
+                            <button onClick={handleDownloadExcel} className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center gap-2">
+                                <FaFileExcel /> Excel
+                            </button>
+                        </div>
+                    </div>
                 </header>
 
                 {loading ? <p>Loading...</p> : (

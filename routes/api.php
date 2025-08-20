@@ -103,6 +103,12 @@ Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_stude
 
 Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_students_score']);
 
+// Export student scores
+Route::get('/export-student-scores/{course_id}', [Instructor::class, 'export_student_scores']);
+
+// Get student scores for course (enhanced data for display)
+Route::get('/student-scores-for-course/{course_id}', [Instructor::class, 'get_student_scores_for_course']);
+
 Route::post('/student-submit-exam/{course_id}/{candidate_id}', [Instructor::class, 'student_submit_exam']);
 
 Route::patch('/edit-question/{question_id}', [Instructor::class, 'edit_question']);
