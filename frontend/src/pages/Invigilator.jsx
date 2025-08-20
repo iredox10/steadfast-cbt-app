@@ -22,7 +22,7 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
-// import logo from "../../assets/buk.png";
+import logo from "../../public/assets/buk.png";
 
 const Invigilator = () => {
     const { id } = useParams();
