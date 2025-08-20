@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaFilePdf, FaFileExcel } from "react-icons/fa";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { format } from "date-fns";
 
 const InstructorStudents = () => {
     const { userId, courseId } = useParams();
@@ -57,6 +61,43 @@ const InstructorStudents = () => {
     const totalPages = Math.ceil((filteredStudents.length || 0) / itemsPerPage);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+    const handleDownloadPdf = () => {
+        const doc = new jsPDF();
+        doc.text(`Student List for ${course?.title}`, 14, 15);
+        doc.text(`Date: ${format(new Date(), 'PPP')}`, 14, 22);
+
+        autoTable(doc, {
+            startY: 30,
+            head: [['S/N', 'Full Name', 'Candidate No.', 'Programme', 'Department', 'Score']],
+            body: filteredStudents.map((student, index) => [
+                index + 1,
+                student.full_name,
+                student.candidate_no,
+                student.programme,
+                student.department,
+                student.score
+            ]),
+        });
+
+        doc.save(`student-list-${course?.title}.pdf`);
+    };
+
+    const handleDownloadExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet(
+            filteredStudents.map((student, index) => ({
+                'S/N': index + 1,
+                'Full Name': student.full_name,
+                'Candidate No.': student.candidate_no,
+                'Programme': student.programme,
+                'Department': student.department,
+                'Score': student.score
+            }))
+        );
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+        XLSX.writeFile(workbook, `student-list-${course?.title}.xlsx`);
+    };
 
     // Handle loading states
     if (studentsLoading || scoresLoading) {
@@ -172,6 +213,12 @@ const InstructorStudents = () => {
                             />
                             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         </div>
+                        <button onClick={handleDownloadPdf} className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2">
+                            <FaFilePdf /> PDF
+                        </button>
+                        <button onClick={handleDownloadExcel} className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center gap-2">
+                            <FaFileExcel /> Excel
+                        </button>
                     </div>
                 </header>
 
