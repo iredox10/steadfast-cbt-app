@@ -208,8 +208,12 @@ const Student = () => {
             { label: "D", value: question.option_d, type: "d" },
         ];
 
-        // Filter out any options that might be null or empty
-        const validOptions = options.filter(option => option.value && option.value.trim() !== '');
+        // Filter out any options that might be null, empty, or default placeholder values
+        const validOptions = options.filter(option => 
+            option.value && 
+            option.value.trim() !== '' && 
+            !option.value.toLowerCase().includes('default option')
+        );
 
         const shuffled = shuffleArray(validOptions);
 
