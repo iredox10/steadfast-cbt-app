@@ -140,30 +140,85 @@ class Student extends Controller
     {
         try {
             $exam = Exam::where('activated', 'yes')->first();
+            
+            // Check if there's an active exam
+            if (!$exam) {
+                return response()->json([
+                    'message' => 'No active exam found'
+                ], 404);
+            }
+            
             $questions = $exam->questions;
             
+            // Filter out questions with empty or null required fields
+            $validQuestions = $questions->filter(function ($question) {
+                return !empty($question->question) && 
+                       !empty($question->correct_answer) &&
+                       !empty($question->option_a) && 
+                       !empty($question->option_b) && 
+                       !empty($question->option_c) && 
+                       !empty($question->option_d);
+            });
+            
             // Shuffle the questions collection
-            $shuffledQuestions = $questions->shuffle();
+            $shuffledQuestions = $validQuestions->shuffle();
+            
+            // Ensure all question properties are properly loaded
+            $questionsWithAnswers = $shuffledQuestions->map(function ($question) {
+                return [
+                    'id' => $question->id,
+                    'question' => $question->question,
+                    'exam_id' => $question->exam_id,
+                    'user_id' => $question->user_id,
+                    'correct_answer' => $question->correct_answer,
+                    'option_a' => $question->option_a,
+                    'option_b' => $question->option_b,
+                    'option_c' => $question->option_c,
+                    'option_d' => $question->option_d,
+                ];
+            });
             
             $data = [
                 'exam' => $exam,
-                'questions' => $shuffledQuestions->values()->all() // Reset array keys after shuffling
+                'questions' => $questionsWithAnswers->values()->all() // Reset array keys after shuffling
             ];
             
             return response()->json($data, 200);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch exam data',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
-    public function get_question($question_id)
+    public function get_question($question_id = null)
     {
-        $question;
-        if ($question_id) {
-            $question = Question::findOrFail($question_id);
+        try {
+            $question = null;
+            if ($question_id) {
+                $question = Question::findOrFail($question_id);
+            } else {
+                $question = Question::inRandomOrder()->first();
+            }
+            
+            // Ensure all question properties are properly returned
+            $questionData = [
+                'id' => $question->id,
+                'question' => $question->question,
+                'exam_id' => $question->exam_id,
+                'user_id' => $question->user_id,
+                'correct_answer' => $question->correct_answer,
+                'option_a' => $question->option_a,
+                'option_b' => $question->option_b,
+                'option_c' => $question->option_c,
+                'option_d' => $question->option_d,
+            ];
+            
+            return response()->json($questionData, 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-        $question = \App\Models\Question::inRandomOrder()->first();
-        return response()->json($question, 200);
     }
 
     public function add_course(Request $request, $student_id)

@@ -8,9 +8,20 @@ import { parseDuration } from "../../utils/parseDuration";
 import Model from "../components/Model";
 import { FaTimes, FaTimesCircle, FaBook, FaUser, FaClock, FaGraduationCap, FaPaperPlane, FaExclamationTriangle } from "react-icons/fa";
 
+// Simple test component to verify rendering
+const TestComponent = () => {
+    return (
+        <div style={{position: 'fixed', top: 0, left: 0, backgroundColor: 'red', color: 'white', padding: '10px', zIndex: 9999}}>
+            Test Component Rendered
+        </div>
+    );
+};
+
 const Student = () => {
+    console.log('Student component constructor called');
+    
     const { studentId } = useParams();
-    const { data, loading } = useFetch(`/get-student-exam`);
+    const { data, loading, err } = useFetch(`/get-student-exam`);
     const [answers, setAnswers] = useState([]);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
@@ -27,8 +38,89 @@ const Student = () => {
 
     const navigate = useNavigate();
 
+    // Debug logging for all state variables
+    console.log('=== Student component render ===');
+    console.log('studentId:', studentId);
+    console.log('data:', data);
+    console.log('loading:', loading);
+    console.log('err:', err);
+    console.log('student:', student);
+
+    // Check for JavaScript errors
+    try {
+        // Get current question
+        const currentQuestion = data?.questions?.[questionIndexToShow];
+        console.log('currentQuestion:', currentQuestion);
+        console.log('questionIndexToShow:', questionIndexToShow);
+        console.log('Total questions:', data?.questions?.length);
+
+        // Generate a unique key for localStorage based on student and exam
+        const localStorageKey = `exam_answers_${studentId}_${data?.exam?.id || 'unknown'}`;
+        console.log('localStorageKey:', localStorageKey);
+    } catch (error) {
+        console.error('Error in component rendering:', error);
+    }
+
+    // Debug logging for all state variables
+    console.log('Student component state:', {
+        studentId,
+        data,
+        loading,
+        err,
+        student,
+        answers,
+        selectedAnswers,
+        questionIndexToShow,
+        activeButton
+    });
+
+    // Get current question
+    const currentQuestion = data?.questions?.[questionIndexToShow];
+    console.log('Current question:', currentQuestion);
+    console.log('Question index to show:', questionIndexToShow);
+    console.log('Total questions:', data?.questions?.length);
+
     // Generate a unique key for localStorage based on student and exam
     const localStorageKey = `exam_answers_${studentId}_${data?.exam?.id || 'unknown'}`;
+
+    // Load saved answers from localStorage on component mount
+    useEffect(() => {
+        console.log('Checking for saved data with:', {
+            examId: data?.exam?.id,
+            studentId,
+            localStorageKey
+        });
+
+        if (data?.exam?.id && studentId) {
+            const savedData = localStorage.getItem(localStorageKey);
+            console.log('Found saved data:', savedData);
+
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    console.log('Parsed saved data:', parsedData);
+
+                    // Only load saved data if it's for the same exam
+                    if (parsedData.examId === data?.exam?.id) {
+                        setAnswers(parsedData.answers || []);
+                        setSelectedAnswers(parsedData.selectedAnswers || {});
+                        setClickedBtns(parsedData.clickedBtns || []);
+                        setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
+                        setActiveButton(parsedData.activeButton || 0);
+                        setShuffledOptions(parsedData.shuffledOptions || {});
+                        console.log("Loaded saved exam data from localStorage");
+                    } else {
+                        console.log("Saved data is for a different exam, clearing it");
+                        localStorage.removeItem(localStorageKey);
+                    }
+                } catch (error) {
+                    console.error("Error parsing saved exam data:", error);
+                    // Clear invalid data
+                    localStorage.removeItem(localStorageKey);
+                }
+            }
+        }
+    }, [data?.exam?.id, studentId, localStorageKey]);
 
     // Load saved answers from localStorage on component mount
     useEffect(() => {
@@ -57,6 +149,7 @@ const Student = () => {
     useEffect(() => {
         if (data?.exam?.id && studentId) {
             const examData = {
+                examId: data?.exam?.id, // Include examId for validation
                 answers,
                 selectedAnswers,
                 clickedBtns,
@@ -69,7 +162,28 @@ const Student = () => {
         }
     }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, data?.exam?.id, studentId, localStorageKey]);
 
-    // Function to shuffle array (Fisher-Yates shuffle)
+    // Load saved answers from localStorage on component mount
+    useEffect(() => {
+        if (data?.exam?.id && studentId) {
+            const savedData = localStorage.getItem(localStorageKey);
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    setAnswers(parsedData.answers || []);
+                    setSelectedAnswers(parsedData.selectedAnswers || {});
+                    setClickedBtns(parsedData.clickedBtns || []);
+                    setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
+                    setActiveButton(parsedData.activeButton || 0);
+                    setShuffledOptions(parsedData.shuffledOptions || {});
+                    console.log("Loaded saved exam data from localStorage");
+                } catch (error) {
+                    console.error("Error parsing saved exam data:", error);
+                    // Clear invalid data
+                    localStorage.removeItem(localStorageKey);
+                }
+            }
+        }
+    }, [data?.exam?.id, studentId, localStorageKey]);
     const shuffleArray = (array) => {
         const newArray = [...array];
         for (let i = newArray.length - 1; i > 0; i--) {
@@ -78,6 +192,74 @@ const Student = () => {
         }
         return newArray;
     };
+    const getShuffledOptions = (question) => {
+        if (!question) return [];
+
+        // If we already have shuffled options for this question, return them
+        if (shuffledOptions[question.id]) {
+            return shuffledOptions[question.id];
+        }
+
+        // Create new shuffled options for this question
+        const options = [
+            { label: "A", value: question.option_a, type: "a" },
+            { label: "B", value: question.option_b, type: "b" },
+            { label: "C", value: question.option_c, type: "c" },
+            { label: "D", value: question.option_d, type: "d" },
+        ];
+
+        // Filter out any options that might be null or empty
+        const validOptions = options.filter(option => option.value && option.value.trim() !== '');
+
+        const shuffled = shuffleArray(validOptions);
+
+        // Store the shuffled options
+        setShuffledOptions(prev => ({
+            ...prev,
+            [question.id]: shuffled
+        }));
+
+        return shuffled;
+    };
+
+    // Get shuffled options for current question (consistent order)
+    const currentShuffledOptions = currentQuestion ? getShuffledOptions(currentQuestion) : [];
+
+    // Handle keyboard navigation for options
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Only handle key events when we have a current question
+            if (!currentQuestion) return;
+
+            const currentOptions = getShuffledOptions(currentQuestion);
+
+            // Handle number keys 1-4 for options A-D
+            if (e.key >= '1' && e.key <= '4') {
+                const optionIndex = parseInt(e.key) - 1;
+                if (optionIndex < currentOptions.length) {
+                    const selectedOption = currentOptions[optionIndex];
+                    handleAnswer(
+                        selectedOption.type,
+                        currentQuestion.id,
+                        currentQuestion.question,
+                        selectedOption.value
+                    );
+                }
+            }
+
+            // Handle arrow keys for navigation
+            if (e.key === 'ArrowRight') {
+                handleNext();
+            } else if (e.key === 'ArrowLeft') {
+                handlePrev();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [currentQuestion, questionIndexToShow, activeButton]);
 
     useEffect(() => {
         const fetch = async () => {
@@ -108,73 +290,17 @@ const Student = () => {
     }, [data]);
 
     // Function to get or create shuffled options for a question
-    const getShuffledOptions = (question) => {
-        if (!question) return [];
-
-        // If we already have shuffled options for this question, return them
-        if (shuffledOptions[question.id]) {
-            return shuffledOptions[question.id];
-        }
-
-        // Create new shuffled options for this question
-        const options = [
-            { label: "A", value: question.option_a, type: "a" },
-            { label: "B", value: question.option_b, type: "b" },
-            { label: "C", value: question.option_c, type: "c" },
-            { label: "D", value: question.option_d, type: "d" },
-        ];
-
-        const shuffled = shuffleArray(options);
-
-        // Store the shuffled options
-        setShuffledOptions(prev => ({
-            ...prev,
-            [question.id]: shuffled
-        }));
-
-        return shuffled;
-    };
-
     const handleAnswer = (optionType, questionId, question, answer) => {
         setSelectedAnswers((prev) => ({
             ...prev,
             [questionId]: answer,
         }));
 
-        setAnswers((prev) => {
-            const existingAnswerIndex = prev.findIndex(
-                (ans) => ans.question_id === questionId
-            );
-
-            if (existingAnswerIndex !== -1) {
-                const updatedAnswers = [...prev];
-                updatedAnswers[existingAnswerIndex] = {
-                    ...updatedAnswers[existingAnswerIndex],
-                    answer: answer,
-                    question: question,
-                };
-                return updatedAnswers;
-            } else {
-                return [
-                    ...prev,
-                    {
-                        question_id: questionId,
-                        answer: answer,
-                        question: question,
-                    },
-                ];
-            }
-        });
-
-        if (!clickedBtns.includes(questionIndexToShow)) {
-            setClickedBtns((prev) => [...prev, questionIndexToShow]);
-        }
-    };
-
-    const getPlainText = (htmlString) => {
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = htmlString;
-        return tempDiv.textContent || tempDiv.innerText || "";
+        const getPlainText = (htmlString) => {
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = htmlString;
+            return tempDiv.textContent || tempDiv.innerText || "";
+        };
     };
 
     const handleSubmit = async (timeUp = false) => {
@@ -225,18 +351,54 @@ const Student = () => {
         }
     };
 
-    // Get current question
-    const currentQuestion = data?.questions?.[questionIndexToShow];
-
-    // Get shuffled options for current question (consistent order)
-    const currentShuffledOptions = currentQuestion ? getShuffledOptions(currentQuestion) : [];
-
     if (loading) {
+        console.log('Component is loading...');
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading exam...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Check if we have data
+    if (!data) {
+        console.log('No data available');
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-600">No exam data available.</p>
+                    {err && <p className="text-red-600 mt-2">Error: {err}</p>}
+                </div>
+            </div>
+        );
+    }
+
+    console.log('Rendering main content with data:', data);
+
+    // Check if we have the required data structure
+    if (!data.exam || !data.questions || !Array.isArray(data.questions)) {
+        console.log('Incomplete data structure:', data);
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-600">Incomplete exam data.</p>
+                    {err && <p className="text-red-600 mt-2">Error: {err}</p>}
+                </div>
+            </div>
+        );
+    }
+
+    // Check if we have questions
+    if (data.questions.length === 0) {
+        console.log('No valid questions available');
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-600">No valid questions available for this exam.</p>
+                    <p className="text-gray-500 text-sm mt-2">Please contact your instructor to add valid questions to the exam.</p>
                 </div>
             </div>
         );
@@ -319,7 +481,7 @@ const Student = () => {
                                 Question Navigator
                             </h3>
                             <div className="grid grid-cols-5 gap-2">
-                                {data?.questions ? data.questions.map((question, index) => (
+                                {data?.questions && data.questions.length > 0 ? data.questions.map((question, index) => (
                                     <button
                                         key={index}
                                         onClick={() => handleClick(index)}
@@ -339,7 +501,7 @@ const Student = () => {
                                     </button>
                                 )) : (
                                     <div className="col-span-5 text-center py-4 text-gray-500">
-                                        Loading questions...
+                                        {data?.questions ? "No questions available" : "Loading questions..."}
                                     </div>
                                 )}
                             </div>
@@ -380,8 +542,8 @@ const Student = () => {
                                             onClick={() => handlePrev()}
                                             disabled={questionIndexToShow === 0}
                                             className={`px-4 py-2 rounded-lg font-medium text-sm ${questionIndexToShow === 0
-                                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                                 }`}
                                         >
                                             Previous
@@ -390,8 +552,8 @@ const Student = () => {
                                             onClick={() => handleNext()}
                                             disabled={questionIndexToShow === (data?.questions?.length || 0) - 1}
                                             className={`px-4 py-2 rounded-lg font-medium text-sm ${questionIndexToShow === (data?.questions?.length || 0) - 1
-                                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-blue-600 text-white hover:bg-blue-700"
                                                 }`}
                                         >
                                             Next
@@ -402,70 +564,76 @@ const Student = () => {
 
                             {/* Question Content */}
                             <div className="p-6">
-                                {currentQuestion ? (
-                                    <div className="space-y-6">
-                                        {/* Question Text */}
-                                        <div
-                                            className="text-gray-800 text-lg leading-relaxed"
-                                            dangerouslySetInnerHTML={{
-                                                __html: currentQuestion.question,
-                                            }}
-                                        />
+                                {data?.questions && data.questions.length > 0 ? (
+                                    currentQuestion ? (
+                                        <div className="space-y-6">
+                                            {/* Question Text */}
+                                            <div
+                                                className="text-gray-800 text-lg leading-relaxed"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: currentQuestion.question,
+                                                }}
+                                            />
 
-                                        {/* Answer Options */}
-                                        <div className="space-y-3">
-                                            {currentShuffledOptions.map((option, idx) => {
-                                                const isSelected = selectedAnswers[currentQuestion.id] === option.value;
+                                            {/* Answer Options */}
+                                            <div className="space-y-3">
+                                                {currentShuffledOptions.map((option, idx) => {
+                                                    const isSelected = selectedAnswers[currentQuestion.id] === option.value;
 
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        onClick={() =>
-                                                            handleAnswer(
-                                                                option.type,
-                                                                currentQuestion.id,
-                                                                currentQuestion.question,
-                                                                option.value
-                                                            )
-                                                        }
-                                                        className={`
-                                                            flex items-center gap-4 p-4 rounded-xl border
-                                                            transition-all duration-200 cursor-pointer
-                                                            ${isSelected
-                                                                ? 'bg-blue-100 border-blue-500 shadow-sm'
-                                                                : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                            }
-                                                        `}
-                                                    >
-                                                        <span className={`
-                                                            w-8 h-8 flex items-center justify-center rounded-full border font-medium
-                                                            ${isSelected
-                                                                ? 'border-blue-600 bg-blue-600 text-white'
-                                                                : 'border-gray-300 text-gray-600'
-                                                            }
-                                                        `}>
-                                                            {option.label}
-                                                        </span>
+                                                    return (
                                                         <div
+                                                            key={idx}
+                                                            onClick={() =>
+                                                                handleAnswer(
+                                                                    option.type,
+                                                                    currentQuestion.id,
+                                                                    currentQuestion.question,
+                                                                    option.value
+                                                                )
+                                                            }
                                                             className={`
-                                                                flex-1
+                                                                flex items-center gap-4 p-4 rounded-xl border
+                                                                transition-all duration-200 cursor-pointer
                                                                 ${isSelected
-                                                                    ? 'text-blue-800 font-medium'
-                                                                    : 'text-gray-700'
+                                                                    ? 'bg-blue-100 border-blue-500 shadow-sm'
+                                                                    : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                                                 }
                                                             `}
-                                                            dangerouslySetInnerHTML={{
-                                                                __html: option.value,
-                                                            }}
-                                                        />
-                                                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                                            Press '{idx + 1}'
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })}
+                                                        >
+                                                            <span className={`
+                                                                w-8 h-8 flex items-center justify-center rounded-full border font-medium
+                                                                ${isSelected
+                                                                    ? 'border-blue-600 bg-blue-600 text-white'
+                                                                    : 'border-gray-300 text-gray-600'
+                                                                }
+                                                            `}>
+                                                                {option.label}
+                                                            </span>
+                                                            <div
+                                                                className={`
+                                                                    flex-1
+                                                                    ${isSelected
+                                                                        ? 'text-blue-800 font-medium'
+                                                                        : 'text-gray-700'
+                                                                    }
+                                                                `}
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: option.value,
+                                                                }}
+                                                            />
+                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                                                Press '{option.label}'
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-600">No question available.</p>
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="text-center py-12">
                                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>

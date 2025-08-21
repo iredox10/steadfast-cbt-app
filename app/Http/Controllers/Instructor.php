@@ -161,9 +161,10 @@ class Instructor extends Controller
         $validate = request()->validate([
             'question' => 'string | required',
             'correct_answer' => 'string | required',
+            'option_a' => 'string | required',
             'option_b' => 'string | required',
-            'option_c' => 'string | nullable',
-            'option_d' => 'string | nullable',
+            'option_c' => 'string | required',
+            'option_d' => 'string | required',
         ]);
         try {
             $user = User::findOrFail($user_id);
@@ -172,9 +173,10 @@ class Instructor extends Controller
 
             $question->question = $validate['question'];
             $question->correct_answer = $validate['correct_answer'];
+            $question->option_a = $validate['option_a'];
             $question->option_b = $validate['option_b'];
-            $question->option_c = $validate['option_c'] ?? null;
-            $question->option_d = $validate['option_d'] ?? null;
+            $question->option_c = $validate['option_c'];
+            $question->option_d = $validate['option_d'];
 
             $question->save();
 
@@ -186,6 +188,7 @@ class Instructor extends Controller
                     'course_id' => $course_id,
                     'question' => $question->question,
                     'correct_answer' => $question->correct_answer,
+                    'option_a' => $question->option_a,
                     'option_b' => $question->option_b,
                     'option_c' => $question->option_c,
                     'option_d' => $question->option_d,
@@ -198,6 +201,10 @@ class Instructor extends Controller
             }
 
             return response()->json($question, 201);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage(), 500);
+        }
+    }
 
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 400);

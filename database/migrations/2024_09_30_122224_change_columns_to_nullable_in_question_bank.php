@@ -11,14 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('question_bank', function (Blueprint $table) {
-            //
-            $table->string('file_img')->nullable()->change();
-            $table->string('std_a')->nullable()->change();
-            $table->string('std_b')->nullable()->change();
-            $table->string('std_c')->nullable()->change();
-            $table->string('std_d')->nullable()->change();
-        });
+        // Check if the table exists before trying to modify it
+        if (Schema::hasTable('question_banks')) {
+            Schema::table('question_banks', function (Blueprint $table) {
+                // Only modify columns that exist in the table
+                if (Schema::hasColumn('question_banks', 'option_c')) {
+                    $table->string('option_c')->nullable()->change();
+                }
+                if (Schema::hasColumn('question_banks', 'option_d')) {
+                    $table->string('option_d')->nullable()->change();
+                }
+            });
+        }
     }
 
     /**
@@ -26,13 +30,17 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('question_bank', function (Blueprint $table) {
-            //
-            $table->string('file_img')->nullable(false)->change();
-            $table->string('std_a')->nullable(false)->change();
-            $table->string('std_b')->nullable(false)->change();
-            $table->string('std_c')->nullable(false)->change();
-            $table->string('std_d')->nullable(false)->change();
-        });
+        // Check if the table exists before trying to modify it
+        if (Schema::hasTable('question_banks')) {
+            Schema::table('question_banks', function (Blueprint $table) {
+                // Only modify columns that exist in the table
+                if (Schema::hasColumn('question_banks', 'option_c')) {
+                    $table->string('option_c')->nullable(false)->change();
+                }
+                if (Schema::hasColumn('question_banks', 'option_d')) {
+                    $table->string('option_d')->nullable(false)->change();
+                }
+            });
+        }
     }
 };
