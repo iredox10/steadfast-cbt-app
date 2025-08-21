@@ -293,18 +293,39 @@ const Student = () => {
         }
     }, [data]);
 
-    // Function to get or create shuffled options for a question
+    // Function to handle answer selection
     const handleAnswer = (optionType, questionId, question, answer) => {
+        // Update selected answers
         setSelectedAnswers((prev) => ({
             ...prev,
             [questionId]: answer,
         }));
 
-        const getPlainText = (htmlString) => {
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = htmlString;
-            return tempDiv.textContent || tempDiv.innerText || "";
-        };
+        // Update answers array
+        setAnswers((prev) => {
+            const existingAnswerIndex = prev.findIndex(a => a.question_id === questionId);
+            const newAnswer = {
+                question_id: questionId,
+                question: question,
+                answer: answer,
+                answer_type: optionType
+            };
+
+            if (existingAnswerIndex >= 0) {
+                // Update existing answer
+                const newAnswers = [...prev];
+                newAnswers[existingAnswerIndex] = newAnswer;
+                return newAnswers;
+            } else {
+                // Add new answer
+                return [...prev, newAnswer];
+            }
+        });
+
+        // Add to clicked buttons if not already there
+        if (!clickedBtns.includes(questionId)) {
+            setClickedBtns(prev => [...prev, questionId]);
+        }
     };
 
     const handleSubmit = async (timeUp = false) => {

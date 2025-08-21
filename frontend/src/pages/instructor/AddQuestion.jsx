@@ -81,12 +81,16 @@ const AddQuestion = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!question || options.length === 0) {
-            setError("Question and at least one option are required");
+        if (!question) {
+            setError("Question is required");
             return;
         }
         if (options.length < 2) {
-            setError("At least 2 options are required");
+            setError("Minimum 2 options are required");
+            return;
+        }
+        if (options.length > 4) {
+            setError("Maximum 4 options are allowed");
             return;
         }
         setError("");
@@ -94,8 +98,9 @@ const AddQuestion = () => {
         // Use the first option as the correct answer
         const correctAnswer = options[0];
         
-        // Map options to the required format
+        // Map options to the required format, including option_a
         const optionMap = {
+            option_a: options[0] || "", // The correct answer is also option_a
             option_b: options[1] || "",
             option_c: options[2] || "",
             option_d: options[3] || ""
@@ -338,10 +343,14 @@ const AddQuestion = () => {
                                             Answer Options
                                         </h2>
                                         <p className="text-sm text-gray-500">
-                                            Options for this question
+                                            Options for this question (min: 2, max: 4)
                                         </p>
                                     </div>
-                                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                                        options.length < 2 ? 'bg-red-100 text-red-800' :
+                                        options.length > 4 ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-green-100 text-green-800'
+                                    }`}>
                                         {options?.length || 0} options
                                     </span>
                                 </div>

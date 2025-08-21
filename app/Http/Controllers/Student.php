@@ -140,55 +140,32 @@ class Student extends Controller
     {
         try {
             $exam = Exam::where('activated', 'yes')->first();
-            
-            // Check if there's an active exam
             if (!$exam) {
-                return response()->json([
-                    'message' => 'No active exam found'
-                ], 404);
+                return response()->json(['error' => 'No active exam found'], 404);
             }
-            
-            $questions = $exam->questions;
-            
-            // Filter out questions with empty or null required fields
-            $validQuestions = $questions->filter(function ($question) {
-                return !empty($question->question) && 
-                       !empty($question->correct_answer) &&
-                       !empty($question->option_a) && 
-                       !empty($question->option_b) && 
-                       !empty($question->option_c) && 
-                       !empty($question->option_d);
-            });
-            
-            // Shuffle the questions collection
+
+            // Get questions that are considered valid for the exam.
+            $validQuestions = $exam->questions()
+                ->whereNotNull('question')
+                ->whereNotNull('correct_answer')
+                ->whereNotNull('option_b')
+                ->get();
+
+            // Shuffle the valid questions.
             $shuffledQuestions = $validQuestions->shuffle();
             
-            // Ensure all question properties are properly loaded
-            $questionsWithAnswers = $shuffledQuestions->map(function ($question) {
-                return [
-                    'id' => $question->id,
-                    'question' => $question->question,
-                    'exam_id' => $question->exam_id,
-                    'user_id' => $question->user_id,
-                    'correct_answer' => $question->correct_answer,
-                    'option_a' => $question->option_a,
-                    'option_b' => $question->option_b,
-                    'option_c' => $question->option_c,
-                    'option_d' => $question->option_d,
-                ];
-            });
+            // The original $exam object might still have the full (unfiltered) list of questions if they were loaded before.
+            // Let's create a clean response.
+            $examResponse = $exam->toArray();
             
             $data = [
-                'exam' => $exam,
-                'questions' => $questionsWithAnswers->values()->all() // Reset array keys after shuffling
+                'exam' => $examResponse,
+                'questions' => $shuffledQuestions->values()->all()
             ];
             
             return response()->json($data, 200);
         } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to fetch exam data',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json($e->getMessage());
         }
     }
 
