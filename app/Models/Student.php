@@ -60,4 +60,12 @@ class Student extends Model
     {
         return $this->hasMany(Candidate::class, 'student_id');
     }
+
+    /**
+     * Get the exam scores for the student.
+     */
+    public function examScores()
+    {
+        return $this->hasMany(StudentExamScore::class);
+    }
 }

@@ -282,21 +282,27 @@ class Admin extends Controller
             $exam = Exam::findOrFail($exam_id);
             $course = Course::findOrFail($exam->course_id);
 
-            // Get all students who took this exam with their scores
+            // Get all students who took this exam with their scores from student_exam_score table
             $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
                 $query->where('exam_id', $exam_id);
             })
-            ->with(['candidates' => function($query) use ($exam_id) {
-                $query->where('exam_id', $exam_id);
-            }])
+            ->with([
+                'candidates' => function($query) use ($exam_id) {
+                    $query->where('exam_id', $exam_id);
+                },
+                'examScores' => function($query) use ($exam) {
+                    $query->where('course_id', $exam->course_id);
+                }
+            ])
             ->get()
             ->map(function ($student) {
                 $candidate = $student->candidates->first();
+                $examScore = $student->examScores->first();
                 return [
                     'student_id' => $student->id,
                     'candidate_no' => $student->candidate_no,
                     'full_name' => $student->full_name,
-                    'score' => $candidate ? $candidate->score : 0,
+                    'score' => $examScore ? $examScore->score : 0,
                     'submission_time' => $candidate ? $candidate->created_at : null,
                 ];
             })
