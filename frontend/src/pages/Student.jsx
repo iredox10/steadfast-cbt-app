@@ -294,12 +294,49 @@ const Student = () => {
     }, [data]);
 
     // Function to handle answer selection
-    const handleAnswer = (optionType, questionId, question, answer) => {
+    const handleAnswer = async (optionType, questionId, question, answer) => {
+        // Log the selected answer details
+        console.log('Answer selected:', { 
+            optionType,
+            questionId,
+            question,
+            answer,
+            courseId: data?.exam?.course_id
+        });
+        
         // Update selected answers
         setSelectedAnswers((prev) => ({
             ...prev,
             [questionId]: answer,
         }));
+
+        try {
+            // Make the API call to check if answer is correct
+            const response = await axios.post(`${path}/answer-question/${studentId}/${questionId}/${data?.exam?.course_id}`, {
+                selected_answer: answer,
+                question: question
+            });
+            
+            // Log the complete response for debugging
+            console.log('Answer submission response:', response.data);
+            
+            // Log if answer was correct with more details
+            if (response.data.is_correct) {
+                console.log('%c ✓ Correct Answer!', 'color: green; font-weight: bold; font-size: 14px;', {
+                    questionId,
+                    selectedAnswer: answer,
+                    response: response.data
+                });
+            } else {
+                console.log('%c ✗ Incorrect Answer', 'color: red; font-weight: bold; font-size: 14px;', {
+                    questionId,
+                    selectedAnswer: answer,
+                    response: response.data
+                });
+            }
+        } catch (error) {
+            console.error('Error submitting answer:', error);
+        }
 
         // Update answers array
         setAnswers((prev) => {
@@ -332,10 +369,15 @@ const Student = () => {
         try {
             // First, submit each answer individually
             for (const answer of answers) {
+                console.log('Submitting answer:', {
+                    question_id: answer.question_id,
+                    selected_answer: answer.answer,
+                    course_id: data?.exam?.course_id
+                });
+                
                 await axios.post(`${path}/answer-question/${studentId}/${answer.question_id}/${data?.exam?.course_id}`, {
                     selected_answer: answer.answer,
-                    question: answer.question,
-                    course_id: data?.exam?.course_id
+                    question: answer.question
                 });
             }
 

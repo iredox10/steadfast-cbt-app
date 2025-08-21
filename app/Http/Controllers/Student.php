@@ -223,37 +223,50 @@ class Student extends Controller
     public function answer_question($student_id, $question_Id, $course_id)
     {
         try {
-            $question = Question::findOrFail($question_Id);
-            $answeredQuestion = strip_tags($question->question);
-            $correct_answer = strip_tags($question->correct_answer);
-            $answer;
+            \Illuminate\Support\Facades\Log::info('Answer Question Request', [
+                'student_id' => $student_id,
+                'question_id' => $question_Id,
+                'course_id' => $course_id,
+                'request_data' => request()->all()
+            ]);
 
-            if (html_entity_decode($correct_answer) === request('selected_answer')) {
-                $answer = Answers::updateOrCreate(
-                    [
-                        'question_id' => $question_Id,
-                        'candidate_id' => $student_id,
-                    ],
-                    [
-                        'is_correct' => true,
-                        'question' => request('question'),
-                        'choice' => request('selected_answer'),
-                        'course_id' => request('course_id'),
-                        'answered' => true,
-                    ]
-                );
-                return response()->json($answer);
-            }
+            $question = Question::findOrFail($question_Id);
+            $selected_answer = request('selected_answer');
+
+            // Clean and normalize both answers for comparison
+            $correct_answer = $question->correct_answer;
+            $selected_answer_clean = $selected_answer;
+
+            // Remove HTML tags and decode entities for both answers
+            $correct_answer_clean = html_entity_decode(strip_tags($correct_answer));
+            $selected_answer_clean = html_entity_decode(strip_tags($selected_answer));
+
+            // Trim whitespace and convert to lowercase for comparison
+            $correct_answer_clean = trim(strtolower($correct_answer_clean));
+            $selected_answer_clean = trim(strtolower($selected_answer_clean));
+
+            // Log the comparison for debugging
+            \Illuminate\Support\Facades\Log::info('Answer Comparison', [
+                'question_id' => $question_Id,
+                'correct_answer_raw' => $correct_answer,
+                'selected_answer_raw' => $selected_answer,
+                'correct_answer_clean' => $correct_answer_clean,
+                'selected_answer_clean' => $selected_answer_clean
+            ]);
+
+            // Compare the cleaned answers
+            $is_correct = $correct_answer_clean === $selected_answer_clean;
+            
             $answer = Answers::updateOrCreate(
                 [
                     'question_id' => $question_Id,
                     'candidate_id' => $student_id,
                 ],
                 [
-                    'is_correct' => false,
+                    'is_correct' => $is_correct,
                     'question' => request('question'),
-                    'choice' => request('selected_answer'),
-                    'course_id' => request('course_id'),
+                    'choice' => $selected_answer,
+                    'course_id' => $course_id,  // Use the URL parameter
                     'answered' => true,
                 ]
             );
@@ -266,23 +279,73 @@ class Student extends Controller
     public function submit_exam($student_id, $course_id)
     {
         try {
+            // 1. Update student checkout time
             $student = \App\Models\Student::findOrFail($student_id);
-            $student_answered_questions = Answers::where('candidate_id', $student_id)->where('course_id', $course_id)->get();
             $student->checkout_time = now();
             $student->save();
-            
-            // Count correct answers
-            $correct_answers_count = Answers::where('candidate_id', $student_id)
+
+            // 2. Get exam details first
+            $exam = Exam::where('course_id', $course_id)
+                ->where('activated', 'yes')
+                ->first();
+
+            if (!$exam) {
+                throw new \Exception('No active exam found for this course');
+            }
+
+            // 3. Get all answers and calculate score
+            $answers = Answers::where('candidate_id', $student_id)
                 ->where('course_id', $course_id)
-                ->where('is_correct', true)
-                ->count();
-                
+                ->get();
+
+            $correct_answers_count = $answers->where('is_correct', true)->count();
+            $marks_per_question = floatval($exam->marks_per_question);
+            $total_score = $correct_answers_count * $marks_per_question;
+
+            // 4. Log calculation details
+            \Illuminate\Support\Facades\Log::info('Exam Score Calculation', [
+                'student_id' => $student_id,
+                'course_id' => $course_id,
+                'total_questions' => $answers->count(),
+                'correct_answers' => $correct_answers_count,
+                'marks_per_question' => $marks_per_question,
+                'calculated_score' => $total_score,
+                'exam_id' => $exam->id
+            ]);
+
+            // 5. Save the score
+            $score_record = \App\Models\StudentExamScore::updateOrCreate(
+                [
+                    'student_id' => $student_id,
+                    'course_id' => $course_id
+                ],
+                [
+                    'score' => number_format($total_score, 2, '.', ''),
+                    'course_name' => $exam->course->title ?? 'Unknown Course'
+                ]
+            );
+
+            // 6. Log the saved score
+            \Illuminate\Support\Facades\Log::info('Score Saved', [
+                'score_record_id' => $score_record->id,
+                'final_score' => $score_record->score
+            ]);
+
+            // 7. Return success response
             return response()->json([
                 'message' => 'Exam submitted successfully',
-                'answered_questions' => $student_answered_questions,
-                'correct_answers_count' => $correct_answers_count
+                'answered_questions' => $answers,
+                'correct_answers' => $correct_answers_count,
+                'total_score' => $total_score,
+                'score_record' => $score_record
             ], 200);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Exam Submission Error', [
+                'student_id' => $student_id,
+                'course_id' => $course_id,
+                'error' => $e->getMessage()
+            ]);
+
             return response()->json([
                 'error' => 'Failed to submit exam',
                 'message' => $e->getMessage()
