@@ -206,11 +206,6 @@ class Instructor extends Controller
         }
     }
 
-        } catch (Exception $e) {
-            return response()->json($e->getMessage(), 400);
-        }
-    }
-
     public function submitExam(Request $request, $exam_id)
     {
         try {
