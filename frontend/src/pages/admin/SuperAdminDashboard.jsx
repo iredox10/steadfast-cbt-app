@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
-import { FaUsers, FaBook, FaChalkboardTeacher, FaCalendarAlt, FaUserShield, FaCrown, FaEye, FaPlus, FaGraduationCap } from 'react-icons/fa';
+import { FaUsers, FaBook, FaChalkboardTeacher, FaCalendarAlt, FaUserShield, FaCrown, FaEye, FaPlus, FaGraduationCap, FaBuilding } from 'react-icons/fa';
 import { path } from '../../../utils/path';
 import LevelSelector from '../../components/LevelSelector';
 
@@ -13,6 +13,7 @@ const SuperAdminDashboard = () => {
         totalInstructors: 0,
         totalExams: 0,
         totalLevels: 0,
+        totalDepartments: 0,
         activeExams: 0,
         recentActivities: []
     });
@@ -64,17 +65,23 @@ const SuperAdminDashboard = () => {
                 const sessionsRes = await axios.get(`${path}/get-acd-sessions`);
                 console.log('Sessions response:', sessionsRes.data);
 
+                // Fetch departments
+                const departmentsRes = await axios.get(`${path}/departments`, { headers });
+                console.log('Departments response:', departmentsRes.data);
+
                 // Ensure we have arrays before calling .length or .filter
                 const studentsData = Array.isArray(studentsRes.data) ? studentsRes.data : [];
                 const usersData = Array.isArray(usersRes.data) ? usersRes.data : [];
                 const examsData = Array.isArray(examsRes.data) ? examsRes.data : [];
                 const sessionsData = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
+                const departmentsData = Array.isArray(departmentsRes.data) ? departmentsRes.data : [];
 
                 setStats({
                     totalStudents: studentsData.length,
                     totalInstructors: usersData.filter(u => u.role === 'lecturer').length,
                     totalExams: examsData.length,
                     totalLevels: sessionsData.length,
+                    totalDepartments: departmentsData.length,
                     activeExams: examsData.filter(e => e.status === 'active').length,
                     recentActivities: []
                 });
@@ -88,6 +95,7 @@ const SuperAdminDashboard = () => {
                     totalInstructors: 0,
                     totalExams: 0,
                     totalLevels: 0,
+                    totalDepartments: 0,
                     activeExams: 0,
                     recentActivities: []
                 });
@@ -101,6 +109,7 @@ const SuperAdminDashboard = () => {
                 totalInstructors: 0,
                 totalExams: 0,
                 totalLevels: 0,
+                totalDepartments: 0,
                 activeExams: 0,
                 recentActivities: []
             });
@@ -214,7 +223,7 @@ const SuperAdminDashboard = () => {
             )}
 
             {/* Overall Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 <StatCard
                     icon={<FaUsers />}
                     title="Total Students"
@@ -237,13 +246,22 @@ const SuperAdminDashboard = () => {
                     onClick={() => window.location.href = `/admin-exam/${userId}`}
                 />
                 {currentUser?.role === 'super_admin' && (
-                    <StatCard
-                        icon={<FaGraduationCap />}
-                        title="Academic Levels"
-                        value={stats?.totalLevels || 0}
-                        color="yellow"
-                        onClick={() => window.location.href = '/admin-sessions'}
-                    />
+                    <>
+                        <StatCard
+                            icon={<FaBuilding />}
+                            title="Departments"
+                            value={stats?.totalDepartments || 0}
+                            color="orange"
+                            onClick={() => window.location.href = '/department-management'}
+                        />
+                        <StatCard
+                            icon={<FaGraduationCap />}
+                            title="Academic Levels"
+                            value={stats?.totalLevels || 0}
+                            color="yellow"
+                            onClick={() => window.location.href = '/admin-sessions'}
+                        />
+                    </>
                 )}
                 {currentUser?.role === 'level_admin' && (
                     <StatCard
@@ -319,6 +337,17 @@ const SuperAdminDashboard = () => {
 
                     {currentUser?.role === 'super_admin' && (
                         <>
+                            <Link
+                                to="/department-management"
+                                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                <FaBuilding className="mr-3 text-orange-500" />
+                                <div>
+                                    <div className="font-medium">Manage Departments</div>
+                                    <div className="text-sm text-gray-600">Create and manage departments</div>
+                                </div>
+                            </Link>
+
                             <Link
                                 to="/admin-sessions"
                                 className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

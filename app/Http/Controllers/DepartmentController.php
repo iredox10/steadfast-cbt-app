@@ -14,6 +14,148 @@ use Illuminate\Support\Facades\DB;
 class DepartmentController extends Controller
 {
     /**
+     * Get all departments (for REST API)
+     */
+    public function index()
+    {
+        try {
+            $departments = Acd_session::orderBy('title')->get();
+            return response()->json($departments, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Store a new department (for REST API)
+     */
+    public function store(Request $request)
+    {
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255|unique:acd_sessions,title',
+                'description' => 'nullable|string',
+                'head_of_department' => 'nullable|string|max:255',
+                'contact_email' => 'nullable|email|max:255',
+                'contact_phone' => 'nullable|string|max:20'
+            ]);
+
+            $department = Acd_session::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'head_of_department' => $request->head_of_department,
+                'contact_email' => $request->contact_email,
+                'contact_phone' => $request->contact_phone,
+                'status' => 'active'
+            ]);
+
+            return response()->json([
+                'message' => 'Department created successfully',
+                'department' => $department
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Show a specific department (for REST API)
+     */
+    public function show($id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+            return response()->json($department, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Department not found'], 404);
+        }
+    }
+
+    /**
+     * Update a department (for REST API)
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+            
+            $request->validate([
+                'title' => 'required|string|max:255|unique:acd_sessions,title,' . $id,
+                'description' => 'nullable|string',
+                'head_of_department' => 'nullable|string|max:255',
+                'contact_email' => 'nullable|email|max:255',
+                'contact_phone' => 'nullable|string|max:20'
+            ]);
+
+            $department->update([
+                'title' => $request->title,
+                'description' => $request->description,
+                'head_of_department' => $request->head_of_department,
+                'contact_email' => $request->contact_email,
+                'contact_phone' => $request->contact_phone,
+            ]);
+
+            return response()->json([
+                'message' => 'Department updated successfully',
+                'department' => $department
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete a department (for REST API)
+     */
+    public function destroy($id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+            
+            // Check if department has any associated students or users
+            $hasStudents = $department->students()->exists();
+            $hasUsers = $department->users()->exists();
+            
+            if ($hasStudents || $hasUsers) {
+                return response()->json([
+                    'error' => 'Cannot delete department. It has associated students or users.'
+                ], 400);
+            }
+
+            $department->delete();
+            
+            return response()->json([
+                'message' => 'Department deleted successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Toggle department status (for REST API)
+     */
+    public function toggleStatus($id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+            $department->status = $department->status === 'active' ? 'inactive' : 'active';
+            $department->save();
+
+            return response()->json([
+                'message' => 'Department status updated successfully',
+                'department' => $department
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Get all departments
      */
     public function getDepartments()

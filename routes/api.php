@@ -194,13 +194,16 @@ Route::get('/users-by-level', [Admin::class, 'getUsersByLevel'])->middleware(['a
 
 // Department management routes (Super Admin only)
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/departments', [\App\Http\Controllers\DepartmentController::class, 'getDepartments']);
-    Route::get('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'getDepartment']);
-    Route::post('/departments', [\App\Http\Controllers\DepartmentController::class, 'createDepartment']);
-    Route::put('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'updateDepartment']);
-    Route::delete('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'deleteDepartment']);
+    Route::get('/departments', [\App\Http\Controllers\DepartmentController::class, 'index']);
+    Route::get('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'show']);
+    Route::post('/departments', [\App\Http\Controllers\DepartmentController::class, 'store']);
+    Route::put('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'update']);
+    Route::delete('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'destroy']);
+    Route::put('/departments/{id}/toggle-status', [\App\Http\Controllers\DepartmentController::class, 'toggleStatus']);
+    
+    // Legacy department routes (for backward compatibility)
+    Route::get('/departments-legacy', [\App\Http\Controllers\DepartmentController::class, 'getDepartments']);
     Route::get('/departments/{id}/dashboard', [\App\Http\Controllers\DepartmentController::class, 'getDepartmentDashboard']);
-    Route::patch('/departments/{id}/toggle-status', [\App\Http\Controllers\DepartmentController::class, 'toggleDepartmentStatus']);
 });
 
 // Invigilator routes

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { path } from '../../../utils/path';
+import { path } from '../../utils/path';
 import { 
     FaCalendarAlt, 
     FaUsers, 
@@ -162,6 +162,19 @@ const AdminSidebar = ({ userId }) => {
                         className={getLinkClass('admin-management')}
                     >
                         <FaUserShield className="mr-3" /> Admin Management
+                    </Link>
+                )}
+
+                {/* Department Management - Super Admin and Level Admin only */}
+                {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                    <Link 
+                        to="/department-management" 
+                        className={getLinkClass('department-management')}
+                    >
+                        <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm3 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                        </svg>
+                        Departments
                     </Link>
                 )}
             </nav>
