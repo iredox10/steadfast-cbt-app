@@ -68,6 +68,9 @@ class UserController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
         
+        // Load the level relationship
+        $user->load('level');
+        
         return response()->json([
             'id' => $user->id,
             'full_name' => $user->full_name,

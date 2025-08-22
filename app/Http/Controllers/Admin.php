@@ -407,6 +407,14 @@ class Admin extends Controller
     public function register_student(Request $request, $user_id)
     {
         try {
+            // Add validation
+            $request->validate([
+                'candidate_no' => 'required|string|max:50',
+                'full_name' => 'required|string|max:255',
+                'department' => 'required|string|max:255',
+                'programme' => 'required|string|max:255',
+            ]);
+
             $levelId = $this->getAdminLevelFilter($request);
             $user = $request->user();
             
@@ -425,8 +433,13 @@ class Admin extends Controller
                 'level_id' => $levelId
             ]);
             return response()->json($student, 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'error' => 'All fields are required.',
+                'details' => $e->errors()
+            ], 422);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     // public function register_student(Request $request, $user_id)
@@ -728,7 +741,15 @@ class Admin extends Controller
     public function getStudentsByLevel(Request $request)
     {
         try {
+            $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
+            
+            \Log::info('getStudentsByLevel called', [
+                'user_id' => $user ? $user->id : null,
+                'user_role' => $user ? $user->role : null,
+                'user_level_id' => $user ? $user->level_id : null,
+                'level_filter' => $levelFilter
+            ]);
             
             $studentsQuery = Student::query();
             
@@ -737,6 +758,12 @@ class Admin extends Controller
             }
             
             $students = $studentsQuery->orderBy('checkin_time')->get();
+            
+            \Log::info('Students returned', [
+                'count' => $students->count(),
+                'students' => $students->pluck('id', 'full_name')->toArray()
+            ]);
+            
             return response()->json($students);
         } catch (Exception $e) {
             return response()->json([

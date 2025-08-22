@@ -33,10 +33,15 @@ const AdminStudents = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             setCurrentUser(userRes.data);
+            console.log('Current user data:', userRes.data);
 
             // Set initial level for level admin
+            let currentLevel = selectedLevel;
             if (userRes.data.role === 'level_admin' && userRes.data.level_id) {
-                setSelectedLevel(userRes.data.level_id);
+                if (!selectedLevel) {
+                    currentLevel = userRes.data.level_id;
+                    setSelectedLevel(userRes.data.level_id);
+                }
             }
 
             // Get the active exam first
@@ -49,34 +54,38 @@ const AdminStudents = () => {
                 console.log('No active exam or course_id found');
                 
                 // If no active exam, get students based on user level
-                const level = selectedLevel || userRes.data.level_id;
-                let studentsUrl = `${path}/get-students`;
+                // Use the same endpoint as dashboard for consistency
+                let studentsUrl = `${path}/students-by-level`;
                 
                 // For super admins, add level filter if a specific level is selected
-                if (userRes.data.role === 'super_admin' && level) {
-                    studentsUrl += `?level_id=${level}`;
+                if (userRes.data.role === 'super_admin' && currentLevel) {
+                    studentsUrl += `?level_id=${currentLevel}`;
                 }
                 
+                console.log('Fetching students from URL:', studentsUrl);
                 const res = await axios.get(studentsUrl, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 });
+                console.log('Students fetched (no active exam):', res.data);
                 setStudents(res.data);
                 return;
             }
 
             console.log('Fetching students for course:', currentExam.course_id);
             // Get students for the active exam's course, filtered by level
-            const level = selectedLevel || userRes.data.level_id;
             let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
             
             // For super admins, add level filter if a specific level is selected
-            if (userRes.data.role === 'super_admin' && level) {
-                studentsUrl += `?level_id=${level}`;
+            if (userRes.data.role === 'super_admin' && currentLevel) {
+                studentsUrl += `?level_id=${currentLevel}`;
             }
+            
+            console.log('Fetching course students from URL:', studentsUrl);
             
             const res = await axios.get(studentsUrl, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
+            console.log('Students fetched (with active exam):', res.data);
             setStudents(res.data.map(student => ({
                 ...student,
                 exam_id: currentExam.id
@@ -91,19 +100,37 @@ const AdminStudents = () => {
 
     useEffect(() => {
         fetchStudents();
+    }, []); // Remove selectedLevel dependency to avoid multiple calls
+
+    useEffect(() => {
+        // Only refetch when selectedLevel changes and it's not the initial load
+        if (selectedLevel && currentUser) {
+            fetchStudents();
+        }
     }, [selectedLevel]);
 
     const handleAddStudent = async (e) => {
         e.preventDefault();
-        if (!newStudent.full_name || !newStudent.candidate_no || !newStudent.department || !newStudent.programme) {
-            setErrMsg("All fields are required.");
+        
+        // Basic validation for required fields
+        if (!newStudent.full_name || !newStudent.candidate_no) {
+            setErrMsg("Full name and candidate number are required.");
             return;
         }
+
+        // Additional validation for super admin
+        if (currentUser?.role === 'super_admin') {
+            if (!newStudent.department || !newStudent.programme || !selectedLevel) {
+                setErrMsg("All fields including department, programme, and academic session are required.");
+                return;
+            }
+        }
+
         setErrMsg("");
         try {
             const studentData = { 
                 full_name: newStudent.full_name,
-                candidate_no: newStudent.candidate_no,
+                candidate_no: newStudent.candidate_no, // Keep as candidate_no to match backend
                 password: "password", 
                 is_logged_on: "no"
             };
@@ -113,6 +140,7 @@ const AdminStudents = () => {
                 studentData.level_id = currentUser.level_id;
                 studentData.department = currentUser.level?.title || "Department";
                 studentData.programme = currentUser.level?.title || "Programme";
+                console.log('Level admin student data:', studentData);
             } else {
                 // For super admins, use the form data
                 studentData.department = newStudent.department;
@@ -120,16 +148,25 @@ const AdminStudents = () => {
                 if (selectedLevel) {
                     studentData.level_id = selectedLevel;
                 }
+                console.log('Super admin student data:', studentData);
             }
 
             await axios.post(`${path}/register-student/${userId}`, studentData, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
+            
+            console.log('Student added successfully, refreshing list...');
             setShowAddModal(false);
             setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "" });
-            fetchStudents();
+            
+            // Wait a bit for the database to update, then refresh
+            setTimeout(() => {
+                fetchStudents();
+            }, 500);
+            
         } catch (err) {
             console.error("Error adding student:", err);
+            console.error("Error response:", err.response?.data);
             setErrMsg(err.response?.data?.error || "Failed to add student.");
         }
     };
@@ -146,50 +183,21 @@ const AdminStudents = () => {
             return;
         }
 
-        // Get fresh exam data
-        try {
+            // Get the active exam first
             const examRes = await axios.get(`${path}/get-current-exam`);
             const currentExam = examRes.data;
-            console.log('Fresh exam data:', currentExam);
+            setActiveExam(currentExam);
 
-            if (!currentExam || !currentExam.id) {
-                setErrMsg("No active exam found. Please activate an exam first.");
-                return;
+            // Always use /students-by-level for consistency with dashboard
+            let studentsUrl = `${path}/students-by-level`;
+            // For super admins, add level filter if a specific level is selected
+            if (userRes.data.role === 'super_admin' && currentLevel) {
+                studentsUrl += `?level_id=${currentLevel}`;
             }
-
-            const requestData = {
-                student_id: selectedStudent.id,
-                exam_id: currentExam.id,
-                extension_minutes: parseInt(extensionMinutes)
-            };
-
-            console.log('Sending request:', requestData);
-
-            const res = await axios.post(`${path}/extend-time`, requestData);
-
-            console.log('Response:', res.data);
-            setShowExtendTimeModal(false);
-            setExtensionMinutes("");
-            setSelectedStudent(null);
-            await fetchStudents(); // Refresh the student list
-            setErrMsg(""); // Clear any previous errors
-        } catch (error) {
-            console.error('Time extension error:', error);
-            setErrMsg(
-                error.response?.data?.error || 
-                error.response?.data?.message || 
-                "Failed to extend time"
-            );
-        }
-    };
-
-    const handleRegenerateTicket = async (student) => {
-        setErrMsg("");
-
-        if (!student || !student.id) {
-            setErrMsg("Invalid student selected");
-            return;
-        }
+            const res = await axios.get(studentsUrl, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setStudents(res.data);
 
         // Confirm action
         const confirmMessage = `Are you sure you want to regenerate a new ticket for ${student.full_name}?\n\nThis will:\n• Generate a new ticket number\n• Reset their login status\n• Allow them to log in again with the new ticket`;

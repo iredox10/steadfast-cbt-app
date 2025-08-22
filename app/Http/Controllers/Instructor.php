@@ -28,7 +28,7 @@ class Instructor extends Controller
     {
         try {
             $user = $request->user();
-            $usersQuery = User::whereIn('role', ['lecturer', 'instructor'])->with('level');
+            $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator'])->with('level');
             
             // Apply level filtering based on user role
             if ($user && $user->role === 'level_admin' && $user->level_id) {
@@ -51,6 +51,8 @@ class Instructor extends Controller
      */
     public function store(Request $request)
     {
+        \Log::info('Instructor store called with data:', $request->all());
+        
         $validate = request()->validate([
             'email' => 'required | email | string | max:255',
             'password' => 'required| string | max:255',
@@ -59,21 +61,27 @@ class Instructor extends Controller
             'status' => 'required| string | max:255',
             'level_id' => 'nullable|exists:acd_sessions,id'
         ]);
+        
+        \Log::info('Validation passed, data:', $validate);
+        
         $validate['password'] = Hash::make($validate['password']);
         
         // For level admins, automatically assign their level_id
         $currentUser = $request->user();
         if ($currentUser && $currentUser->role === 'level_admin' && $currentUser->level_id) {
             $validate['level_id'] = $currentUser->level_id;
+            \Log::info('Level admin detected, setting level_id', ['level_id' => $currentUser->level_id]);
         }
         
         try {
             $user = User::create($validate);
+            \Log::info('User created successfully:', $user->toArray());
             return response()->json([
                 'message' => 'Instructor created successfully',
                 'user' => $user->load('level')
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('Error creating user:', $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

@@ -92,12 +92,16 @@ const Instructors = () => {
                 instructorData.level_id = newInstructor.level_id;
             }
 
+            console.log('Creating instructor with data:', instructorData); // Debug log
+
             const response = await axios.post(`${path}/add-user`, instructorData, {
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
                 }
             });
+
+            console.log('Create instructor response:', response.data); // Debug log
 
             if (response.data.user) {
                 setInstructors([...instructors, response.data.user]);
@@ -116,7 +120,8 @@ const Instructors = () => {
             }
         } catch (error) {
             console.error('Error creating instructor:', error);
-            setErrMsg(error.response?.data?.error || 'Failed to create instructor');
+            console.error('Error response:', error.response?.data); // Debug log
+            setErrMsg(error.response?.data?.error || error.response?.data?.message || 'Failed to create instructor');
         } finally {
             setLoading(false);
         }
@@ -126,6 +131,8 @@ const Instructors = () => {
         switch (role) {
             case 'lecturer':
                 return 'Lecturer';
+            case 'invigilator':
+                return 'Invigilator';
             case 'instructor':
                 return 'Instructor';
             default:
@@ -351,7 +358,7 @@ const Instructors = () => {
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value="lecturer">Lecturer</option>
-                                        <option value="instructor">Instructor</option>
+                                        <option value="invigilator">Invigilator</option>
                                     </select>
                                 </div>
                                 
