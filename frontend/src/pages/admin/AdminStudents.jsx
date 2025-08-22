@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaCalendarAlt, FaPlus, FaTimes, FaUsers, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch, FaUpload } from "react-icons/fa";
+import { FaCalendarAlt, FaPlus, FaTimes, FaUsers, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch, FaUpload, FaUserShield } from "react-icons/fa";
 import { path } from "../../../utils/path";
+import LevelSelector from "../../components/LevelSelector";
 
 const AdminStudents = () => {
     const { id: userId } = useParams();
@@ -20,11 +21,24 @@ const AdminStudents = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [extensionMinutes, setExtensionMinutes] = useState("");
     const [activeExam, setActiveExam] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [selectedLevel, setSelectedLevel] = useState("");
     const studentsPerPage = 10;
 
     const fetchStudents = async () => {
         setLoading(true);
         try {
+            // Get current user first
+            const userRes = await axios.get(`${path}/user`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setCurrentUser(userRes.data);
+
+            // Set initial level for level admin
+            if (userRes.data.role === 'level_admin' && userRes.data.level_id) {
+                setSelectedLevel(userRes.data.level_id);
+            }
+
             // Get the active exam first
             const examRes = await axios.get(`${path}/get-current-exam`);
             const currentExam = examRes.data;
@@ -33,15 +47,30 @@ const AdminStudents = () => {
 
             if (!currentExam || !currentExam.course_id) {
                 console.log('No active exam or course_id found');
-                // If no active exam, still get all students but without exam info
-                const res = await axios.get(`${path}/get-students`);
+                
+                // If no active exam, get students based on user level
+                const level = selectedLevel || userRes.data.level_id;
+                let studentsUrl = `${path}/get-students`;
+                
+                if (level && userRes.data.role !== 'super_admin') {
+                    studentsUrl = `${path}/students-by-level?level_id=${level}`;
+                }
+                
+                const res = await axios.get(studentsUrl);
                 setStudents(res.data);
                 return;
             }
 
             console.log('Fetching students for course:', currentExam.course_id);
-            // Get students for the active exam's course
-            const res = await axios.get(`${path}/invigilator/students/${currentExam.course_id}`);
+            // Get students for the active exam's course, filtered by level
+            const level = selectedLevel || userRes.data.level_id;
+            let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
+            
+            if (level && userRes.data.role !== 'super_admin') {
+                studentsUrl += `?level_id=${level}`;
+            }
+            
+            const res = await axios.get(studentsUrl);
             setStudents(res.data.map(student => ({
                 ...student,
                 exam_id: currentExam.id
@@ -56,7 +85,7 @@ const AdminStudents = () => {
 
     useEffect(() => {
         fetchStudents();
-    }, []);
+    }, [selectedLevel]);
 
     const handleAddStudent = async (e) => {
         e.preventDefault();
@@ -66,7 +95,20 @@ const AdminStudents = () => {
         }
         setErrMsg("");
         try {
-            await axios.post(`${path}/register-student/${userId}`, { ...newStudent, password: "password", is_logged_on: "no" });
+            const studentData = { 
+                ...newStudent, 
+                password: "password", 
+                is_logged_on: "no"
+            };
+
+            // Add level_id based on current user
+            if (currentUser?.role === 'level_admin' && currentUser?.level_id) {
+                studentData.level_id = currentUser.level_id;
+            } else if (selectedLevel) {
+                studentData.level_id = selectedLevel;
+            }
+
+            await axios.post(`${path}/register-student/${userId}`, studentData);
             setShowAddModal(false);
             setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "" });
             fetchStudents();
@@ -216,6 +258,11 @@ const AdminStudents = () => {
                     <Link to={`/admin-students/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
                         <FaUsers className="mr-3" /> Students
                     </Link>
+                    {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                        <Link to="/admin-management" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                            <FaUserShield className="mr-3" /> Admin Management
+                        </Link>
+                    )}
                     <Link to="/admin-instructors" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaChalkboardTeacher className="mr-3" /> Instructors
                     </Link>
@@ -247,6 +294,9 @@ const AdminStudents = () => {
                         ) : (
                             <p className="text-yellow-600 text-sm">No active exam found</p>
                         )}
+                        {currentUser?.role !== 'super_admin' && currentUser?.level?.title && (
+                            <p className="text-blue-600 text-sm">Level: {currentUser.level.title}</p>
+                        )}
                     </div>
                     <div className="flex gap-4">
                         <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
@@ -257,6 +307,18 @@ const AdminStudents = () => {
                         </button>
                     </div>
                 </header>
+
+                {/* Level Selector for Super Admin */}
+                {currentUser?.role === 'super_admin' && (
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6">
+                        <LevelSelector
+                            currentUser={currentUser}
+                            selectedLevel={selectedLevel}
+                            onLevelChange={setSelectedLevel}
+                            showAllOption={true}
+                        />
+                    </div>
+                )}
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <div className="relative mb-4">
@@ -276,6 +338,9 @@ const AdminStudents = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate No.</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
+                                {currentUser?.role === 'super_admin' && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                                )}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Extension</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -288,6 +353,13 @@ const AdminStudents = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{student.candidate_no}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.department}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.programme}</td>
+                                    {currentUser?.role === 'super_admin' && (
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                                {student.level?.title || 'Not assigned'}
+                                            </span>
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
                                     </td>

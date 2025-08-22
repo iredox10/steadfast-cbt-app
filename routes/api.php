@@ -20,6 +20,9 @@ Route::get('/user', function (Request $request) {
 // user
 Route::post('/login', [UserController::class, 'login']);
 
+// Get current authenticated user
+Route::get('/user', [UserController::class, 'getCurrentUser'])->middleware('auth:sanctum');
+
 
 // student
 
@@ -27,7 +30,7 @@ Route::post('/student-login', [Student::class, 'login']);
 
 Route::post('/student-reg', [Student::class, 'store']);
 
-Route::get('/get-students', [Student::class, 'index']);
+Route::get('/get-students', [Student::class, 'index'])->middleware(['auth:sanctum', 'admin.level']);
 
 Route::get('/get-student/{student_id}', [Student::class, 'get_student']);
 
@@ -152,7 +155,7 @@ Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam']);
 
 Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam']);
 
-Route::post('/register-student/{user_id}', [Admin::class, 'register_student']);
+Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum', 'admin.level']);
 
 Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_students']);
 
@@ -180,7 +183,14 @@ Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
 Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
 
 // Admin user management
-Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum', 'can:admin']);
+Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum', 'admin.level']);
+Route::post('/create-super-admin', [Admin::class, 'createSuperAdmin'])->middleware(['auth:sanctum', 'admin.level']);
+Route::post('/create-level-admin', [Admin::class, 'createLevelAdmin'])->middleware(['auth:sanctum', 'admin.level']);
+
+// Level-based filtering routes
+Route::get('/students-by-level', [Admin::class, 'getStudentsByLevel'])->middleware(['auth:sanctum', 'admin.level']);
+Route::get('/exams-by-level', [Admin::class, 'getExamsByLevel'])->middleware(['auth:sanctum', 'admin.level']);
+Route::get('/users-by-level', [Admin::class, 'getUsersByLevel'])->middleware(['auth:sanctum', 'admin.level']);
 
 // Invigilator routes
 Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'generate_ticket']);

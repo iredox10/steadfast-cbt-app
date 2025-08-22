@@ -40,14 +40,43 @@ class UserController extends Controller
     {
         $user = User::where('email', $request->input('email'))->first();
         if (!$user) {
-            // return redirect()->back()->with('message', 'user not found!!');
-            return response()->json('user not found',404);
+            return response()->json(['error' => 'User not found'], 404);
         }
+        
         if (Hash::check($request->input('password'), $user->password)) {
-            return response()->json($user,200);
+            // Generate token for API authentication
+            $token = $user->createToken('auth-token')->plainTextToken;
+            
+            return response()->json([
+                'id' => $user->id,
+                'full_name' => $user->full_name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'level_id' => $user->level_id,
+                'level' => $user->level,
+                'token' => $token
+            ], 200);
         } else {
-            return response()->json('wrong password!!', 400);
+            return response()->json(['error' => 'Wrong password'], 400);
         }
+    }
+
+    public function getCurrentUser(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
+        return response()->json([
+            'id' => $user->id,
+            'full_name' => $user->full_name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'level_id' => $user->level_id,
+            'level' => $user->level,
+            'status' => $user->status
+        ]);
     }
 
     public function getUser($id)

@@ -26,7 +26,8 @@ class Kernel extends HttpKernel
      */  
     protected $routeMiddleware = [  
         'auth' => \App\Http\Middleware\Authenticate::class,  
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,  
+        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'admin.level' => \App\Http\Middleware\AdminLevelAccess::class,
         // other middleware  
     ];  
 

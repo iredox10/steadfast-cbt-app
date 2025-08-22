@@ -17,12 +17,18 @@ class Student extends Model
         'password',
         'is_logged_on',
         'checkin_time',
-        'checkout_time'
+        'checkout_time',
+        'level_id'
     ];
 
     protected $hidden = [
         'password'
     ];
+
+    public function level()
+    {
+        return $this->belongsTo(Acd_session::class, 'level_id');
+    }
 
     public function courses()
     {

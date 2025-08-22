@@ -27,6 +27,64 @@ use App\Models\ExamArchive;
 class Admin extends Controller
 {
     /**
+     * Get the current user's admin level for filtering
+     */
+    private function getAdminLevelFilter(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user) {
+            return null;
+        }
+        
+        // Super admins can see everything (no filter)
+        if ($user->role === 'super_admin') {
+            return null;
+        }
+        
+        // Level admins can only see their level
+        if ($user->role === 'level_admin') {
+            return $user->level_id;
+        }
+        
+        // Regular admins (backward compatibility - can see everything)
+        if ($user->role === 'admin') {
+            return null;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Check if user can access a specific level
+     */
+    private function canAccessLevel(Request $request, $levelId)
+    {
+        $user = $request->user();
+        
+        if (!$user) {
+            return false;
+        }
+        
+        // Super admins can access any level
+        if ($user->role === 'super_admin') {
+            return true;
+        }
+        
+        // Level admins can only access their own level
+        if ($user->role === 'level_admin') {
+            return $user->level_id == $levelId;
+        }
+        
+        // Regular admins (backward compatibility)
+        if ($user->role === 'admin') {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -345,13 +403,22 @@ class Admin extends Controller
     public function register_student(Request $request, $user_id)
     {
         try {
+            $levelId = $this->getAdminLevelFilter($request);
+            $user = $request->user();
+            
+            // For level admins, use their level_id
+            if ($user->role === 'level_admin') {
+                $levelId = $user->level_id;
+            }
+            
             $student = Student::create([
                 'candidate_no' => $request->candidate_no,
                 'full_name' => $request->full_name,
                 'department' => $request->department,
                 'programme' => $request->programme,
                 'password' => bcrypt($request->password),
-                'is_logged_on' => 'no'
+                'is_logged_on' => 'no',
+                'level_id' => $levelId
             ]);
             return response()->json($student, 201);
         } catch (Exception $e) {
@@ -573,6 +640,151 @@ class Admin extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'error' => 'Failed to create admin user',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a super admin user
+     */
+    public function createSuperAdmin(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'full_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|min:6',
+            ]);
+
+            $user = new User();
+            $user->full_name = $validate['full_name'];
+            $user->email = $validate['email'];
+            $user->password = bcrypt($validate['password']);
+            $user->role = 'super_admin';
+            $user->status = 'active';
+            $user->level_id = null; // Super admin is not tied to any level
+            $user->save();
+
+            $userData = $user->toArray();
+            unset($userData['password']);
+
+            return response()->json([
+                'message' => 'Super admin created successfully',
+                'user' => $userData
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to create super admin',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a level admin user
+     */
+    public function createLevelAdmin(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'full_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|min:6',
+                'level_id' => 'required|exists:acd_sessions,id'
+            ]);
+
+            $user = new User();
+            $user->full_name = $validate['full_name'];
+            $user->email = $validate['email'];
+            $user->password = bcrypt($validate['password']);
+            $user->role = 'level_admin';
+            $user->status = 'active';
+            $user->level_id = $validate['level_id'];
+            $user->save();
+
+            $userData = $user->toArray();
+            unset($userData['password']);
+
+            return response()->json([
+                'message' => 'Level admin created successfully',
+                'user' => $userData
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to create level admin',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get filtered students based on admin level
+     */
+    public function getStudentsByLevel(Request $request)
+    {
+        try {
+            $levelFilter = $this->getAdminLevelFilter($request);
+            
+            $studentsQuery = Student::query();
+            
+            if ($levelFilter !== null) {
+                $studentsQuery->where('level_id', $levelFilter);
+            }
+            
+            $students = $studentsQuery->orderBy('checkin_time')->get();
+            return response()->json($students);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get students',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get filtered exams based on admin level
+     */
+    public function getExamsByLevel(Request $request)
+    {
+        try {
+            $levelFilter = $this->getAdminLevelFilter($request);
+            
+            $examsQuery = Exam::with('user', 'level');
+            
+            if ($levelFilter !== null) {
+                $examsQuery->where('level_id', $levelFilter);
+            }
+            
+            $exams = $examsQuery->orderBy('created_at', 'desc')->get();
+            return response()->json($exams);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get exams',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get filtered users (instructors/invigilators) based on admin level
+     */
+    public function getUsersByLevel(Request $request)
+    {
+        try {
+            $levelFilter = $this->getAdminLevelFilter($request);
+            
+            $usersQuery = User::whereIn('role', ['lecturer', 'invigilator']);
+            
+            if ($levelFilter !== null) {
+                $usersQuery->where('level_id', $levelFilter);
+            }
+            
+            $users = $usersQuery->orderBy('created_at', 'desc')->get();
+            return response()->json($users);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get users',
                 'message' => $e->getMessage()
             ], 500);
         }

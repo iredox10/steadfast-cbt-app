@@ -29,6 +29,8 @@ import NotCheckIn from "./pages/NotCheckIn.jsx";
 import QuestionBank from './pages/instructor/QuestionBank';
 import ExamArchives from "./pages/admin/ExamArchives";
 import ExamArchiveDetail from "./pages/admin/ExamArchiveDetail";
+import AdminManagement from "./pages/admin/AdminManagement";
+import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 
 function App() {
     return (
@@ -105,6 +107,9 @@ function App() {
 
                     <Route path="/exam-archives" element={<ExamArchives />} />
                     <Route path="/exam-archives/:archiveId" element={<ExamArchiveDetail />} />
+
+                    <Route path="/admin-management" element={<AdminManagement />} />
+                    <Route path="/admin-dashboard/:userId" element={<SuperAdminDashboard />} />
                 </Routes>
             </Router>
         </div>

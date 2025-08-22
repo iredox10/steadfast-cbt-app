@@ -11,6 +11,7 @@ class Exam extends Model
     protected $fillable = [
         'course_id',
         'user_id',
+        'level_id',
         'exam_type',
         'instructions',
         'max_score',
@@ -26,6 +27,11 @@ class Exam extends Model
         'finished',
         'activated'
     ];
+
+    public function level()
+    {
+        return $this->belongsTo(Acd_session::class, 'level_id');
+    }
 
     public function user(){
         return $this->belongsTo(User::class);

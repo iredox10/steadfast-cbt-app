@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('candidates', function (Blueprint $table) {
-            $table->integer('time_extension')->default(0);
+            if (!Schema::hasColumn('candidates', 'time_extension')) {
+                $table->integer('time_extension')->default(0);
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('candidates', function (Blueprint $table) {
-            $table->dropColumn('time_extension');
+            if (Schema::hasColumn('candidates', 'time_extension')) {
+                $table->dropColumn('time_extension');
+            }
         });
     }
 };

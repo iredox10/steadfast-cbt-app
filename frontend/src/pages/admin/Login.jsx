@@ -25,12 +25,25 @@ const AdminLogin = () => {
             setLoading(true);
             const res = await axios.post(`${path}/login`, { email, password });
             const user = res.data;
-            if (user.role == "admin") {
+            
+            // Store token if returned
+            if (res.data.token) {
+                localStorage.setItem('token', res.data.token);
+            }
+            
+            // Role-based navigation
+            if (user.role === "admin") {
                 navigate(`/dashboard/${user.id}`);
-            } else if (user.role == "lecturer") {
-                navigate(`/instructor/${res.data.id}`);
-            } else {
+            } else if (user.role === "super_admin") {
+                navigate(`/admin-dashboard/${user.id}`);
+            } else if (user.role === "level_admin") {
+                navigate(`/admin-dashboard/${user.id}`);
+            } else if (user.role === "lecturer") {
+                navigate(`/instructor/${user.id}`);
+            } else if (user.role === "invigilator") {
                 navigate(`/invigilator/${user.id}`);
+            } else {
+                setErr("Unknown user role. Please contact administrator.");
             }
         } catch (err) {
             console.log(err);

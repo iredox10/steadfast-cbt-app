@@ -63,11 +63,22 @@ class Student extends Controller
         return response()->json($student);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        //
-        // $students = \App\Models\Student::all();
-        $students = \App\Models\Student::orderBy('checkin_time')->get();
+        $user = $request->user();
+        $studentsQuery = \App\Models\Student::with('level');
+        
+        // Apply level filtering based on user role
+        if ($user && $user->role === 'level_admin' && $user->level_id) {
+            // Level admins can only see students in their level
+            $studentsQuery->where('level_id', $user->level_id);
+        } elseif ($request->has('level_id') && $request->level_id) {
+            // Super admins can filter by specific level
+            $studentsQuery->where('level_id', $request->level_id);
+        }
+        // Super admins with no level filter see all students
+        
+        $students = $studentsQuery->orderBy('checkin_time')->get();
         return response()->json($students);
     }
 
