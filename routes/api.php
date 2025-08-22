@@ -183,9 +183,12 @@ Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
 Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
 
 // Admin user management
-Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum', 'admin.level']);
-Route::post('/create-super-admin', [Admin::class, 'createSuperAdmin'])->middleware(['auth:sanctum', 'admin.level']);
-Route::post('/create-level-admin', [Admin::class, 'createLevelAdmin'])->middleware(['auth:sanctum', 'admin.level']);
+Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum']);
+Route::post('/create-super-admin', [Admin::class, 'createSuperAdmin'])->middleware(['auth:sanctum']);
+Route::post('/create-level-admin', [Admin::class, 'createLevelAdmin'])->middleware(['auth:sanctum']);
+Route::get('/get-admins', [Admin::class, 'getAdmins'])->middleware(['auth:sanctum']);
+Route::put('/update-admin/{adminId}', [Admin::class, 'updateAdmin'])->middleware(['auth:sanctum']);
+Route::delete('/delete-admin/{adminId}', [Admin::class, 'deleteAdmin'])->middleware(['auth:sanctum']);
 
 // Level-based filtering routes
 Route::get('/students-by-level', [Admin::class, 'getStudentsByLevel'])->middleware(['auth:sanctum']);

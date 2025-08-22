@@ -8,6 +8,8 @@ const AdminManagement = () => {
     const [academicSessions, setAcademicSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingAdmin, setEditingAdmin] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [newAdmin, setNewAdmin] = useState({
         full_name: '',
@@ -15,6 +17,13 @@ const AdminManagement = () => {
         password: '',
         role: 'level_admin',
         level_id: ''
+    });
+    const [editAdmin, setEditAdmin] = useState({
+        full_name: '',
+        email: '',
+        role: '',
+        level_id: '',
+        status: ''
     });
     const [errMsg, setErrMsg] = useState('');
 
@@ -48,7 +57,7 @@ const AdminManagement = () => {
             setAcademicSessions(sessionsRes.data);
 
             // Fetch admin users
-            const adminsRes = await axios.get(`${path}/users-by-level`, { headers });
+            const adminsRes = await axios.get(`${path}/get-admins`, { headers });
             setAdmins(adminsRes.data);
 
         } catch (error) {
@@ -59,48 +68,140 @@ const AdminManagement = () => {
         }
     };
 
-    const handleCreateAdmin = async (e) => {
-        e.preventDefault();
-        setErrMsg('');
+    const handleEditAdmin = (admin) => {
+        setEditingAdmin(admin);
+        setEditAdmin({
+            id: admin.id,
+            full_name: admin.full_name,
+            email: admin.email,
+            role: admin.role,
+            level_id: admin.level_id || '',
+            status: admin.status || 'active'
+        });
+        setShowEditModal(true);
+    };
 
+    const handleUpdateAdmin = async () => {
+        setLoading(true);
+        setErrMsg('');
+        
         try {
             const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
-            let response;
-            
-            if (newAdmin.role === 'super_admin') {
-                response = await axios.post(`${path}/create-super-admin`, {
-                    full_name: newAdmin.full_name,
-                    email: newAdmin.email,
-                    password: newAdmin.password
-                }, { headers });
-            } else if (newAdmin.role === 'level_admin') {
-                if (!newAdmin.level_id) {
-                    setErrMsg('Please select an academic session for level admin');
-                    return;
-                }
-                response = await axios.post(`${path}/create-level-admin`, {
-                    full_name: newAdmin.full_name,
-                    email: newAdmin.email,
-                    password: newAdmin.password,
-                    level_id: newAdmin.level_id
-                }, { headers });
-            }
-
-            alert('Admin created successfully!');
-            setShowCreateModal(false);
-            setNewAdmin({
-                full_name: '',
-                email: '',
-                password: '',
-                role: 'level_admin',
-                level_id: ''
+            const response = await fetch(`${path}/update-admin/${editAdmin.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    full_name: editAdmin.full_name,
+                    email: editAdmin.email,
+                    role: editAdmin.role,
+                    level_id: editAdmin.level_id || null,
+                    status: editAdmin.status
+                })
             });
-            fetchData();
 
+            const data = await response.json();
+
+            if (response.ok) {
+                setAdmins(admins.map(admin => 
+                    admin.id === editAdmin.id ? { ...admin, ...editAdmin } : admin
+                ));
+                setShowEditModal(false);
+                setEditingAdmin(null);
+                setEditAdmin({
+                    full_name: '',
+                    email: '',
+                    role: '',
+                    level_id: '',
+                    status: ''
+                });
+                // Refresh the admin list to get updated relationships
+                fetchData();
+            } else {
+                setErrMsg(data.message || 'Failed to update admin');
+            }
+        } catch (error) {
+            console.error('Error updating admin:', error);
+            setErrMsg('An error occurred while updating admin');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteAdmin = async (adminId) => {
+        if (!window.confirm('Are you sure you want to delete this admin?')) {
+            return;
+        }
+
+        setLoading(true);
+        setErrMsg('');
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${path}/delete-admin/${adminId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setAdmins(admins.filter(admin => admin.id !== adminId));
+            } else {
+                setErrMsg(data.message || 'Failed to delete admin');
+            }
+        } catch (error) {
+            console.error('Error deleting admin:', error);
+            setErrMsg('An error occurred while deleting admin');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateAdmin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setErrMsg('');
+        
+        try {
+            const token = localStorage.getItem('token');
+            const endpoint = newAdmin.role === 'super_admin' ? '/create-super-admin' : '/create-level-admin';
+            
+            const response = await fetch(`${path}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newAdmin)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setAdmins([...admins, data.user || data.admin]);
+                setShowCreateModal(false);
+                setNewAdmin({
+                    full_name: '',
+                    email: '',
+                    password: '',
+                    role: 'level_admin',
+                    level_id: ''
+                });
+                // Refresh the admin list
+                fetchData();
+            } else {
+                setErrMsg(data.message || 'Failed to create admin');
+            }
         } catch (error) {
             console.error('Error creating admin:', error);
-            setErrMsg(error.response?.data?.error || 'Failed to create admin');
+            setErrMsg('An error occurred while creating admin');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -206,16 +307,20 @@ const AdminManagement = () => {
                                             {admin.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex space-x-2">
-                                            <button className="text-blue-600 hover:text-blue-900">
-                                                <FaEdit />
+                                                                        <td className="py-3 px-6 text-center">
+                                        <div className="flex items-center justify-center space-x-2">
+                                            <button 
+                                                onClick={() => handleEditAdmin(admin)}
+                                                className="text-blue-600 hover:text-blue-800 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded transition duration-200"
+                                            >
+                                                Edit
                                             </button>
-                                            {currentUser?.role === 'super_admin' && admin.id !== currentUser.id && (
-                                                <button className="text-red-600 hover:text-red-900">
-                                                    <FaTrash />
-                                                </button>
-                                            )}
+                                            <button 
+                                                onClick={() => handleDeleteAdmin(admin.id)}
+                                                className="text-red-600 hover:text-red-800 bg-red-100 hover:bg-red-200 px-3 py-1 rounded transition duration-200"
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -305,6 +410,113 @@ const AdminManagement = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Edit Admin Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div className="mt-3">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Admin</h3>
+                            
+                            {errMsg && (
+                                <div className="mb-4 text-red-600 text-sm">
+                                    {errMsg}
+                                </div>
+                            )}
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                                    <input
+                                        type="text"
+                                        value={editAdmin.full_name}
+                                        onChange={(e) => setEditAdmin({...editAdmin, full_name: e.target.value})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                                    <input
+                                        type="email"
+                                        value={editAdmin.email}
+                                        onChange={(e) => setEditAdmin({...editAdmin, email: e.target.value})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Role</label>
+                                    <select
+                                        value={editAdmin.role}
+                                        onChange={(e) => setEditAdmin({...editAdmin, role: e.target.value})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value="level_admin">Level Admin</option>
+                                        <option value="super_admin">Super Admin</option>
+                                    </select>
+                                </div>
+                                
+                                {editAdmin.role === 'level_admin' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Academic Session</label>
+                                        <select
+                                            value={editAdmin.level_id}
+                                            onChange={(e) => setEditAdmin({...editAdmin, level_id: e.target.value})}
+                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        >
+                                            <option value="">Select Academic Session</option>
+                                            {academicSessions.map((session) => (
+                                                <option key={session.id} value={session.id}>
+                                                    {session.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                                    <select
+                                        value={editAdmin.status}
+                                        onChange={(e) => setEditAdmin({...editAdmin, status: e.target.value})}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                        <option value="suspended">Suspended</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingAdmin(null);
+                                        setEditAdmin({
+                                            full_name: '',
+                                            email: '',
+                                            role: '',
+                                            level_id: '',
+                                            status: ''
+                                        });
+                                    }}
+                                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleUpdateAdmin}
+                                    disabled={loading}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition duration-200"
+                                >
+                                    {loading ? 'Updating...' : 'Update Admin'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

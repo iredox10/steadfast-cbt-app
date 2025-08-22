@@ -771,6 +771,97 @@ class Admin extends Controller
     }
 
     /**
+     * Update an existing admin user
+     */
+    public function updateAdmin(Request $request, $adminId)
+    {
+        try {
+            $admin = User::findOrFail($adminId);
+            
+            // Validate the request data
+            $validate = $request->validate([
+                'full_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . $adminId,
+                'role' => 'required|in:super_admin,level_admin',
+                'level_id' => 'nullable|exists:acd_sessions,id',
+                'status' => 'required|in:active,inactive,suspended'
+            ]);
+
+            // If role is level_admin, level_id is required
+            if ($validate['role'] === 'level_admin' && !$validate['level_id']) {
+                return response()->json([
+                    'error' => 'Level ID is required for level admin'
+                ], 400);
+            }
+
+            // If role is super_admin, level_id should be null
+            if ($validate['role'] === 'super_admin') {
+                $validate['level_id'] = null;
+            }
+
+            $admin->update($validate);
+
+            return response()->json([
+                'message' => 'Admin updated successfully',
+                'admin' => $admin->fresh()
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to update admin',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete an admin user
+     */
+    public function deleteAdmin(Request $request, $adminId)
+    {
+        try {
+            $admin = User::findOrFail($adminId);
+            
+            // Don't allow deletion of the current user
+            if ($admin->id === $request->user()->id) {
+                return response()->json([
+                    'error' => 'You cannot delete your own account'
+                ], 400);
+            }
+
+            $admin->delete();
+
+            return response()->json([
+                'message' => 'Admin deleted successfully'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to delete admin',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all admin users
+     */
+    public function getAdmins(Request $request)
+    {
+        try {
+            $admins = User::whereIn('role', ['super_admin', 'level_admin', 'admin'])
+                         ->with('level')
+                         ->orderBy('created_at', 'desc')
+                         ->get();
+
+            return response()->json($admins);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get admins',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get filtered users (instructors/invigilators) based on admin level
      */
     public function getUsersByLevel(Request $request)
