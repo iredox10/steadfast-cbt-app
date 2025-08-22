@@ -27,11 +27,23 @@ class Instructor extends Controller
     public function index(Request $request)
     {
         try {
+            $user = $request->user();
+            $usersQuery = User::whereIn('role', ['lecturer', 'instructor'])->with('level');
+            
+            // Apply level filtering based on user role
+            if ($user && $user->role === 'level_admin' && $user->level_id) {
+                // Level admins can only see instructors in their level
+                $usersQuery->where('level_id', $user->level_id);
+            } elseif ($request->has('level_id') && $request->level_id) {
+                // Super admins can filter by specific level
+                $usersQuery->where('level_id', $request->level_id);
+            }
+            // Super admins with no level filter see all instructors
 
-            $users = User::all();
+            $users = $usersQuery->orderBy('created_at', 'desc')->get();
             return response()->json($users);
         } catch (Exception $e) {
-            return response()->json($e);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     /**
@@ -44,14 +56,25 @@ class Instructor extends Controller
             'password' => 'required| string | max:255',
             'full_name' => 'required| string | max:255',
             'role' => 'required| string | max:255',
-            'status' => 'required| string | max:255'
+            'status' => 'required| string | max:255',
+            'level_id' => 'nullable|exists:acd_sessions,id'
         ]);
         $validate['password'] = Hash::make($validate['password']);
+        
+        // For level admins, automatically assign their level_id
+        $currentUser = $request->user();
+        if ($currentUser && $currentUser->role === 'level_admin' && $currentUser->level_id) {
+            $validate['level_id'] = $currentUser->level_id;
+        }
+        
         try {
             $user = User::create($validate);
-            return response()->json($user);
+            return response()->json([
+                'message' => 'Instructor created successfully',
+                'user' => $user->load('level')
+            ], 201);
         } catch (\Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

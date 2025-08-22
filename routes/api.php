@@ -30,7 +30,7 @@ Route::post('/student-login', [Student::class, 'login']);
 
 Route::post('/student-reg', [Student::class, 'store']);
 
-Route::get('/get-students', [Student::class, 'index'])->middleware(['auth:sanctum', 'admin.level']);
+Route::get('/get-students', [Student::class, 'index'])->middleware(['auth:sanctum']);
 
 Route::get('/get-student/{student_id}', [Student::class, 'get_student']);
 
@@ -68,9 +68,9 @@ Route::post('/start-exam/{student_id}', [Student::class, 'start_exam']);
 
 
 // instructor
-Route::get('/get-users', [Instructor::class, 'index']);
+Route::get('/get-users', [Instructor::class, 'index'])->middleware(['auth:sanctum']);
 
-Route::post('/add-user', [Instructor::class, 'store']);
+Route::post('/add-user', [Instructor::class, 'store'])->middleware(['auth:sanctum']);
 
 Route::get('/get-user/{id}', [Instructor::class, 'show']);
 
@@ -155,7 +155,7 @@ Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam']);
 
 Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam']);
 
-Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum', 'admin.level']);
+Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum']);
 
 Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_students']);
 

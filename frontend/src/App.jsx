@@ -13,7 +13,7 @@ import AcdSession from "./pages/admin/AcdSession.jsx";
 import Exams from "./pages/instructor/Exams.jsx";
 import EditQuestion from "./pages/instructor/EditQuestion.jsx";
 import InstructorStudents from "./pages/instructor/InstructorStudents.jsx";
-import AdminInstructiors from "./pages/admin/AdminInstructiors.jsx";
+import AdminInstructors from "./pages/admin/Instructors.jsx";
 import InstructorsCourses from "./pages/admin/InstructorsCourses.jsx";
 import Session from "./pages/admin/Session.jsx";
 import Semester from "./pages/admin/Semester.jsx";
@@ -85,7 +85,7 @@ function App() {
                     <Route path="/dashboard/:userId" element={<Dashboard />} />
                     <Route
                         path="/admin-instructors"
-                        element={<AdminInstructiors />}
+                        element={<AdminInstructors />}
                     />
                     <Route
                         path="/admin-instructor-courses/:id"

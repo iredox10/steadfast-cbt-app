@@ -96,19 +96,29 @@ const AdminStudents = () => {
         setErrMsg("");
         try {
             const studentData = { 
-                ...newStudent, 
+                full_name: newStudent.full_name,
+                candidate_no: newStudent.candidate_no,
                 password: "password", 
                 is_logged_on: "no"
             };
 
-            // Add level_id based on current user
+            // For level admins, automatically set department and programme from their academic session
             if (currentUser?.role === 'level_admin' && currentUser?.level_id) {
                 studentData.level_id = currentUser.level_id;
-            } else if (selectedLevel) {
-                studentData.level_id = selectedLevel;
+                studentData.department = currentUser.level?.title || "Department";
+                studentData.programme = currentUser.level?.title || "Programme";
+            } else {
+                // For super admins, use the form data
+                studentData.department = newStudent.department;
+                studentData.programme = newStudent.programme;
+                if (selectedLevel) {
+                    studentData.level_id = selectedLevel;
+                }
             }
 
-            await axios.post(`${path}/register-student/${userId}`, studentData);
+            await axios.post(`${path}/register-student/${userId}`, studentData, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
             setShowAddModal(false);
             setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "" });
             fetchStudents();
@@ -408,10 +418,55 @@ const AdminStudents = () => {
                         </div>
                         <form onSubmit={handleAddStudent} className="space-y-4">
                             {errMsg && <p className="text-red-500">{errMsg}</p>}
-                            <input type="text" placeholder="Full Name" value={newStudent.full_name} onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Candidate Number" value={newStudent.candidate_no} onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Department" value={newStudent.department} onChange={e => setNewStudent({ ...newStudent, department: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                            <input type="text" placeholder="Programme" value={newStudent.programme} onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                            
+                            {/* Show department info for level admins */}
+                            {currentUser?.role === 'level_admin' && currentUser?.level && (
+                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                    <h4 className="font-semibold text-blue-800 mb-2">Student will be registered to:</h4>
+                                    <p className="text-blue-700"><strong>Department:</strong> {currentUser.level.title}</p>
+                                    <p className="text-blue-700"><strong>Programme:</strong> {currentUser.level.title}</p>
+                                </div>
+                            )}
+                            
+                            <input 
+                                type="text" 
+                                placeholder="Full Name" 
+                                value={newStudent.full_name} 
+                                onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })} 
+                                className="w-full px-4 py-2 border rounded-lg" 
+                                required
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Candidate Number" 
+                                value={newStudent.candidate_no} 
+                                onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })} 
+                                className="w-full px-4 py-2 border rounded-lg" 
+                                required
+                            />
+                            
+                            {/* Only show department and programme fields for super admins */}
+                            {currentUser?.role !== 'level_admin' && (
+                                <>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Department" 
+                                        value={newStudent.department} 
+                                        onChange={e => setNewStudent({ ...newStudent, department: e.target.value })} 
+                                        className="w-full px-4 py-2 border rounded-lg" 
+                                        required
+                                    />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Programme" 
+                                        value={newStudent.programme} 
+                                        onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })} 
+                                        className="w-full px-4 py-2 border rounded-lg" 
+                                        required
+                                    />
+                                </>
+                            )}
+                            
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Register</button>
