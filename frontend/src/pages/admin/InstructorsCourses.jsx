@@ -21,10 +21,12 @@ const InstructorsCourses = () => {
             setInstructor(instructorRes.data);
 
             const assignedCoursesRes = await axios.get(`${path}/get-lecturer-courses/${instructorId}`);
-            setAssignedCourses(assignedCoursesRes.data);
+            // Ensure assignedCourses is always an array
+            setAssignedCourses(Array.isArray(assignedCoursesRes.data) ? assignedCoursesRes.data : []);
 
-            const allCoursesRes = await axios.get(`${path}/get-active-session`);
-            setAllCourses(allCoursesRes.data);
+            const allCoursesRes = await axios.get(`${path}/get-all-courses`);
+            // Ensure allCourses is always an array
+            setAllCourses(Array.isArray(allCoursesRes.data) ? allCoursesRes.data : []);
 
         } catch (err) {
             console.error("Error fetching data:", err);
@@ -113,13 +115,13 @@ const InstructorsCourses = () => {
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Assigned Courses</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {assignedCourses.map(course => (
+                            {Array.isArray(assignedCourses) && assignedCourses.map(course => (
                                 <div key={course.id} className="p-4 bg-gray-50 rounded-lg">
                                     <h4 className="font-bold text-gray-800">{course.title}</h4>
                                     <p className="text-sm text-gray-600">{course.code}</p>
                                 </div>
                             ))}
-                            {assignedCourses.length === 0 && <p className="text-gray-500">No courses assigned yet.</p>}
+                            {(!Array.isArray(assignedCourses) || assignedCourses.length === 0) && <p className="text-gray-500">No courses assigned yet.</p>}
                         </div>
                     </div>
                 )}
@@ -143,7 +145,7 @@ const InstructorsCourses = () => {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                             >
                                 <option value="" disabled>Choose a course...</option>
-                                {allCourses.map(course => (
+                                {Array.isArray(allCourses) && allCourses.map(course => (
                                     <option key={course.id} value={course.id}>{course.title} ({course.code})</option>
                                 ))}
                             </select>
