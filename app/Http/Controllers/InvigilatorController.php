@@ -65,6 +65,51 @@ class InvigilatorController extends Controller
         }
     }
 
+    public function regenerate_ticket(Request $request)
+    {
+        $validate = $request->validate([
+            'student_id' => 'required|numeric',
+        ]);
+
+        try {
+            $student = Student::findOrFail($validate['student_id']);
+            $active_exam = Exam::where('activated', 'yes')->first();
+
+            if (!$active_exam) {
+                return response()->json(['error' => 'No active exam found'], 404);
+            }
+
+            // Find the existing candidate record
+            $candidate = Candidate::where('student_id', $student->id)
+                ->where('exam_id', $active_exam->id)
+                ->first();
+
+            if (!$candidate) {
+                return response()->json(['error' => 'No candidate record found for this student'], 404);
+            }
+
+            // Generate a new unique 6-digit ticket number
+            do {
+                $new_ticket_no = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            } while (Candidate::where('exam_id', $active_exam->id)->where('ticket_no', $new_ticket_no)->exists());
+
+            // Update the candidate with new ticket and reset login status
+            $candidate->update([
+                'ticket_no' => $new_ticket_no,
+                'is_logged_on' => 0, // Reset login status so they can login with new ticket
+                'checkin_time' => now(), // Update checkin time
+            ]);
+
+            return response()->json([
+                'message' => 'New ticket generated successfully',
+                'candidate' => $candidate,
+                'new_ticket' => $new_ticket_no
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function get_students(Request $request, $course_id)
     {
         try {

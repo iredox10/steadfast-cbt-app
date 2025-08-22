@@ -125,6 +125,43 @@ const AdminStudents = () => {
         }
     };
 
+    const handleRegenerateTicket = async (student) => {
+        setErrMsg("");
+
+        if (!student || !student.id) {
+            setErrMsg("Invalid student selected");
+            return;
+        }
+
+        // Confirm action
+        const confirmMessage = `Are you sure you want to regenerate a new ticket for ${student.full_name}?\n\nThis will:\n• Generate a new ticket number\n• Reset their login status\n• Allow them to log in again with the new ticket`;
+        
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const res = await axios.post(`${path}/invigilator/regenerate-ticket`, {
+                student_id: student.id
+            });
+
+            console.log('Regenerate ticket response:', res.data);
+            
+            // Show success message with new ticket
+            alert(`New ticket generated successfully!\n\nStudent: ${student.full_name}\nNew Ticket: ${res.data.new_ticket}\n\nPlease provide this new ticket to the student so they can log in and continue their exam.`);
+            
+            // Refresh the student list to show updated ticket
+            await fetchStudents();
+        } catch (error) {
+            console.error('Regenerate ticket error:', error);
+            setErrMsg(
+                error.response?.data?.error || 
+                error.response?.data?.message || 
+                "Failed to regenerate ticket"
+            );
+        }
+    };
+
     const handleImportStudents = async (e) => {
         e.preventDefault();
         if (!file) {
@@ -240,6 +277,7 @@ const AdminStudents = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Extension</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -254,16 +292,30 @@ const AdminStudents = () => {
                                         {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="px-2 py-1 text-xs font-mono bg-gray-100 rounded">
+                                            {student.ticket_no || 'Not generated'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
                                         {activeExam && (
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedStudent(student);
-                                                    setShowExtendTimeModal(true);
-                                                }}
-                                                className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
-                                            >
-                                                Extend Time
-                                            </button>
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedStudent(student);
+                                                        setShowExtendTimeModal(true);
+                                                    }}
+                                                    className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
+                                                >
+                                                    Extend Time
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRegenerateTicket(student)}
+                                                    className="px-3 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 text-sm"
+                                                    title="Generate new ticket for student"
+                                                >
+                                                    New Ticket
+                                                </button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
