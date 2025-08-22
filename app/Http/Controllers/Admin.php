@@ -116,10 +116,14 @@ class Admin extends Controller
     public function get_acd_sessions()
     {
         try {
-            $sessions = Acd_session::with('semesters')->get();
+            // Get all academic sessions without eager loading to avoid foreign key issues
+            $sessions = Acd_session::orderBy('title')->get();
             return response()->json($sessions);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch academic sessions',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
     public function get_acd_session($session_id)

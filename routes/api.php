@@ -188,9 +188,9 @@ Route::post('/create-super-admin', [Admin::class, 'createSuperAdmin'])->middlewa
 Route::post('/create-level-admin', [Admin::class, 'createLevelAdmin'])->middleware(['auth:sanctum', 'admin.level']);
 
 // Level-based filtering routes
-Route::get('/students-by-level', [Admin::class, 'getStudentsByLevel'])->middleware(['auth:sanctum', 'admin.level']);
-Route::get('/exams-by-level', [Admin::class, 'getExamsByLevel'])->middleware(['auth:sanctum', 'admin.level']);
-Route::get('/users-by-level', [Admin::class, 'getUsersByLevel'])->middleware(['auth:sanctum', 'admin.level']);
+Route::get('/students-by-level', [Admin::class, 'getStudentsByLevel'])->middleware(['auth:sanctum']);
+Route::get('/exams-by-level', [Admin::class, 'getExamsByLevel'])->middleware(['auth:sanctum']);
+Route::get('/users-by-level', [Admin::class, 'getUsersByLevel'])->middleware(['auth:sanctum']);
 
 // Department management routes (Super Admin only)
 Route::middleware(['auth:sanctum'])->group(function () {

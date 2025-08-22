@@ -26,12 +26,12 @@ class Acd_session extends Model
     // Relationships
     public function courses()
     {
-        return $this->hasMany(Course::class, 'level_id');
+        return $this->hasManyThrough(Course::class, Semester::class, 'acd_session_id', 'semester_id');
     }
 
     public function semesters()
     {
-        return $this->hasMany(Semester::class, 'level_id');
+        return $this->hasMany(Semester::class, 'acd_session_id');
     }
 
     public function users()
