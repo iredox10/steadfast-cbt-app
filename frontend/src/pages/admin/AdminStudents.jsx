@@ -16,13 +16,36 @@ const AdminStudents = () => {
     const [errMsg, setErrMsg] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [showExtendTimeModal, setShowExtendTimeModal] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [extensionMinutes, setExtensionMinutes] = useState("");
+    const [activeExam, setActiveExam] = useState(null);
     const studentsPerPage = 10;
 
     const fetchStudents = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${path}/get-students`);
-            setStudents(res.data);
+            // Get the active exam first
+            const examRes = await axios.get(`${path}/get-current-exam`);
+            const currentExam = examRes.data;
+            console.log('Current exam from API:', currentExam);
+            setActiveExam(currentExam);
+
+            if (!currentExam || !currentExam.course_id) {
+                console.log('No active exam or course_id found');
+                // If no active exam, still get all students but without exam info
+                const res = await axios.get(`${path}/get-students`);
+                setStudents(res.data);
+                return;
+            }
+
+            console.log('Fetching students for course:', currentExam.course_id);
+            // Get students for the active exam's course
+            const res = await axios.get(`${path}/invigilator/students/${currentExam.course_id}`);
+            setStudents(res.data.map(student => ({
+                ...student,
+                exam_id: currentExam.id
+            })));
         } catch (err) {
             console.error("Error fetching students:", err);
             setErrMsg("Failed to load students.");
@@ -50,6 +73,55 @@ const AdminStudents = () => {
         } catch (err) {
             console.error("Error adding student:", err);
             setErrMsg(err.response?.data?.error || "Failed to add student.");
+        }
+    };
+
+    const handleExtendTime = async (e) => {
+        e.preventDefault();
+        setErrMsg("");
+
+        console.log('Active exam:', activeExam);
+        console.log('Selected student:', selectedStudent);
+
+        if (!extensionMinutes || parseInt(extensionMinutes) < 1) {
+            setErrMsg("Please enter a valid number of minutes");
+            return;
+        }
+
+        // Get fresh exam data
+        try {
+            const examRes = await axios.get(`${path}/get-current-exam`);
+            const currentExam = examRes.data;
+            console.log('Fresh exam data:', currentExam);
+
+            if (!currentExam || !currentExam.id) {
+                setErrMsg("No active exam found. Please activate an exam first.");
+                return;
+            }
+
+            const requestData = {
+                student_id: selectedStudent.id,
+                exam_id: currentExam.id,
+                extension_minutes: parseInt(extensionMinutes)
+            };
+
+            console.log('Sending request:', requestData);
+
+            const res = await axios.post(`${path}/extend-time`, requestData);
+
+            console.log('Response:', res.data);
+            setShowExtendTimeModal(false);
+            setExtensionMinutes("");
+            setSelectedStudent(null);
+            await fetchStudents(); // Refresh the student list
+            setErrMsg(""); // Clear any previous errors
+        } catch (error) {
+            console.error('Time extension error:', error);
+            setErrMsg(
+                error.response?.data?.error || 
+                error.response?.data?.message || 
+                "Failed to extend time"
+            );
         }
     };
 
@@ -133,6 +205,11 @@ const AdminStudents = () => {
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900">Manage Students</h2>
                         <p className="text-gray-500">Add, view, and manage student records.</p>
+                        {activeExam ? (
+                            <p className="text-green-600 text-sm">Active Exam: {activeExam.title || `Exam ID: ${activeExam.id}`}</p>
+                        ) : (
+                            <p className="text-yellow-600 text-sm">No active exam found</p>
+                        )}
                     </div>
                     <div className="flex gap-4">
                         <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
@@ -162,6 +239,8 @@ const AdminStudents = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate No.</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Extension</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -171,6 +250,22 @@ const AdminStudents = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">{student.candidate_no}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.department}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.programme}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {activeExam && (
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedStudent(student);
+                                                    setShowExtendTimeModal(true);
+                                                }}
+                                                className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
+                                            >
+                                                Extend Time
+                                            </button>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -196,6 +291,64 @@ const AdminStudents = () => {
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Register</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Extend Time Modal */}
+            {showExtendTimeModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold">Extend Time</h3>
+                            <button onClick={() => {
+                                setShowExtendTimeModal(false);
+                                setSelectedStudent(null);
+                                setExtensionMinutes("");
+                                setErrMsg("");
+                            }}><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleExtendTime} className="space-y-4">
+                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Student: {selectedStudent?.full_name}
+                                </label>
+                                {selectedStudent?.time_extension > 0 && (
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Current extension: {selectedStudent.time_extension} minutes
+                                    </p>
+                                )}
+                                <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="Extension minutes"
+                                    value={extensionMinutes}
+                                    onChange={(e) => setExtensionMinutes(e.target.value)}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-4 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowExtendTimeModal(false);
+                                        setSelectedStudent(null);
+                                        setExtensionMinutes("");
+                                        setErrMsg("");
+                                    }}
+                                    className="px-4 py-2 bg-gray-200 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+                                >
+                                    Extend Time
+                                </button>
                             </div>
                         </form>
                     </div>

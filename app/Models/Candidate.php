@@ -24,6 +24,7 @@ class Candidate extends Model
         'score',
         'ticket_no',
         'status',
+        'time_extension',
     ];
     public function semester() // New relationship
     {

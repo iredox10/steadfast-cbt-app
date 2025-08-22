@@ -470,13 +470,16 @@ class Admin extends Controller
     {
         try {
             $exam = Exam::where('activated', 'yes')->first();
-           $course = Course::findOrFail($exam->course_id);
 
             if (!$exam) {
                 return response()->json(['message' => 'No active exam found'], 404);
             }
 
+            $course = Course::findOrFail($exam->course_id);
+
             return response()->json([
+                'id' => $exam->id,
+                'course_id' => $exam->course_id,
                 'exam_name' => $exam->title,
                 'start_time' => $exam->activated_date,
                 'duration' => $exam->exam_duration,

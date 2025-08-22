@@ -89,6 +89,8 @@ class InvigilatorController extends Controller
                         ->where('course_id', $course_id)
                         ->first();
                     $student->score = $score_record ? $score_record->score : null;
+                    // Add time extension information
+                    $student->time_extension = $candidate ? $candidate->time_extension : 0;
                 }
                 $student_list[] = $student;
             }
@@ -96,6 +98,103 @@ class InvigilatorController extends Controller
             return response()->json($student_list, 200);
         } catch (Exception $err) {
             return response()->json(['error' => $err->getMessage()], 500);
+        }
+    }
+
+    public function extend_time(Request $request)
+    {
+        $validate = $request->validate([
+            'student_id' => 'required|numeric',
+            'exam_id' => 'required|numeric',
+            'extension_minutes' => 'required|numeric|min:1'
+        ]);
+
+        try {
+            // Find the active exam
+            $active_exam = Exam::where('id', $validate['exam_id'])
+                             ->where('activated', 'yes')
+                             ->first();
+
+            if (!$active_exam) {
+                return response()->json(['error' => 'No active exam found. Please make sure an exam is activated.'], 404);
+            }
+
+            // Find the student
+            $student = Student::findOrFail($validate['student_id']);
+
+            // Find or create the candidate
+            $candidate = Candidate::where('student_id', $validate['student_id'])
+                                ->where('exam_id', $active_exam->id)
+                                ->first();
+
+            if (!$candidate) {
+                // Create candidate record if it doesn't exist
+                $candidate = Candidate::create([
+                    'student_id' => $student->id,
+                    'exam_id' => $active_exam->id,
+                    'full_name' => $student->full_name,
+                    'programme' => $student->programme,
+                    'department' => $student->department,
+                    'password' => $student->password,
+                    'is_logged_on' => 0,
+                    'is_checkout' => 0,
+                    'checkin_time' => now(),
+                    'checkout_time' => '',
+                    'ticket_no' => null, // Will be generated when needed
+                    'status' => 'pending',
+                    'time_extension' => 0
+                ]);
+            }
+
+            // Get current extension and add new extension
+            $current_extension = (int)($candidate->time_extension ?? 0);
+            $extension_minutes = (int)$validate['extension_minutes'];
+            $new_extension = $current_extension + $extension_minutes;
+
+            // Update the candidate's time extension
+            $candidate->update([
+                'time_extension' => $new_extension
+            ]);
+
+            return response()->json([
+                'message' => 'Time extended successfully',
+                'time_extension' => $new_extension,
+                'student_name' => $student->full_name
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function terminate_exam($course_id)
+    {
+        try {
+            // Get the active exam
+            $exam = Exam::where('course_id', $course_id)
+                    ->where('activated', 'yes')
+                    ->first();
+
+            if (!$exam) {
+                return response()->json(['message' => 'No active exam found'], 404);
+            }
+
+            // Reset all time extensions to 0 when terminating exam
+            Candidate::where('exam_id', $exam->id)
+                ->update([
+                    'time_extension' => 0,
+                    'is_logged_on' => false,
+                    'is_checkout' => true,
+                    'status' => 'completed'
+                ]);
+
+            // Deactivate the exam
+            $exam->update(['activated' => 'no']);
+
+            return response()->json([
+                'message' => 'Exam terminated successfully and all time extensions cleared'
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }

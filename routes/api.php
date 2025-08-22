@@ -184,3 +184,5 @@ Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware
 // Invigilator routes
 Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'generate_ticket']);
 Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, 'get_students']);
+Route::post('/extend-time', [InvigilatorController::class, 'extend_time']);
+Route::post('/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam']);
