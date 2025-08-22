@@ -31,27 +31,47 @@ const Home = () => {
             });
 
             // Check if student is checked in
-            if (res.data.checkin_time === null || res.data.checkin_time === undefined) {
+            if (!res.data.checkin_time) {
                 navigate("/not-check-in");
                 setLoading(false);
                 return;
             }
 
-            // Check if student is already logged in/exam started
+            // Get student's exam status and time extension info
+            try {
+                const examRes = await axios.get(`${path}/get-student-exam/${res.data.id}`);
+                const candidate = examRes.data?.candidate;
+                
+                // If student has time extension, allow them to go directly to exam
+                if (candidate && candidate.time_extension > 0) {
+                    navigate(`/student/${res.data.id}`);
+                    setLoading(false);
+                    return;
+                }
+            } catch (examErr) {
+                console.log('Could not fetch exam data:', examErr);
+            }
+
+            // Check if student is already logged in (without time extension)
             if (res.data.is_logged_on === "yes") {
                 navigate("/logged-student");
                 setLoading(false);
                 return;
             }
 
-            // Student is checked in, proceed to exam instructions
+            // Student is checked in and not logged in, proceed to exam instructions
             navigate(`/exam-instructions/${res.data.id}`);
+            setLoading(false);
         } catch (err) {
             // Handle different error types
             if (err.response?.status === 400 && err.response?.data === 'user not checked in') {
                 navigate("/not-check-in");
             } else {
-                setErrMsg(err.response?.data || "Login failed");
+                // Ensure error message is always a string
+                const errorMessage = typeof err.response?.data === 'string' 
+                    ? err.response.data 
+                    : err.response?.data?.message || err.message || "Login failed";
+                setErrMsg(errorMessage);
             }
             setLoading(false);
         }

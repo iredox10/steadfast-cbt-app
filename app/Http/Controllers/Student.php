@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Answers;
+use App\Models\Candidate;
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Student as ModelsStudent;
@@ -372,6 +373,52 @@ class Student extends Controller
             return response()->json($student);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
+        }
+    }
+
+    public function get_student_exam($student_id)
+    {
+        try {
+            $exam = Exam::where('activated', 'yes')->first();
+            if (!$exam) {
+                return response()->json(['error' => 'No active exam found'], 404);
+            }
+
+            // Get the candidate record for this student and exam
+            $candidate = Candidate::where('student_id', $student_id)
+                                ->where('exam_id', $exam->id)
+                                ->first();
+
+            // Calculate total time (base duration + extension)
+            $base_duration = $exam->exam_duration;
+            $time_extension = $candidate ? ($candidate->time_extension ?? 0) : 0;
+            $total_duration = $base_duration + $time_extension;
+
+            // Get questions that are considered valid for the exam.
+            $validQuestions = $exam->questions()
+                ->whereNotNull('question')
+                ->whereNotNull('correct_answer')
+                ->whereNotNull('option_b')
+                ->get();
+
+            // Shuffle the valid questions.
+            $shuffledQuestions = $validQuestions->shuffle();
+            
+            // Create exam response with extended duration
+            $examResponse = $exam->toArray();
+            $examResponse['exam_duration'] = $total_duration;
+            $examResponse['base_duration'] = $base_duration;
+            $examResponse['time_extension'] = $time_extension;
+            
+            $data = [
+                'exam' => $examResponse,
+                'questions' => $shuffledQuestions->values()->all(),
+                'candidate' => $candidate
+            ];
+            
+            return response()->json($data, 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }

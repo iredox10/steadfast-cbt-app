@@ -21,7 +21,7 @@ const Student = () => {
     console.log('Student component constructor called');
     
     const { studentId } = useParams();
-    const { data, loading, err } = useFetch(`/get-student-exam`);
+    const { data, loading, err } = useFetch(`/get-student-exam/${studentId}`);
     const [answers, setAnswers] = useState([]);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
@@ -35,6 +35,9 @@ const Student = () => {
 
     // Store shuffled options for each question to prevent reshuffling
     const [shuffledOptions, setShuffledOptions] = useState({});
+    
+    // State for managing exam data refresh (for time extensions)
+    const [examData, setExamData] = useState(null);
 
     const navigate = useNavigate();
 
@@ -161,6 +164,30 @@ const Student = () => {
             localStorage.setItem(localStorageKey, JSON.stringify(examData));
         }
     }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, data?.exam?.id, studentId, localStorageKey]);
+
+    // Periodically refresh exam data to pick up time extensions
+    useEffect(() => {
+        if (!studentId) return;
+        
+        const refreshExamData = async () => {
+            try {
+                const response = await axios.get(`${path}/get-student-exam/${studentId}`);
+                setExamData(response.data);
+            } catch (error) {
+                console.error('Error refreshing exam data:', error);
+            }
+        };
+
+        // Initial load
+        if (data) {
+            setExamData(data);
+        }
+
+        // Refresh every 30 seconds to pick up time extensions
+        const interval = setInterval(refreshExamData, 30000);
+
+        return () => clearInterval(interval);
+    }, [studentId, data]);
 
     // Load saved answers from localStorage on component mount
     useEffect(() => {
@@ -524,13 +551,18 @@ const Student = () => {
                                     <FaClock className="text-red-600" />
                                 </div>
                                 <div className="text-right">
-                                    {data && (
+                                    {(examData || data) && (
                                         <Timer
-                                            initialTime={data?.exam?.exam_duration || 0}
+                                            initialTime={(examData || data)?.exam?.exam_duration || 0}
                                             onTimeUp={handleSubmit}
                                         />
                                     )}
                                     <p className="text-xs text-gray-500">Time Remaining</p>
+                                    {(examData || data)?.exam?.time_extension > 0 && (
+                                        <p className="text-xs text-green-600 font-medium">
+                                            +{(examData || data).exam.time_extension} min extended
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>

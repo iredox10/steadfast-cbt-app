@@ -4,18 +4,55 @@ const Timer = ({ initialTime, onTimeUp }) => {
     const [timeRemaining, setTimeRemaining] = useState(() => {
         // Try to get saved time from localStorage
         const savedTime = localStorage.getItem("examTimeRemaining");
-        if (savedTime) {
-            const parsedTime = parseInt(savedTime);
-            // Initial time is already in minutes, convert to seconds for comparison
-            const initialTimeInSeconds = initialTime * 60;
-            // Verify saved time isn't more than initial time
-            return parsedTime > initialTimeInSeconds ? initialTimeInSeconds : parsedTime;
+        const savedTotalTime = localStorage.getItem("examTotalTime");
+        
+        if (savedTime && savedTotalTime) {
+            const parsedSavedTime = parseInt(savedTime);
+            const parsedSavedTotalTime = parseInt(savedTotalTime);
+            const currentTotalTimeInSeconds = initialTime * 60;
+            
+            // If the total time has increased (time extension), add the difference
+            if (currentTotalTimeInSeconds > parsedSavedTotalTime) {
+                const timeExtension = currentTotalTimeInSeconds - parsedSavedTotalTime;
+                const newTimeRemaining = parsedSavedTime + timeExtension;
+                console.log(`Time extended: +${timeExtension}s, new time: ${newTimeRemaining}s`);
+                
+                // Save the new total time
+                localStorage.setItem("examTotalTime", currentTotalTimeInSeconds.toString());
+                localStorage.setItem("examTimeRemaining", newTimeRemaining.toString());
+                
+                return newTimeRemaining;
+            }
+            
+            // Use saved time if it's valid
+            return parsedSavedTime;
         }
+        
         // Convert initial time from minutes to seconds
-        return initialTime * 60;
+        const initialTimeInSeconds = initialTime * 60;
+        localStorage.setItem("examTotalTime", initialTimeInSeconds.toString());
+        return initialTimeInSeconds;
     });
 
     const [isActive, setIsActive] = useState(true);
+
+    useEffect(() => {
+        // Update saved total time if initialTime changes
+        const currentTotalTimeInSeconds = initialTime * 60;
+        const savedTotalTime = localStorage.getItem("examTotalTime");
+        
+        if (savedTotalTime && currentTotalTimeInSeconds > parseInt(savedTotalTime)) {
+            const timeExtension = currentTotalTimeInSeconds - parseInt(savedTotalTime);
+            console.log(`Detected time extension: +${timeExtension}s`);
+            
+            setTimeRemaining(prevTime => {
+                const newTime = prevTime + timeExtension;
+                localStorage.setItem("examTimeRemaining", newTime.toString());
+                localStorage.setItem("examTotalTime", currentTotalTimeInSeconds.toString());
+                return newTime;
+            });
+        }
+    }, [initialTime]);
 
     useEffect(() => {
         // Get the timestamp when timer was last updated
@@ -56,6 +93,7 @@ const Timer = ({ initialTime, onTimeUp }) => {
                     // Clear localStorage
                     localStorage.removeItem("examTimeRemaining");
                     localStorage.removeItem("examLastTimestamp");
+                    localStorage.removeItem("examTotalTime");
                     return 0;
                 }
                 return newTime;

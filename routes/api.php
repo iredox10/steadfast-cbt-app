@@ -32,6 +32,7 @@ Route::get('/get-students', [Student::class, 'index']);
 Route::get('/get-student/{student_id}', [Student::class, 'get_student']);
 
 Route::get('/get-student-exam', [Student::class, 'exam']);
+Route::get('/get-student-exam/{student_id}', [Student::class, 'get_student_exam']);
 
 Route::post('/student-add-course/{student_id}', [Student::class, 'add_course']);
 
