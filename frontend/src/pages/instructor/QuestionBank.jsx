@@ -122,7 +122,7 @@ const QuestionBank = () => {
                     ) : error ? (
                         <div className="p-12 text-center">
                             <i className="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-4"></i>
-                            <p className="text-red-500 mb-4">{error}</p>
+                            <p className="text-red-500 mb-4">{typeof error === 'object' ? error.error || error.message || 'An error occurred' : error}</p>
                             <button 
                                 onClick={fetchQuestions}
                                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"

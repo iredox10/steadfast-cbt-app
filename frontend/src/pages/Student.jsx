@@ -464,7 +464,7 @@ const Student = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600">No exam data available.</p>
-                    {err && <p className="text-red-600 mt-2">Error: {err}</p>}
+                    {err && <p className="text-red-600 mt-2">Error: {typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>}
                 </div>
             </div>
         );
@@ -479,7 +479,7 @@ const Student = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600">Incomplete exam data.</p>
-                    {err && <p className="text-red-600 mt-2">Error: {err}</p>}
+                    {err && <p className="text-red-600 mt-2">Error: {typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>}
                 </div>
             </div>
         );

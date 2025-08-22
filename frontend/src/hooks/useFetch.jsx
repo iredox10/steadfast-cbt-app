@@ -15,7 +15,33 @@ const useFetch = (uri) => {
                 setData(res.data);
             } catch (error) {
                 console.error("Fetch error:", error);
-                setErr(error.message || "An error occurred");
+                // Extract error message properly
+                let errorMessage = "An error occurred";
+                
+                if (error.response?.data) {
+                    // Handle different response data types
+                    const responseData = error.response.data;
+                    if (typeof responseData === 'string') {
+                        errorMessage = responseData;
+                    } else if (responseData && typeof responseData === 'object') {
+                        if (responseData.error) {
+                            errorMessage = responseData.error;
+                        } else if (responseData.message) {
+                            errorMessage = responseData.message;
+                        } else {
+                            // Fallback for any other object structure
+                            errorMessage = JSON.stringify(responseData);
+                        }
+                    }
+                } else if (error.message) {
+                    errorMessage = error.message;
+                } else {
+                    // Ensure we never set an object as the error
+                    errorMessage = "Unknown error occurred";
+                }
+                
+                // Make absolutely sure we're setting a string
+                setErr(typeof errorMessage === 'string' ? errorMessage : "Error occurred");
             } finally {
                 setLoading(false);
             }

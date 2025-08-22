@@ -253,7 +253,7 @@ const Exams = () => {
 
                 {err && (
                     <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg mb-6">
-                        <p>{err}</p>
+                        <p>{typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>
                     </div>
                 )}
 
@@ -486,7 +486,7 @@ const Exams = () => {
                         <div className="p-6 space-y-6">
                             {err && (
                                 <div className="p-4 text-red-700 bg-red-100 rounded-lg">
-                                    <p>{err}</p>
+                                    <p>{typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>
                                 </div>
                             )}
 

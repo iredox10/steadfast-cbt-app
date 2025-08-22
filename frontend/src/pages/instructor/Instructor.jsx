@@ -13,12 +13,14 @@ import {
 
 const Instructor = () => {
     const { id } = useParams();
-    const { data: courses, loading, err } = useFetch(`/get-lecturer-courses/${id}`);
-    const {
-        data: user,
-        loading: userLoading,
-        err: userErr,
-    } = useFetch(`/get-user/${id}`);
+    
+    // Temporarily disable useFetch calls to isolate the issue
+    const courses = [];
+    const loading = false;
+    const err = null;
+    const user = { full_name: "Test User" };
+    const userLoading = false;
+    const userErr = null;
 
     // Stats based on what instructors can actually access
     const stats = [

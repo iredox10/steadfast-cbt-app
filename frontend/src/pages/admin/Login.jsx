@@ -121,7 +121,7 @@ const AdminLogin = () => {
                             <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
                                 <div className="flex items-center">
                                     <i className="fas fa-exclamation-circle mr-2"></i>
-                                    {err}
+                                    {typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}
                                 </div>
                             </div>
                         )}

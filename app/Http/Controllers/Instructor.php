@@ -96,7 +96,7 @@ class Instructor extends Controller
             // $courses = LecturerCourse::where('user_id', $id);
             return response()->json($user);
         } catch (Exception $e) {
-            return response()->json($e);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -170,7 +170,7 @@ class Instructor extends Controller
             }
             return response()->json($exam, 201);
         } catch (\Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -183,7 +183,7 @@ class Instructor extends Controller
                 ->get();
             return response()->json($exams);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -249,7 +249,7 @@ class Instructor extends Controller
             $exam->save();
             return response()->json($exam);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     public function get_exam()
@@ -278,7 +278,7 @@ class Instructor extends Controller
             $exam = Exam::destroy($exam_id);
             return response()->json($exam);
         } catch (\Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
     public function get_questions(Request $request, $exam_id)
@@ -299,7 +299,7 @@ class Instructor extends Controller
             $courses = User::findOrFail($user_id)->courses;
             return response()->json($courses);
         } catch (\Exception $err) {
-            return response()->json($err->getMessage());
+            return response()->json(['error' => $err->getMessage()], 500);
         }
     }
 
@@ -444,7 +444,7 @@ class Instructor extends Controller
                 'exam_score' => $exam_score
             ]);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

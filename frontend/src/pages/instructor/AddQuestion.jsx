@@ -208,7 +208,7 @@ const AddQuestion = () => {
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                             {error && (
                                 <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded mb-6">
-                                    <p>{error}</p>
+                                    <p>{typeof error === 'object' ? error.error || error.message || 'An error occurred' : error}</p>
                                 </div>
                             )}
 
