@@ -133,7 +133,7 @@ const AdminSidebar = ({ userId }) => {
 
                 {/* Instructors */}
                 <Link 
-                    to="/admin-instructors" 
+                    to={`/admin-instructors/${userId}`} 
                     className={getLinkClass('admin-instructors')}
                 >
                     <FaChalkboardTeacher className="mr-3" /> Instructors

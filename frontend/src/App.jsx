@@ -84,7 +84,7 @@ function App() {
 
                     <Route path="/dashboard/:userId" element={<Dashboard />} />
                     <Route
-                        path="/admin-instructors"
+                        path="/admin-instructors/:userId"
                         element={<AdminInstructors />}
                     />
                     <Route

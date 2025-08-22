@@ -52,11 +52,14 @@ const AdminStudents = () => {
                 const level = selectedLevel || userRes.data.level_id;
                 let studentsUrl = `${path}/get-students`;
                 
-                if (level && userRes.data.role !== 'super_admin') {
-                    studentsUrl = `${path}/students-by-level?level_id=${level}`;
+                // For super admins, add level filter if a specific level is selected
+                if (userRes.data.role === 'super_admin' && level) {
+                    studentsUrl += `?level_id=${level}`;
                 }
                 
-                const res = await axios.get(studentsUrl);
+                const res = await axios.get(studentsUrl, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
                 setStudents(res.data);
                 return;
             }
@@ -66,11 +69,14 @@ const AdminStudents = () => {
             const level = selectedLevel || userRes.data.level_id;
             let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
             
-            if (level && userRes.data.role !== 'super_admin') {
+            // For super admins, add level filter if a specific level is selected
+            if (userRes.data.role === 'super_admin' && level) {
                 studentsUrl += `?level_id=${level}`;
             }
             
-            const res = await axios.get(studentsUrl);
+            const res = await axios.get(studentsUrl, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
             setStudents(res.data.map(student => ({
                 ...student,
                 exam_id: currentExam.id
@@ -273,7 +279,7 @@ const AdminStudents = () => {
                             <FaUserShield className="mr-3" /> Admin Management
                         </Link>
                     )}
-                    <Link to="/admin-instructors" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <Link to={`/admin-instructors/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaChalkboardTeacher className="mr-3" /> Instructors
                     </Link>
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">

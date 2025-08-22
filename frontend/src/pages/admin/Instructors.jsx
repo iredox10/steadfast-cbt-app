@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link, useParams } from 'react-router-dom';
 import { path } from '../../../utils/path';
-import { FaPlus, FaUsers, FaChalkboardTeacher, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
+import { 
+    FaPlus, 
+    FaUsers, 
+    FaChalkboardTeacher, 
+    FaEdit, 
+    FaTrash, 
+    FaTimes,
+    FaCalendarAlt,
+    FaBook,
+    FaCog,
+    FaSignOutAlt,
+    FaListAlt,
+    FaUserShield
+} from 'react-icons/fa';
 
 const Instructors = () => {
+    const { userId } = useParams();
     const [instructors, setInstructors] = useState([]);
     const [academicSessions, setAcademicSessions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -127,21 +142,64 @@ const Instructors = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Instructor Management</h1>
-                    <p className="text-gray-600 mt-2">Manage instructors and lecturers</p>
+        <div className="flex min-h-screen bg-gray-50 text-gray-800">
+            {/* Sidebar */}
+            <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
+                <div className="flex items-center mb-10">
+                    <img src="/assets/buk.png" alt="School Logo" className="h-10 w-10 mr-3" />
+                    <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                    <FaPlus className="mr-2" />
-                    Add Instructor
-                </button>
-            </div>
+                <nav className="space-y-2">
+                    <Link to={`/dashboard/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaListAlt className="mr-3" /> Dashboard
+                    </Link>
+                    <Link to="/admin-sessions" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCalendarAlt className="mr-3" /> Sessions
+                    </Link>
+                    <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaUsers className="mr-3" /> Students
+                    </Link>
+                    {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                        <Link to="/admin-management" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                            <FaUserShield className="mr-3" /> Admin Management
+                        </Link>
+                    )}
+                    <Link to={`/admin-instructors/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
+                        <FaChalkboardTeacher className="mr-3" /> Instructors
+                    </Link>
+                    <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exam Archives
+                    </Link>
+                    <Link to={`/admin-exam/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaBook className="mr-3" /> Exams
+                    </Link>
+                </nav>
+                <div className="absolute bottom-6 left-6 right-6 w-52">
+                    <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCog className="mr-3" /> Settings
+                    </Link>
+                    <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <FaSignOutAlt className="mr-3" /> Logout
+                    </Link>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 p-8">
+                {/* Header */}
+                <header className="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 className="text-3xl font-bold text-gray-900">Instructor Management</h2>
+                        <p className="text-gray-600">Manage instructors and lecturers</p>
+                    </div>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                        <FaPlus className="mr-2" />
+                        Add Instructor
+                    </button>
+                </header>
 
             {/* Messages */}
             {errMsg && (
@@ -220,6 +278,7 @@ const Instructors = () => {
                     </table>
                 </div>
             </div>
+            </main>
 
             {/* Create Instructor Modal */}
             {showCreateModal && (

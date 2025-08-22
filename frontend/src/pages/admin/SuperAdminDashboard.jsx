@@ -236,7 +236,7 @@ const SuperAdminDashboard = () => {
                     title="Total Instructors"
                     value={stats?.totalInstructors || 0}
                     color="green"
-                    onClick={() => window.location.href = '/admin-instructors'}
+                    onClick={() => window.location.href = `/admin-instructors/${userId}`}
                 />
                 <StatCard
                     icon={<FaBook />}
@@ -314,7 +314,7 @@ const SuperAdminDashboard = () => {
                     </Link>
                     
                     <Link
-                        to="/admin-instructors"
+                        to={`/admin-instructors/${userId}`}
                         className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                         <FaChalkboardTeacher className="mr-3 text-green-500" />

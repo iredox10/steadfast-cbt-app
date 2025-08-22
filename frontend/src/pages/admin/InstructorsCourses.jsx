@@ -76,7 +76,7 @@ const InstructorsCourses = () => {
                     <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaUsers className="mr-3" /> Students
                     </Link>
-                    <Link to="/admin-instructors" className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
+                    <Link to={`/admin-instructors/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
                         <FaChalkboardTeacher className="mr-3" /> Instructors
                     </Link>
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
@@ -98,7 +98,7 @@ const InstructorsCourses = () => {
                 <header className="flex justify-between items-center mb-8">
                     <div>
                         <div className="flex items-center text-sm text-gray-500 mb-2">
-                            <Link to="/admin-instructors" className="hover:underline">Instructors</Link>
+                            <Link to={`/admin-instructors/${userId}`} className="hover:underline">Instructors</Link>
                             <FaChevronRight className="mx-2" />
                             <span className="font-medium text-gray-800">{instructor?.full_name || "Instructor"}</span>
                         </div>
