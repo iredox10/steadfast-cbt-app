@@ -1,0 +1,271 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Acd_session;
+use App\Models\User;
+use App\Models\Student;
+use App\Models\Course;
+use App\Models\Exam;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+
+class DepartmentController extends Controller
+{
+    /**
+     * Get all departments
+     */
+    public function getDepartments()
+    {
+        try {
+            $departments = Acd_session::withCount([
+                'users',
+                'students', 
+                'courses',
+                'exams'
+            ])->orderBy('title')->get();
+
+            return response()->json([
+                'success' => true,
+                'departments' => $departments
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch departments',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get department by ID with detailed stats
+     */
+    public function getDepartment($id)
+    {
+        try {
+            $department = Acd_session::with([
+                'users:id,full_name,email,role,level_id,status',
+                'students:id,full_name,email,level_id,status',
+                'courses:id,title,code,level_id,status',
+                'exams:id,title,level_id,status,created_at'
+            ])->findOrFail($id);
+
+            // Get additional statistics
+            $stats = [
+                'total_users' => $department->users->count(),
+                'total_students' => $department->students->count(),
+                'total_courses' => $department->courses->count(),
+                'total_exams' => $department->exams->count(),
+                'active_admins' => $department->users->where('role', 'level_admin')->count(),
+                'active_lecturers' => $department->users->where('role', 'lecturer')->count(),
+                'active_students' => $department->students->where('status', 'active')->count(),
+                'active_courses' => $department->courses->where('status', 'active')->count(),
+                'recent_exams' => $department->exams->sortByDesc('created_at')->take(5)->values()
+            ];
+
+            return response()->json([
+                'success' => true,
+                'department' => $department,
+                'stats' => $stats
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Department not found',
+                'error' => $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Create a new department
+     */
+    public function createDepartment(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255|unique:acd_sessions,title',
+                'description' => 'nullable|string',
+                'department_code' => 'required|string|max:10|unique:acd_sessions,department_code',
+                'status' => 'boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $department = Acd_session::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'department_code' => strtoupper($request->department_code),
+                'status' => $request->status ?? true
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Department created successfully',
+                'department' => $department
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create department',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update department
+     */
+    public function updateDepartment(Request $request, $id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|max:255|unique:acd_sessions,title,' . $id,
+                'description' => 'nullable|string',
+                'department_code' => 'required|string|max:10|unique:acd_sessions,department_code,' . $id,
+                'status' => 'boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $department->update([
+                'title' => $request->title,
+                'description' => $request->description,
+                'department_code' => strtoupper($request->department_code),
+                'status' => $request->status ?? $department->status
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Department updated successfully',
+                'department' => $department
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update department',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete department (soft delete by setting status to false)
+     */
+    public function deleteDepartment($id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+
+            // Check if department has associated data
+            $hasUsers = $department->users()->count() > 0;
+            $hasStudents = $department->students()->count() > 0;
+            $hasCourses = $department->courses()->count() > 0;
+
+            if ($hasUsers || $hasStudents || $hasCourses) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete department. It has associated users, students, or courses. Please transfer them to another department first.'
+                ], 400);
+            }
+
+            $department->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Department deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete department',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get department dashboard stats
+     */
+    public function getDepartmentDashboard($departmentId)
+    {
+        try {
+            $department = Acd_session::findOrFail($departmentId);
+
+            $stats = [
+                'department_info' => [
+                    'id' => $department->id,
+                    'title' => $department->title,
+                    'code' => $department->department_code,
+                    'description' => $department->description
+                ],
+                'counts' => [
+                    'total_users' => $department->users()->count(),
+                    'total_students' => $department->students()->count(),
+                    'total_courses' => $department->courses()->count(),
+                    'total_exams' => $department->exams()->count(),
+                    'level_admins' => $department->users()->where('role', 'level_admin')->count(),
+                    'lecturers' => $department->users()->where('role', 'lecturer')->count(),
+                    'active_students' => $department->students()->where('status', 'active')->count(),
+                    'active_courses' => $department->courses()->where('status', 'active')->count()
+                ],
+                'recent_activities' => [
+                    'recent_users' => $department->users()->latest()->take(5)->get(['id', 'full_name', 'role', 'created_at']),
+                    'recent_students' => $department->students()->latest()->take(5)->get(['id', 'full_name', 'created_at']),
+                    'recent_exams' => $department->exams()->latest()->take(5)->get(['id', 'title', 'created_at'])
+                ]
+            ];
+
+            return response()->json([
+                'success' => true,
+                'dashboard' => $stats
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch department dashboard',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle department status
+     */
+    public function toggleDepartmentStatus($id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+            $department->status = !$department->status;
+            $department->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Department status updated successfully',
+                'department' => $department
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update department status',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+}

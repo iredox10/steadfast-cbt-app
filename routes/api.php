@@ -192,6 +192,17 @@ Route::get('/students-by-level', [Admin::class, 'getStudentsByLevel'])->middlewa
 Route::get('/exams-by-level', [Admin::class, 'getExamsByLevel'])->middleware(['auth:sanctum', 'admin.level']);
 Route::get('/users-by-level', [Admin::class, 'getUsersByLevel'])->middleware(['auth:sanctum', 'admin.level']);
 
+// Department management routes (Super Admin only)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/departments', [\App\Http\Controllers\DepartmentController::class, 'getDepartments']);
+    Route::get('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'getDepartment']);
+    Route::post('/departments', [\App\Http\Controllers\DepartmentController::class, 'createDepartment']);
+    Route::put('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'updateDepartment']);
+    Route::delete('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'deleteDepartment']);
+    Route::get('/departments/{id}/dashboard', [\App\Http\Controllers\DepartmentController::class, 'getDepartmentDashboard']);
+    Route::patch('/departments/{id}/toggle-status', [\App\Http\Controllers\DepartmentController::class, 'toggleDepartmentStatus']);
+});
+
 // Invigilator routes
 Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'generate_ticket']);
 Route::post('/invigilator/regenerate-ticket', [InvigilatorController::class, 'regenerate_ticket']);
