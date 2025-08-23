@@ -14,7 +14,8 @@ class Course extends Model
         'acd_session_id',
         'code',
         'title',
-        'credit_unit'
+        'credit_unit',
+        'created_by'
     ];
 
     public function semester()
@@ -45,5 +46,10 @@ class Course extends Model
     public function questionBanks()
     {
         return $this->hasMany(QuestionBank::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

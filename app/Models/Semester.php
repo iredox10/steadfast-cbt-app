@@ -13,7 +13,8 @@ class Semester extends Model
         'acd_session_id',
         'semester',
         'title',
-        'status'
+        'status',
+        'created_by'
     ];
 
     public function acd_session()
@@ -35,5 +36,10 @@ class Semester extends Model
     public function courses()
     {
         return $this->hasMany(Course::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

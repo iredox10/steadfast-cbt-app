@@ -33,55 +33,55 @@ class Admin extends Controller
     private function getAdminLevelFilter(Request $request)
     {
         $user = $request->user();
-        
+
         if (!$user) {
             return null;
         }
-        
+
         // Super admins can see everything (no filter)
         if ($user->role === 'super_admin') {
             return null;
         }
-        
+
         // Level admins can only see their level
         if ($user->role === 'level_admin') {
             return $user->level_id;
         }
-        
+
         // Regular admins (backward compatibility - can see everything)
         if ($user->role === 'admin') {
             return null;
         }
-        
+
         return null;
     }
-    
+
     /**
      * Check if user can access a specific level
      */
     private function canAccessLevel(Request $request, $levelId)
     {
         $user = $request->user();
-        
+
         if (!$user) {
             return false;
         }
-        
+
         // Super admins can access any level
         if ($user->role === 'super_admin') {
             return true;
         }
-        
+
         // Level admins can only access their own level
         if ($user->role === 'level_admin') {
             return $user->level_id == $levelId;
         }
-        
+
         // Regular admins (backward compatibility)
         if ($user->role === 'admin') {
             return true;
         }
-        
+
         return false;
     }
 
@@ -140,15 +140,36 @@ class Admin extends Controller
     public function activate_session($session_id)
     {
         try {
+            // Deactivate all sessions first
             $sessions = Acd_session::query()->update(['status' => 'inactive']);
             $session = Acd_session::findOrFail($session_id);
+
+            // Deactivate all semesters
             $semesters = Semester::query()->update(['status' => 'inactive']);
 
+            // Activate the selected session
             $session->status = 'active';
             $session->save();
+
             return response()->json($session);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function deactivate_session($session_id)
+    {
+        try {
+            $session = Acd_session::findOrFail($session_id);
+            $session->status = 'inactive';
+            $session->save();
+
+            // Also deactivate all semesters in this session
+            Semester::where('acd_session_id', $session_id)->update(['status' => 'inactive']);
+
+            return response()->json($session);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -186,7 +207,8 @@ class Admin extends Controller
             $semester = Semester::create([
                 'acd_session_id' => $session_id,
                 'semester' => $validate['semester'],
-                'status' => $validate['status']
+                'status' => $validate['status'],
+                'created_by' => $request->user()->id
             ]);
             return response()->json($semester, 201);
         } catch (Exception $e) {
@@ -208,8 +230,17 @@ class Admin extends Controller
     public function get_semesters($acd_session_id)
     {
         try {
-            $semesters = Acd_session::find($acd_session_id)->semesters()->with('courses')->get();
-            return response()->json($semesters);
+            $user = request()->user();
+
+            $semestersQuery = Acd_session::find($acd_session_id)->semesters();
+
+            // If user is level admin, only show their own semesters
+            if ($user && $user->role === 'level_admin') {
+                $semestersQuery->where('created_by', $user->id);
+            }
+
+            $semesters = $semestersQuery->with('courses')->get();
+            return response()->json($semestersQuery);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -228,7 +259,8 @@ class Admin extends Controller
                 'semester_id' => $semester_id,
                 'title' => $validate['title'],
                 'code' => $validate['code'],
-                'credit_unit' => $validate['credit_unit']
+                'credit_unit' => $validate['credit_unit'],
+                'created_by' => $request->user()->id
             ]);
             return response()->json($course, 201);
         } catch (Exception $e) {
@@ -239,8 +271,16 @@ class Admin extends Controller
     public function get_courses()
     {
         try {
+            $user = request()->user();
 
-            $courses = Course::all();
+            $coursesQuery = Course::query();
+
+            // If user is level admin, only show their own courses
+            if ($user && $user->role === 'level_admin') {
+                $coursesQuery->where('created_by', $user->id);
+            }
+
+            $courses = $coursesQuery->get();
             return response()->json($courses);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -418,12 +458,12 @@ class Admin extends Controller
 
             $levelId = $this->getAdminLevelFilter($request);
             $user = $request->user();
-            
+
             // For level admins, use their level_id
             if ($user->role === 'level_admin') {
                 $levelId = $user->level_id;
             }
-            
+
             $student = Student::create([
                 'candidate_no' => $request->candidate_no,
                 'full_name' => $request->full_name,
@@ -744,27 +784,27 @@ class Admin extends Controller
         try {
             $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
-            
+
             \Log::info('getStudentsByLevel called', [
                 'user_id' => $user ? $user->id : null,
                 'user_role' => $user ? $user->role : null,
                 'user_level_id' => $user ? $user->level_id : null,
                 'level_filter' => $levelFilter
             ]);
-            
+
             $studentsQuery = Student::query();
-            
+
             if ($levelFilter !== null) {
                 $studentsQuery->where('level_id', $levelFilter);
             }
-            
+
             $students = $studentsQuery->orderBy('checkin_time')->get();
-            
+
             \Log::info('Students returned', [
                 'count' => $students->count(),
                 'students' => $students->pluck('id', 'full_name')->toArray()
             ]);
-            
+
             return response()->json($students);
         } catch (Exception $e) {
             return response()->json([
@@ -781,13 +821,13 @@ class Admin extends Controller
     {
         try {
             $levelFilter = $this->getAdminLevelFilter($request);
-            
+
             $examsQuery = Exam::with('user', 'level');
-            
+
             if ($levelFilter !== null) {
                 $examsQuery->where('level_id', $levelFilter);
             }
-            
+
             $exams = $examsQuery->orderBy('created_at', 'desc')->get();
             return response()->json($exams);
         } catch (Exception $e) {
@@ -805,7 +845,7 @@ class Admin extends Controller
     {
         try {
             $admin = User::findOrFail($adminId);
-            
+
             // Validate the request data
             $validate = $request->validate([
                 'full_name' => 'required|string|max:255',
@@ -848,7 +888,7 @@ class Admin extends Controller
     {
         try {
             $admin = User::findOrFail($adminId);
-            
+
             // Don't allow deletion of the current user
             if ($admin->id === $request->user()->id) {
                 return response()->json([
@@ -896,13 +936,13 @@ class Admin extends Controller
     {
         try {
             $levelFilter = $this->getAdminLevelFilter($request);
-            
+
             $usersQuery = User::whereIn('role', ['lecturer', 'invigilator']);
-            
+
             if ($levelFilter !== null) {
                 $usersQuery->where('level_id', $levelFilter);
             }
-            
+
             $users = $usersQuery->orderBy('created_at', 'desc')->get();
             return response()->json($users);
         } catch (Exception $e) {
@@ -927,10 +967,10 @@ class Admin extends Controller
 
             // Validate session exists
             $session = Acd_session::findOrFail($sessionId);
-            
+
             // Set as global active session
             SystemConfig::setGlobalActiveSession($sessionId);
-            
+
             // Optionally deactivate other sessions if needed
             Acd_session::where('id', '!=', $sessionId)->update(['status' => false]);
             $session->update(['status' => true]);
@@ -954,7 +994,7 @@ class Admin extends Controller
     {
         try {
             $session = SystemConfig::getGlobalActiveSession();
-            
+
             if (!$session) {
                 return response()->json(['message' => 'No global active session set'], 404);
             }
@@ -975,7 +1015,7 @@ class Admin extends Controller
     {
         try {
             $user = $request->user();
-            
+
             // Verify user is level admin or super admin
             if (!$user || !in_array($user->role, ['level_admin', 'super_admin'])) {
                 return response()->json(['error' => 'Only level admins can add courses'], 403);
@@ -999,7 +1039,7 @@ class Admin extends Controller
             $semester = Semester::where('id', $request->semester_id)
                               ->where('acd_session_id', $activeSession->id)
                               ->first();
-            
+
             if (!$semester) {
                 return response()->json(['error' => 'Invalid semester for active session'], 400);
             }
@@ -1010,7 +1050,8 @@ class Admin extends Controller
                 'acd_session_id' => $activeSession->id, // Add this for direct association
                 'code' => $request->code,
                 'title' => $request->title,
-                'credit_unit' => $request->credit_unit
+                'credit_unit' => $request->credit_unit,
+                'created_by' => $user->id
             ]);
 
             return response()->json([
@@ -1032,7 +1073,7 @@ class Admin extends Controller
     {
         try {
             $user = $request->user();
-            
+
             // Verify user is level admin or super admin
             if (!$user || !in_array($user->role, ['level_admin', 'super_admin'])) {
                 return response()->json(['error' => 'Only level admins can assign courses'], 403);
@@ -1049,7 +1090,7 @@ class Admin extends Controller
                                ->where('role', 'lecturer')
                                ->where('level_id', $user->level_id)
                                ->first();
-                
+
                 if (!$lecturer) {
                     return response()->json(['error' => 'Lecturer not found in your level'], 404);
                 }
@@ -1058,7 +1099,7 @@ class Admin extends Controller
                 $lecturer = User::where('id', $request->lecturer_id)
                                ->where('role', 'lecturer')
                                ->first();
-                
+
                 if (!$lecturer) {
                     return response()->json(['error' => 'Lecturer not found'], 404);
                 }
@@ -1067,7 +1108,7 @@ class Admin extends Controller
             // Verify course belongs to active session
             $course = Course::with('semester.acdSession')->find($request->course_id);
             $activeSession = SystemConfig::getGlobalActiveSession();
-            
+
             if (!$activeSession || $course->semester->acd_session_id !== $activeSession->id) {
                 return response()->json(['error' => 'Course does not belong to active session'], 400);
             }
@@ -1076,7 +1117,7 @@ class Admin extends Controller
             $existingAssignment = LecturerCourse::where('user_id', $request->lecturer_id)
                                                ->where('course_id', $request->course_id)
                                                ->first();
-            
+
             if ($existingAssignment) {
                 return response()->json(['error' => 'Course already assigned to this lecturer'], 400);
             }
@@ -1110,7 +1151,7 @@ class Admin extends Controller
     {
         try {
             $user = $request->user();
-            
+
             // Get global active session
             $activeSession = SystemConfig::getGlobalActiveSession();
             if (!$activeSession) {
@@ -1118,9 +1159,16 @@ class Admin extends Controller
             }
 
             // Get courses from active session
-            $courses = Course::whereHas('semester', function($query) use ($activeSession) {
+            $coursesQuery = Course::whereHas('semester', function($query) use ($activeSession) {
                 $query->where('acd_session_id', $activeSession->id);
-            })->with(['semester'])->get();
+            });
+
+            // If user is level admin, only show their own courses
+            if ($user->role === 'level_admin') {
+                $coursesQuery->where('created_by', $user->id);
+            }
+
+            $courses = $coursesQuery->with(['semester'])->get();
 
             return response()->json([
                 'session' => $activeSession,
@@ -1141,13 +1189,20 @@ class Admin extends Controller
     {
         try {
             $user = request()->user();
-            
+
             // Check if user has permission
             if (!in_array($user->role, ['super_admin', 'level_admin'])) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            $semesters = Semester::where('acd_session_id', $sessionId)->get();
+            $semestersQuery = Semester::where('acd_session_id', $sessionId);
+
+            // If user is level admin, only show their own semesters
+            if ($user->role === 'level_admin') {
+                $semestersQuery->where('created_by', $user->id);
+            }
+
+            $semesters = $semestersQuery->get();
 
             return response()->json($semesters);
 

@@ -20,7 +20,7 @@ class Acd_session extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean'
+        // Removed status casting to allow string values as per database constraint
     ];
 
     // Relationships
@@ -52,7 +52,7 @@ class Acd_session extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('status', true);
+        return $query->where('status', 'active');
     }
 
     // Helper methods

@@ -123,30 +123,24 @@ Route::get('/get-acd-sessions', [Admin::class, 'get_acd_sessions']);
 Route::get('/get-acd-session/{session_Id}', [Admin::class, 'get_acd_session']);
 
 Route::post('/activate-acd-session/{session_Id}', [Admin::class, 'activate_session']);
+Route::post('/deactivate-acd-session/{session_Id}', [Admin::class, 'deactivate_session']);
 
 Route::get('/get-active-session', [Admin::class, 'get_active_session']);
 
-Route::get('/get-semesters/{acd_sesssion_id}', [Admin::class, 'get_semesters']);
+// Semester and Course Management - Requires Authentication
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/get-semesters/{acd_sesssion_id}', [Admin::class, 'get_semesters']);
+    Route::post('/add-semester/{session_id}', [Admin::class, 'add_semester']);
+    Route::get('/get-semester/{semester_id}', [Admin::class, 'get_semester']);
+    Route::post('/add-course/{semester_id}', [Admin::class, 'add_course']);
+    Route::get('/get-semester-courses/{id}', [Admin::class, 'get_semester_courses']);
+    Route::post('/activate-semester/{semester_id}', [Admin::class, 'activate_semester']);
+    Route::get('/get-all-courses', [Admin::class, 'get_courses']);
+    Route::get('/get-courses', [Admin::class, 'get_courses']);
+    Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
+});
 
-Route::post('/add-semester/{session_id}', [Admin::class, 'add_semester']);
-
-Route::get('/get-semester/{semester_id}', [Admin::class, 'get_semester']);
-
-Route::post('/add-course/{semester_id}', [Admin::class, 'add_course']);
-
-Route::get('/get-semester-courses/{id}', [Admin::class, 'get_semester_courses']);
-
-Route::post('/activate-semester/{semester_id}', [Admin::class, 'activate_semester']);
-
-Route::get('/get-all-courses', [Admin::class, 'get_courses']);
-
-Route::get('/get-course-exam-questions/{course_id}', [Admin::class, 'get_course']);
-
-Route::get('/get-courses', [Admin::class, 'get_courses']);
-
-Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
 // Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
-
 Route::post('/add-lecturer-course/{user_id}/{course_id}', [Admin::class, 'add_lecturer_course']);
 
 Route::get('/get-exams', [Admin::class,'get_exams']);
@@ -203,7 +197,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'update']);
     Route::delete('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'destroy']);
     Route::put('/departments/{id}/toggle-status', [\App\Http\Controllers\DepartmentController::class, 'toggleStatus']);
-    
+
     // Legacy department routes (for backward compatibility)
     Route::get('/departments-legacy', [\App\Http\Controllers\DepartmentController::class, 'getDepartments']);
     Route::get('/departments/{id}/dashboard', [\App\Http\Controllers\DepartmentController::class, 'getDepartmentDashboard']);

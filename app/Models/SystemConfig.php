@@ -72,7 +72,7 @@ class SystemConfig extends Model
         $sessionId = self::get('global_active_session_id');
         
         if ($sessionId) {
-            return Acd_session::find($sessionId);
+            return \App\Models\Acd_session::find($sessionId);
         }
         
         return null;
@@ -85,11 +85,4 @@ class SystemConfig extends Model
     {
         return self::set('global_active_session_id', $sessionId, 'integer', 'The currently active academic session for the entire system');
     }
-}space App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class SystemConfig extends Model
-{
-    //
 }
