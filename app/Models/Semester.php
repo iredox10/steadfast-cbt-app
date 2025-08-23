@@ -12,12 +12,24 @@ class Semester extends Model
     protected $fillable = [
         'acd_session_id',
         'semester',
+        'title',
         'status'
     ];
 
     public function acd_session()
     {
-        return $this->belongsTo(Acd_Session::class);
+        return $this->belongsTo(Acd_session::class);
+    }
+
+    public function acdSession()
+    {
+        return $this->belongsTo(Acd_session::class, 'acd_session_id');
+    }
+
+    // Accessor to get title attribute (use semester field if title is not set)
+    public function getTitleAttribute($value)
+    {
+        return $value ?: $this->semester;
     }
 
     public function courses()

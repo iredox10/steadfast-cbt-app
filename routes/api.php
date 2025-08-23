@@ -215,3 +215,13 @@ Route::post('/invigilator/regenerate-ticket', [InvigilatorController::class, 're
 Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, 'get_students'])->middleware(['auth:sanctum']);
 Route::post('/extend-time', [InvigilatorController::class, 'extend_time']);
 Route::post('/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam']);
+
+// Global Session Management (Super Admin)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/set-global-session', [Admin::class, 'setGlobalActiveSession']);
+    Route::get('/get-global-session', [Admin::class, 'getGlobalActiveSession']);
+    Route::get('/get-active-session-courses', [Admin::class, 'getActiveSessionCourses']);
+    Route::post('/add-course-to-session', [Admin::class, 'addCourseToActiveSession']);
+    Route::post('/assign-course-to-lecturer', [Admin::class, 'assignCourseToLecturer']);
+    Route::get('/get-semesters/{session_id}', [Admin::class, 'getSessionSemesters']);
+});

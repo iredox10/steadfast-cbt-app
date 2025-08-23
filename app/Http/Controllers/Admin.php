@@ -12,6 +12,7 @@ use App\Models\LecturerCourse;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\User;
+use App\Models\SystemConfig;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -909,6 +910,249 @@ class Admin extends Controller
                 'error' => 'Failed to get users',
                 'message' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Set global active session (Super Admin only)
+     */
+    public function setGlobalActiveSession(Request $request, $sessionId)
+    {
+        try {
+            // Verify user is super admin
+            $user = $request->user();
+            if (!$user || $user->role !== 'super_admin') {
+                return response()->json(['error' => 'Only super admins can set global session'], 403);
+            }
+
+            // Validate session exists
+            $session = Acd_session::findOrFail($sessionId);
+            
+            // Set as global active session
+            SystemConfig::setGlobalActiveSession($sessionId);
+            
+            // Optionally deactivate other sessions if needed
+            Acd_session::where('id', '!=', $sessionId)->update(['status' => false]);
+            $session->update(['status' => true]);
+
+            return response()->json([
+                'message' => 'Global active session set successfully',
+                'session' => $session
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to set global active session',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get global active session
+     */
+    public function getGlobalActiveSession()
+    {
+        try {
+            $session = SystemConfig::getGlobalActiveSession();
+            
+            if (!$session) {
+                return response()->json(['message' => 'No global active session set'], 404);
+            }
+
+            return response()->json($session);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get global active session',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add course to active session (Level Admin only)
+     */
+    public function addCourseToActiveSession(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            // Verify user is level admin or super admin
+            if (!$user || !in_array($user->role, ['level_admin', 'super_admin'])) {
+                return response()->json(['error' => 'Only level admins can add courses'], 403);
+            }
+
+            // Get global active session
+            $activeSession = SystemConfig::getGlobalActiveSession();
+            if (!$activeSession) {
+                return response()->json(['error' => 'No active session set. Please contact super admin.'], 400);
+            }
+
+            // Validate input
+            $request->validate([
+                'code' => 'required|string|max:255',
+                'title' => 'required|string|max:255',
+                'credit_unit' => 'required|integer|min:1|max:10',
+                'semester_id' => 'required|exists:semesters,id'
+            ]);
+
+            // Verify semester belongs to active session
+            $semester = Semester::where('id', $request->semester_id)
+                              ->where('acd_session_id', $activeSession->id)
+                              ->first();
+            
+            if (!$semester) {
+                return response()->json(['error' => 'Invalid semester for active session'], 400);
+            }
+
+            // Create course
+            $course = Course::create([
+                'semester_id' => $request->semester_id,
+                'acd_session_id' => $activeSession->id, // Add this for direct association
+                'code' => $request->code,
+                'title' => $request->title,
+                'credit_unit' => $request->credit_unit
+            ]);
+
+            return response()->json([
+                'message' => 'Course added successfully',
+                'course' => $course->load('semester')
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to add course',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Assign course to lecturer (Level Admin only)
+     */
+    public function assignCourseToLecturer(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            // Verify user is level admin or super admin
+            if (!$user || !in_array($user->role, ['level_admin', 'super_admin'])) {
+                return response()->json(['error' => 'Only level admins can assign courses'], 403);
+            }
+
+            $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'lecturer_id' => 'required|exists:users,id'
+            ]);
+
+            // For level admins, verify lecturer is in the same level
+            if ($user->role === 'level_admin') {
+                $lecturer = User::where('id', $request->lecturer_id)
+                               ->where('role', 'lecturer')
+                               ->where('level_id', $user->level_id)
+                               ->first();
+                
+                if (!$lecturer) {
+                    return response()->json(['error' => 'Lecturer not found in your level'], 404);
+                }
+            } else {
+                // For super admins, just verify lecturer exists and has correct role
+                $lecturer = User::where('id', $request->lecturer_id)
+                               ->where('role', 'lecturer')
+                               ->first();
+                
+                if (!$lecturer) {
+                    return response()->json(['error' => 'Lecturer not found'], 404);
+                }
+            }
+
+            // Verify course belongs to active session
+            $course = Course::with('semester.acdSession')->find($request->course_id);
+            $activeSession = SystemConfig::getGlobalActiveSession();
+            
+            if (!$activeSession || $course->semester->acd_session_id !== $activeSession->id) {
+                return response()->json(['error' => 'Course does not belong to active session'], 400);
+            }
+
+            // Check if assignment already exists
+            $existingAssignment = LecturerCourse::where('user_id', $request->lecturer_id)
+                                               ->where('course_id', $request->course_id)
+                                               ->first();
+            
+            if ($existingAssignment) {
+                return response()->json(['error' => 'Course already assigned to this lecturer'], 400);
+            }
+
+            // Create assignment
+            $assignment = LecturerCourse::create([
+                'user_id' => $request->lecturer_id,
+                'course_id' => $request->course_id,
+                'title' => $course->title,
+                'code' => $course->code,
+                'credit_unit' => $course->credit_unit,
+                'status' => 'active'
+            ]);
+
+            return response()->json([
+                'message' => 'Course assigned successfully',
+                'assignment' => $assignment->load(['user', 'course'])
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to assign course',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get courses in active session for level admin
+     */
+    public function getActiveSessionCourses(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            // Get global active session
+            $activeSession = SystemConfig::getGlobalActiveSession();
+            if (!$activeSession) {
+                return response()->json(['error' => 'No active session set'], 404);
+            }
+
+            // Get courses from active session
+            $courses = Course::whereHas('semester', function($query) use ($activeSession) {
+                $query->where('acd_session_id', $activeSession->id);
+            })->with(['semester'])->get();
+
+            return response()->json([
+                'session' => $activeSession,
+                'courses' => $courses
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get active session courses',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get semesters for a specific session
+     */
+    public function getSessionSemesters($sessionId)
+    {
+        try {
+            $user = request()->user();
+            
+            // Check if user has permission
+            if (!in_array($user->role, ['super_admin', 'level_admin'])) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $semesters = Semester::where('acd_session_id', $sessionId)->get();
+
+            return response()->json($semesters);
+
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Failed to fetch semesters: ' . $e->getMessage()], 500);
         }
     }
 }

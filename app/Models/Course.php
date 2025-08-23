@@ -11,6 +11,7 @@ class Course extends Model
 
     protected $fillable = [
         'semester_id',
+        'acd_session_id',
         'code',
         'title',
         'credit_unit'
@@ -19,6 +20,11 @@ class Course extends Model
     public function semester()
     {
         return $this->belongsTo(Semester::class);
+    }
+
+    public function acdSession()
+    {
+        return $this->belongsTo(Acd_session::class, 'acd_session_id');
     }
 
     // public function students (){

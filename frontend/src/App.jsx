@@ -32,6 +32,8 @@ import ExamArchiveDetail from "./pages/admin/ExamArchiveDetail";
 import AdminManagement from "./pages/admin/AdminManagement";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import DepartmentManagement from "./pages/admin/DepartmentManagement";
+import GlobalSessionManagement from "./pages/admin/GlobalSessionManagement";
+import LevelAdminCourseManagement from "./pages/admin/LevelAdminCourseManagement";
 
 function App() {
     return (
@@ -112,6 +114,8 @@ function App() {
                     <Route path="/admin-management" element={<AdminManagement />} />
                     <Route path="/admin-dashboard/:userId" element={<SuperAdminDashboard />} />
                     <Route path="/department-management" element={<DepartmentManagement />} />
+                    <Route path="/global-session-management" element={<GlobalSessionManagement />} />
+                    <Route path="/level-admin-courses" element={<LevelAdminCourseManagement />} />
                 </Routes>
             </Router>
         </div>

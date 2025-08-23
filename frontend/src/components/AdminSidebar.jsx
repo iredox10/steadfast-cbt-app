@@ -113,13 +113,14 @@ const AdminSidebar = ({ userId }) => {
                     <FaListAlt className="mr-3" /> Dashboard
                 </Link>
 
-                {/* Academic Sessions - Super Admin only */}
-                {currentUser?.role === 'super_admin' && (
+                {/* Academic Sessions - Super Admin and Level Admin (but different views) */}
+                {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
                     <Link 
                         to="/admin-sessions" 
                         className={getLinkClass('admin-sessions')}
                     >
-                        <FaCalendarAlt className="mr-3" /> Academic Sessions
+                        <FaCalendarAlt className="mr-3" /> 
+                        {currentUser?.role === 'super_admin' ? 'Academic Sessions' : 'Active Session'}
                     </Link>
                 )}
 
@@ -154,6 +155,26 @@ const AdminSidebar = ({ userId }) => {
                 >
                     <FaEye className="mr-3" /> Exam Archives
                 </Link>
+
+                {/* Global Session Management - Super Admin only */}
+                {currentUser?.role === 'super_admin' && (
+                    <Link 
+                        to="/global-session-management" 
+                        className={getLinkClass('global-session-management')}
+                    >
+                        <FaCrown className="mr-3" /> Global Session
+                    </Link>
+                )}
+
+                {/* Course Management - Level Admin only */}
+                {currentUser?.role === 'level_admin' && (
+                    <Link 
+                        to="/level-admin-courses" 
+                        className={getLinkClass('level-admin-courses')}
+                    >
+                        <FaGraduationCap className="mr-3" /> Course Management
+                    </Link>
+                )}
 
                 {/* Admin Management - Super Admin and Level Admin only */}
                 {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
