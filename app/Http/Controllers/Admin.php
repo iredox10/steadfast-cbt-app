@@ -194,25 +194,27 @@ class Admin extends Controller
             'status' => 'string | required'
         ]);
         try {
+            $user = $request->user();
 
-            $semesters = Acd_session::findOrFail($session_id)->semesters;
+            // Check if this user already has a semester with the same name in this session
+            $existingSemester = Semester::where('acd_session_id', $session_id)
+                                      ->where('semester', $validate['semester'])
+                                      ->where('created_by', $user->id)
+                                      ->first();
 
-            if ($semesters) {
-                foreach ($semesters as $semester) {
-                    if ($semester->semester == $validate['semester']) {
-                        return response()->json('semesters already existed', 404);
-                    }
-                }
+            if ($existingSemester) {
+                return response()->json(['error' => 'You have already created a semester with this name in this session'], 400);
             }
+
             $semester = Semester::create([
                 'acd_session_id' => $session_id,
                 'semester' => $validate['semester'],
                 'status' => $validate['status'],
-                'created_by' => $request->user()->id
+                'created_by' => $user->id
             ]);
             return response()->json($semester, 201);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -240,7 +242,7 @@ class Admin extends Controller
             }
 
             $semesters = $semestersQuery->with('courses')->get();
-            return response()->json($semestersQuery);
+            return response()->json($semesters);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -1190,6 +1192,18 @@ class Admin extends Controller
         try {
             $user = request()->user();
 
+            // Debug logging
+            \Log::info('getSessionSemesters called', [
+                'sessionId' => $sessionId,
+                'userId' => $user ? $user->id : 'null',
+                'userRole' => $user ? $user->role : 'null'
+            ]);
+
+            // Check if user is authenticated
+            if (!$user) {
+                return response()->json(['error' => 'User not authenticated'], 401);
+            }
+
             // Check if user has permission
             if (!in_array($user->role, ['super_admin', 'level_admin'])) {
                 return response()->json(['error' => 'Unauthorized'], 403);
@@ -1203,6 +1217,12 @@ class Admin extends Controller
             }
 
             $semesters = $semestersQuery->get();
+
+            // Debug logging
+            \Log::info('getSessionSemesters result', [
+                'semestersCount' => $semesters->count(),
+                'semesters' => $semesters->toArray()
+            ]);
 
             return response()->json($semesters);
 

@@ -31,6 +31,9 @@ const Session = () => {
             });
             setSession(sessionRes.data);
 
+            // Debug: Log the session ID being used
+            console.log('Fetching semesters for session ID:', sessionId);
+            
             // Fetch semesters (filtered by user role on backend)
             const semestersRes = await axios.get(`${path}/get-semesters/${sessionId}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -38,6 +41,8 @@ const Session = () => {
             
             // Debug: Log the response
             console.log('Semesters API Response:', semestersRes.data);
+            console.log('Response type:', typeof semestersRes.data);
+            console.log('Is array:', Array.isArray(semestersRes.data));
             
             // Ensure semesters is always an array
             const semestersData = Array.isArray(semestersRes.data) ? semestersRes.data : [];
@@ -74,7 +79,8 @@ const Session = () => {
             console.log('the response', res)
         } catch (err) {
             console.error("Error adding semester:", err);
-            setErrMsg(err.response?.data || "Failed to add semester.");
+            const errorMessage = err.response?.data?.error || err.response?.data || "Failed to add semester.";
+            setErrMsg(errorMessage);
         }
     };
 

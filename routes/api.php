@@ -129,7 +129,6 @@ Route::get('/get-active-session', [Admin::class, 'get_active_session']);
 
 // Semester and Course Management - Requires Authentication
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/get-semesters/{acd_sesssion_id}', [Admin::class, 'get_semesters']);
     Route::post('/add-semester/{session_id}', [Admin::class, 'add_semester']);
     Route::get('/get-semester/{semester_id}', [Admin::class, 'get_semester']);
     Route::post('/add-course/{semester_id}', [Admin::class, 'add_course']);
@@ -219,3 +218,42 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/assign-course-to-lecturer', [Admin::class, 'assignCourseToLecturer']);
     Route::get('/get-semesters/{session_id}', [Admin::class, 'getSessionSemesters']);
 });
+Route::get('/debug-semesters/{sessionId}', function($sessionId) { 
+    $user = request()->user(); 
+    $semesters = App\Models\Semester::where('acd_session_id', $sessionId)->get(); 
+    return response()->json([
+        'user' => $user ? ['id' => $user->id, 'role' => $user->role] : null,
+        'sessionId' => $sessionId,
+        'allSemesters' => $semesters,
+        'userSemesters' => $user ? App\Models\Semester::where('acd_session_id', $sessionId)->where('created_by', $user->id)->get() : []
+    ]);
+})->middleware('auth:sanctum');
+
+// Additional debug route to check what get-semesters returns
+Route::get('/debug-get-semesters/{sessionId}', function($sessionId) {
+    $user = auth('sanctum')->user();
+    
+    if (!$user) {
+        return response()->json(['error' => 'Not authenticated'], 401);
+    }
+    
+    $query = App\Models\Semester::where('acd_session_id', $sessionId);
+    
+    // Apply role-based filtering
+    if ($user->role === 'level_admin') {
+        $query->where('created_by', $user->id);
+    }
+    
+    $semesters = $query->get();
+    
+    return response()->json([
+        'debug_info' => [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'session_id' => $sessionId,
+            'query_applied' => $user->role === 'level_admin' ? 'Filtered by created_by' : 'No filtering',
+        ],
+        'semesters' => $semesters,
+        'count' => $semesters->count()
+    ]);
+})->middleware('auth:sanctum');
