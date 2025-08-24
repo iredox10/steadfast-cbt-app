@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
@@ -9,16 +8,45 @@ import { FaSearch, FaFilter, FaUser, FaChevronDown, FaUserGraduate, FaChalkboard
 const AdminExamSubmissions = () => {
     const { id } = useParams();
 
-    const {
-        data: submissions,
-        loading,
-        error,
-        refetch
-    } = useFetch(`/exam-submissions`);
+    // State for exam submissions data
+    const [submissions, setSubmissions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
+
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    // Fetch exam submissions with authentication
+    const fetchSubmissions = async () => {
+        try {
+            setLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/exam-submissions`, { headers });
+            setSubmissions(res.data);
+            setError(null);
+        } catch (err) {
+            console.error("Error fetching exam submissions:", err);
+            if (err.response?.status === 401) {
+                setError("Authentication failed. Please log in again.");
+            } else {
+                setError(err.response?.data?.message || "Error loading exam submissions");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial data fetching
+    useEffect(() => {
+        fetchSubmissions();
+    }, []);
 
     // Filter submissions based on search term
     const filteredSubmissions = submissions?.filter(submission => {
@@ -45,7 +73,9 @@ const AdminExamSubmissions = () => {
     // Handle export
     const handleExport = async (format) => {
         try {
+            const headers = getAuthHeaders();
             const response = await axios.get(`${path}/exam-submissions/export/${format}`, {
+                headers,
                 responseType: 'blob'
             });
             
@@ -58,6 +88,9 @@ const AdminExamSubmissions = () => {
             link.remove();
         } catch (error) {
             console.error("Export failed:", error);
+            if (error.response?.status === 401) {
+                console.error("Authentication failed during export");
+            }
         }
     };
 
@@ -131,7 +164,7 @@ const AdminExamSubmissions = () => {
                         <h3 className="text-xl font-bold text-gray-900 mb-2">Error Loading Data</h3>
                         <p className="text-gray-600 mb-6">Unable to load exam submissions. Please try again later.</p>
                         <button
-                            onClick={() => window.location.reload()}
+                            onClick={fetchSubmissions}
                             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                         >
                             Retry

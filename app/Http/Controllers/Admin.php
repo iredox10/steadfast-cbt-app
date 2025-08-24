@@ -714,6 +714,67 @@ class Admin extends Controller
     }
 
     /**
+     * Get exam submissions filtered by level admin's lecturers
+     */
+    public function getExamSubmissions()
+    {
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $query = Candidate::with(['student', 'exam', 'exam.course'])
+                              ->orderBy('updated_at', 'desc');
+
+            // If user is level_admin, filter by their lecturers' exams
+            if ($user->role === 'level_admin') {
+                // Get courses assigned to lecturers by this level admin
+                $assignedCourseIds = LecturerCourse::where('created_by', $user->id)
+                                                   ->pluck('course_id')
+                                                   ->toArray();
+                
+                // Get exams for those courses
+                $examIds = Exam::whereIn('course_id', $assignedCourseIds)
+                               ->pluck('id')
+                               ->toArray();
+                
+                // Filter candidates by those exams
+                $query->whereIn('exam_id', $examIds);
+            }
+            // Super admin sees all submissions (no filtering)
+
+            $submissions = $query->get();
+            
+            // Transform the data to match frontend expectations
+            $transformedSubmissions = $submissions->map(function($submission) {
+                return [
+                    'id' => $submission->id,
+                    'student' => [
+                        'full_name' => $submission->student->full_name ?? 'N/A',
+                        'candidate_no' => $submission->student->candidate_no ?? 'N/A',
+                    ],
+                    'course' => [
+                        'title' => $submission->exam->course->title ?? 'N/A',
+                    ],
+                    'exam' => [
+                        'exam_type' => $submission->exam->exam_type ?? 'N/A',
+                    ],
+                    'total_questions' => $submission->exam->no_of_questions ?? 0,
+                    'answered_questions' => $submission->exam->no_of_questions ?? 0, // Assume all answered for now
+                    'score' => $submission->score ?? 0,
+                    'submitted_at' => $submission->updated_at,
+                ];
+            });
+
+            return response()->json($transformedSubmissions);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Create a new admin user
      *
      * @param Request $request

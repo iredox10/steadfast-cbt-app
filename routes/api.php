@@ -161,6 +161,7 @@ Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive']);
 // Dashboard routes
 Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
 Route::get('/recent-submissions', [Admin::class, 'getRecentSubmissions']);
+Route::get('/exam-submissions', [Admin::class, 'getExamSubmissions'])->middleware(['auth:sanctum']);
 
 // Admin user management
 Route::post('/create-admin-user', [Admin::class, 'createAdminUser'])->middleware(['auth:sanctum']);
