@@ -74,37 +74,22 @@ Route::post('/add-user', [Instructor::class, 'store'])->middleware(['auth:sanctu
 
 Route::patch('/update-user/{id}',[Instructor::class, 'update']);
 
-Route::post('/add-exam/{user_id}/{course_id}',[Instructor::class, 'add_exam']);
-
-Route::get('/get-exams/{user_id}/{course_id}',[Instructor::class, 'get_exams']);
-
-Route::get('/get-courses/{user_id}',[Instructor::class, 'get_courses']);
-
-Route::post('/submit-exam/{exam_id}',[Instructor::class, 'submitExam']);
-
-// Route::get('/get-exam/{exam_id}',[Instructor::class, 'get_exam']);
-Route::get('/get-exam',[Instructor::class, 'get_exam']);
-
-Route::get('/get-exam-by-id/{exam_id}',[Instructor::class, 'get_exam_by_id']);
-
-Route::get('/delete-exam/{exam_id}',[Instructor::class, 'delete_exam']);
-
-Route::post('/add-question/{question_id}/{user_id}/{course_id}/{exam_id}',[Instructor::class, 'add_question']);
-
-Route::get('/get-questions/{exam_id}', [Instructor::class, 'get_questions']);
-
-Route::get('/get-question/{question_id}', [Instructor::class, 'get_question']);
-
 // Protected instructor and lecturer routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
     Route::get('/get-user/{id}', [Instructor::class, 'show']);
+    Route::post('/add-exam/{user_id}/{course_id}', [Instructor::class, 'add_exam']);
+    Route::get('/get-exams/{user_id}/{course_id}', [Instructor::class, 'get_exams']);
+    Route::post('/submit-exam/{exam_id}', [Instructor::class, 'submitExam']);
+    Route::get('/get-exam-by-id/{exam_id}', [Instructor::class, 'get_exam_by_id']);
+    Route::get('/delete-exam/{exam_id}', [Instructor::class, 'delete_exam']);
+    Route::post('/add-question/{question_id}/{user_id}/{course_id}/{exam_id}', [Instructor::class, 'add_question']);
+    Route::get('/get-questions/{exam_id}', [Instructor::class, 'get_questions']);
+    Route::get('/get-question/{question_id}', [Instructor::class, 'get_question']);
+    Route::get('/get-exam', [Instructor::class, 'get_exam']);
+    Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_students']);
+    Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_student_scores_for_course']);
 });
-
-// ! I add the course_id so that I can easily search the db with the course Id
-Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_students']);
-
-Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_student_scores_for_course']);
 
 // Export student scores
 Route::get('/export-student-scores/{course_id}', [Instructor::class, 'export_student_scores']);

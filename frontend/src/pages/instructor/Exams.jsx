@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import useFetch from "../../hooks/useFetch";
 import Sidebar from "../../components/Sidebar";
 import { FaCheck, FaTimes, FaPlus, FaSearch, FaChevronDown } from "react-icons/fa";
 import { format } from "date-fns";
@@ -13,13 +12,10 @@ const Exams = () => {
     const [showModel, setshowModel] = useState(false);
     const [showSubmitModel, setShowSubmitModel] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [courseLoading, setCourseLoading] = useState(true);
     const [err, setErr] = useState(null);
-
-    const {
-        data: course,
-        loading: courseLoading,
-        err: courseErr,
-    } = useFetch(`/get-course/${courseId}`);
+    const [courseErr, setCourseErr] = useState(null);
+    const [course, setCourse] = useState(null);
 
     const [maxScore, setMaxScore] = useState("");
     const [instructions, setInstructions] = useState("");
@@ -35,14 +31,47 @@ const Exams = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(5);
 
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    const fetchCourse = async () => {
+        try {
+            setCourseLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-course/${courseId}`, { headers });
+            setCourse(res.data);
+            setCourseErr(null);
+        } catch (err) {
+            console.error("Error fetching course:", err);
+            if (err.response?.status === 401) {
+                setCourseErr("Authentication failed. Please log in again.");
+                // Optionally redirect to login
+                // window.location.href = '/admin-login';
+            } else {
+                setCourseErr(err.response?.data?.message || "Error fetching course");
+            }
+        } finally {
+            setCourseLoading(false);
+        }
+    };
+
     const fetchExams = async () => {
         try {
             setLoading(true);
-            const res = await axios(`${path}/get-exams/${userId}/${courseId}`);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-exams/${userId}/${courseId}`, { headers });
             setExams(res.data);
+            setErr(null);
         } catch (err) {
-            setErr(err.response?.data?.message || "Error fetching exams");
-            console.log(err);
+            console.error("Error fetching exams:", err);
+            if (err.response?.status === 401) {
+                setErr("Authentication failed. Please log in again.");
+            } else {
+                setErr(err.response?.data?.message || "Error fetching exams");
+            }
         } finally {
             setLoading(false);
         }
@@ -50,6 +79,7 @@ const Exams = () => {
 
     useEffect(() => {
         if (userId && courseId) {
+            fetchCourse();
             fetchExams();
         }
     }, [userId, courseId]);
@@ -58,6 +88,7 @@ const Exams = () => {
         e.preventDefault();
         try {
             setLoading(true);
+            const headers = getAuthHeaders();
             const res = await axios.post(
                 `${path}/add-exam/${userId}/${courseId}`,
                 {
@@ -68,7 +99,8 @@ const Exams = () => {
                     exam_type: examType,
                     exam_duration: examDuration,
                     marks_per_question: marksPerQuestion,
-                }
+                },
+                { headers }
             );
             if (res.status === 201) {
                 setshowModel(false);
@@ -83,8 +115,12 @@ const Exams = () => {
                 setMarksPerQuestion("");
             }
         } catch (err) {
-            setErr(err.response?.data?.message || "Error creating exam");
-            console.log(err);
+            console.error("Error creating exam:", err);
+            if (err.response?.status === 401) {
+                setErr("Authentication failed. Please log in again.");
+            } else {
+                setErr(err.response?.data?.message || "Error creating exam");
+            }
         } finally {
             setLoading(false);
         }
@@ -93,12 +129,17 @@ const Exams = () => {
     const handleShowSubmitModel = async (examId) => {
         try {
             setLoading(true);
-            const res = await axios(`${path}/get-exam-by-id/${examId}`);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-exam-by-id/${examId}`, { headers });
             setExam(res.data);
             setShowSubmitModel(true);
         } catch (error) {
-            setErr(error.response?.data?.message || "Error fetching exam");
-            console.log(error);
+            console.error("Error fetching exam:", error);
+            if (error.response?.status === 401) {
+                setErr("Authentication failed. Please log in again.");
+            } else {
+                setErr(error.response?.data?.message || "Error fetching exam");
+            }
         } finally {
             setLoading(false);
         }
@@ -108,12 +149,17 @@ const Exams = () => {
         if (!exam) return;
         try {
             setLoading(true);
-            const res = await axios.post(`${path}/submit-exam/${exam.id}`);
+            const headers = getAuthHeaders();
+            const res = await axios.post(`${path}/submit-exam/${exam.id}`, {}, { headers });
             setShowSubmitModel(false);
             fetchExams();
         } catch (error) {
-            setErr(error.response?.data?.message || "Error submitting exam");
-            console.log(error);
+            console.error("Error submitting exam:", error);
+            if (error.response?.status === 401) {
+                setErr("Authentication failed. Please log in again.");
+            } else {
+                setErr(error.response?.data?.message || "Error submitting exam");
+            }
         } finally {
             setLoading(false);
         }
