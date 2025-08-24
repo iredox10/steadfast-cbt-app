@@ -72,8 +72,6 @@ Route::get('/get-users', [Instructor::class, 'index'])->middleware(['auth:sanctu
 
 Route::post('/add-user', [Instructor::class, 'store'])->middleware(['auth:sanctum']);
 
-Route::get('/get-user/{id}', [Instructor::class, 'show']);
-
 Route::patch('/update-user/{id}',[Instructor::class, 'update']);
 
 Route::post('/add-exam/{user_id}/{course_id}',[Instructor::class, 'add_exam']);
@@ -97,7 +95,11 @@ Route::get('/get-questions/{exam_id}', [Instructor::class, 'get_questions']);
 
 Route::get('/get-question/{question_id}', [Instructor::class, 'get_question']);
 
-Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
+// Protected instructor and lecturer routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
+    Route::get('/get-user/{id}', [Instructor::class, 'show']);
+});
 
 // ! I add the course_id so that I can easily search the db with the course Id
 Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_students']);
@@ -137,10 +139,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get-all-courses', [Admin::class, 'get_courses']);
     Route::get('/get-courses', [Admin::class, 'get_courses']);
     Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
+    Route::post('/add-lecturer-course/{user_id}/{course_id}', [Admin::class, 'add_lecturer_course']);
 });
 
 // Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
-Route::post('/add-lecturer-course/{user_id}/{course_id}', [Admin::class, 'add_lecturer_course']);
 
 Route::get('/get-exams', [Admin::class,'get_exams']);
 

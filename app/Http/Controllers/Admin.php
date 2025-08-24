@@ -351,6 +351,14 @@ class Admin extends Controller
     {
         try {
             $currentUser = $request->user();
+            
+            // Check if user is authenticated
+            if (!$currentUser) {
+                return response()->json([
+                    'error' => 'Authentication required'
+                ], 401);
+            }
+
             $course = Course::findOrFail($course_id);
             $user = User::findOrFail($user_id);
 
