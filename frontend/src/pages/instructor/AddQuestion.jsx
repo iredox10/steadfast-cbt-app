@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
@@ -7,15 +7,47 @@ import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../../utils/path";
-import useFetch from "../../hooks/useFetch";
 
 const AddQuestion = () => {
     const { questionId, userId, courseId, examId } = useParams();
-    const {
-        data: user,
-        loading: userLoading,
-        error: userError,
-    } = useFetch(`/get-user/${userId}`);
+    
+    // State for user data that was previously fetched by useFetch
+    const [user, setUser] = useState(null);
+    const [userLoading, setUserLoading] = useState(true);
+    const [userError, setUserError] = useState(null);
+
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    // Fetch user with authentication
+    const fetchUser = async () => {
+        try {
+            setUserLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-user/${userId}`, { headers });
+            setUser(res.data);
+            setUserError(null);
+        } catch (err) {
+            console.error("Error fetching user:", err);
+            if (err.response?.status === 401) {
+                setUserError("Authentication failed. Please log in again.");
+            } else {
+                setUserError(err.response?.data?.message || "Error loading user");
+            }
+        } finally {
+            setUserLoading(false);
+        }
+    };
+
+    // Initial data fetching
+    useEffect(() => {
+        if (userId) {
+            fetchUser();
+        }
+    }, [userId]);
 
     const modules = {
         toolbar: [
@@ -108,6 +140,7 @@ const AddQuestion = () => {
 
         try {
             setLoading(true);
+            const headers = getAuthHeaders();
             const res = await axios.post(
                 `${path}/add-question/${questionId}/${userId}/${courseId}/${examId}`,
                 {
@@ -116,14 +149,19 @@ const AddQuestion = () => {
                     question,
                     correct_answer: correctAnswer,
                     ...optionMap
-                }
+                },
+                { headers }
             );
             if (res.status === 201) {
                 navigate(-1);
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Error creating question");
-            console.log(err);
+            console.error("Error creating question:", err);
+            if (err.response?.status === 401) {
+                setError("Authentication failed. Please log in again.");
+            } else {
+                setError(err.response?.data?.message || "Error creating question");
+            }
         } finally {
             setLoading(false);
         }
@@ -133,14 +171,20 @@ const AddQuestion = () => {
     const fetchQuestionBank = async () => {
         try {
             setLoading(true);
+            const headers = getAuthHeaders();
             const response = await axios.get(
-                `${path}/question-bank/${userId}/${courseId}`
+                `${path}/question-bank/${userId}/${courseId}`,
+                { headers }
             );
             setQuestionBank(response.data);
             setShowQuestionBank(true);
         } catch (error) {
-            setError(error.response?.data?.message || "Error fetching question bank");
-            console.log(error);
+            console.error("Error fetching question bank:", error);
+            if (error.response?.status === 401) {
+                setError("Authentication failed. Please log in again.");
+            } else {
+                setError(error.response?.data?.message || "Error fetching question bank");
+            }
         } finally {
             setLoading(false);
         }

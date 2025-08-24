@@ -7,11 +7,40 @@ import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../../utils/path";
-import useFetch from "../../hooks/useFetch";
 
 const EditQuestion = () => {
     const { questionId, userId, examId } = useParams();
-    const { data: user, loading: userLoading, error: userError } = useFetch(`/get-user/${userId}`);
+    
+    // State for user data that was previously fetched by useFetch
+    const [user, setUser] = useState(null);
+    const [userLoading, setUserLoading] = useState(true);
+    const [userError, setUserError] = useState(null);
+
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    // Fetch user with authentication
+    const fetchUser = async () => {
+        try {
+            setUserLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-user/${userId}`, { headers });
+            setUser(res.data);
+            setUserError(null);
+        } catch (err) {
+            console.error("Error fetching user:", err);
+            if (err.response?.status === 401) {
+                setUserError("Authentication failed. Please log in again.");
+            } else {
+                setUserError(err.response?.data?.message || "Error loading user");
+            }
+        } finally {
+            setUserLoading(false);
+        }
+    };
     
     const modules = {
         toolbar: [
@@ -34,10 +63,17 @@ const EditQuestion = () => {
     const [error, setError] = useState("");
 
     useEffect(() => {
+        if (userId) {
+            fetchUser();
+        }
+    }, [userId]);
+
+    useEffect(() => {
         const fetchQuestion = async () => {
             try {
                 setLoading(true);
-                const res = await axios(`${path}/get-question/${questionId}`);
+                const headers = getAuthHeaders();
+                const res = await axios.get(`${path}/get-question/${questionId}`, { headers });
                 if (res.status === 200) {
                     setQuestion(res.data.question);
                     // Create options array with all options
@@ -53,8 +89,12 @@ const EditQuestion = () => {
                     setCorrectAnswerIndex(0);
                 }
             } catch (error) {
-                console.log(error);
-                setError("Failed to load question");
+                console.error("Error fetching question:", error);
+                if (error.response?.status === 401) {
+                    setError("Authentication failed. Please log in again.");
+                } else {
+                    setError("Failed to load question");
+                }
             } finally {
                 setLoading(false);
             }
@@ -130,6 +170,7 @@ const EditQuestion = () => {
         
         try {
             setLoading(true);
+            const headers = getAuthHeaders();
             const res = await axios.patch(
                 `${path}/edit-question/${questionId}`,
                 {
@@ -140,14 +181,19 @@ const EditQuestion = () => {
                     option_b: options[1] || "",
                     option_c: options[2] || "",
                     option_d: options[3] || "",
-                }
+                },
+                { headers }
             );
             if (res.status === 200) {
                 navigate(-1);
             }
         } catch (err) {
-            setError("Failed to update question");
-            console.log(err);
+            console.error("Error updating question:", err);
+            if (err.response?.status === 401) {
+                setError("Authentication failed. Please log in again.");
+            } else {
+                setError("Failed to update question");
+            }
         } finally {
             setLoading(false);
         }
