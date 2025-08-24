@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { path } from "../../../utils/path";
 import { FaTimes } from "react-icons/fa";
 import axios from "axios";
-import useFetch from "../../hooks/useFetch";
 
 const CourseQuestions = () => {
     const { userId, courseId, examId } = useParams();
@@ -14,35 +13,106 @@ const CourseQuestions = () => {
     const [showQuestionBank, setShowQuestionBank] = useState(false);
     const [questionBank, setQuestionBank] = useState([]);
     const [loading, setLoading] = useState(false);
-
-    const {
-        data: questions,
-        loading: questionsLoading,
-        err: questionsErr,
-    } = useFetch(`/get-questions/${examId}`);
-
-    const {
-        data: exam,
-        loading: examLoading,
-        err: examErr,
-    } = useFetch(`/get-exam-by-id/${examId}`);
-
-    const {
-        data: user,
-        loading: userLoading,
-        err: userErr,
-    } = useFetch(`/get-user/${userId}`);
-
+    
+    // State for data that was previously fetched by useFetch
+    const [questions, setQuestions] = useState([]);
+    const [questionsLoading, setQuestionsLoading] = useState(true);
+    const [questionsErr, setQuestionsErr] = useState(null);
+    
+    const [exam, setExam] = useState(null);
+    const [examLoading, setExamLoading] = useState(true);
+    const [examErr, setExamErr] = useState(null);
+    
+    const [user, setUser] = useState(null);
+    const [userLoading, setUserLoading] = useState(true);
+    const [userErr, setUserErr] = useState(null);
+    
     const [course, setCourse] = useState(null);
+
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    // Fetch questions with authentication
+    const fetchQuestions = async () => {
+        try {
+            setQuestionsLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-questions/${examId}`, { headers });
+            setQuestions(res.data);
+            setQuestionsErr(null);
+        } catch (err) {
+            console.error("Error fetching questions:", err);
+            if (err.response?.status === 401) {
+                setQuestionsErr("Authentication failed. Please log in again.");
+            } else {
+                setQuestionsErr(err.response?.data?.message || "Error loading questions");
+            }
+        } finally {
+            setQuestionsLoading(false);
+        }
+    };
+
+    // Fetch exam with authentication
+    const fetchExam = async () => {
+        try {
+            setExamLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-exam-by-id/${examId}`, { headers });
+            setExam(res.data);
+            setExamErr(null);
+        } catch (err) {
+            console.error("Error fetching exam:", err);
+            if (err.response?.status === 401) {
+                setExamErr("Authentication failed. Please log in again.");
+            } else {
+                setExamErr(err.response?.data?.message || "Error loading exam");
+            }
+        } finally {
+            setExamLoading(false);
+        }
+    };
+
+    // Fetch user with authentication
+    const fetchUser = async () => {
+        try {
+            setUserLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-user/${userId}`, { headers });
+            setUser(res.data);
+            setUserErr(null);
+        } catch (err) {
+            console.error("Error fetching user:", err);
+            if (err.response?.status === 401) {
+                setUserErr("Authentication failed. Please log in again.");
+            } else {
+                setUserErr(err.response?.data?.message || "Error loading user");
+            }
+        } finally {
+            setUserLoading(false);
+        }
+    };
+
+    // Initial data fetching
+    useEffect(() => {
+        if (examId && userId) {
+            fetchQuestions();
+            fetchExam();
+            fetchUser();
+        }
+    }, [examId, userId]);
 
     useEffect(() => {
         const fetchCourse = async () => {
             if (exam?.course_id) {
                 try {
-                    const res = await axios(`${path}/get-course/${exam.course_id}`);
+                    const headers = getAuthHeaders();
+                    const res = await axios.get(`${path}/get-course/${exam.course_id}`, { headers });
                     setCourse(res.data);
                 } catch (err) {
-                    console.log(err);
+                    console.error("Error fetching course:", err);
                 }
             }
         };
@@ -52,21 +122,29 @@ const CourseQuestions = () => {
     const showQuestionDetail = async (questionId) => {
         setShowModel(true);
         try {
-            const res = await axios(`${path}/get-question/${questionId}`);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-question/${questionId}`, { headers });
             setQuestion(res.data);
         } catch (err) {
-            console.log(err);
+            console.error("Error fetching question details:", err);
+            if (err.response?.status === 401) {
+                console.error("Authentication failed");
+            }
         }
     };
 
     const fetchQuestionBank = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${path}/question-bank/${userId}/${courseId}`);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/question-bank/${userId}/${courseId}`, { headers });
             setQuestionBank(res.data);
             setShowQuestionBank(true);
         } catch (err) {
-            console.log(err);
+            console.error("Error fetching question bank:", err);
+            if (err.response?.status === 401) {
+                console.error("Authentication failed");
+            }
         } finally {
             setLoading(false);
         }
@@ -75,17 +153,22 @@ const CourseQuestions = () => {
     const populateQuestionFromBank = async (bankQuestion, questionId) => {
         try {
             setLoading(true);
+            const headers = getAuthHeaders();
             await axios.patch(`${path}/edit-question/${questionId}`, {
                 question: bankQuestion.question,
                 correct_answer: bankQuestion.correct_answer,
                 option_b: bankQuestion.option_b,
                 option_c: bankQuestion.option_c,
                 option_d: bankQuestion.option_d
-            });
+            }, { headers });
             // Refresh questions after populating
-            window.location.reload();
+            fetchQuestions();
+            setShowQuestionBank(false);
         } catch (err) {
-            console.log(err);
+            console.error("Error populating question from bank:", err);
+            if (err.response?.status === 401) {
+                console.error("Authentication failed");
+            }
         } finally {
             setLoading(false);
         }
