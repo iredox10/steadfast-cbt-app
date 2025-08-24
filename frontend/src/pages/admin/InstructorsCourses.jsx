@@ -30,7 +30,10 @@ const InstructorsCourses = () => {
             setInstructor(instructorRes.data);
 
             // Get assigned courses for this instructor
+            console.log('Fetching assigned courses for instructor ID:', instructorId);
             const assignedCoursesRes = await axios.get(`${path}/get-lecturer-courses/${instructorId}`, { headers });
+            console.log('Assigned courses response:', assignedCoursesRes.data);
+            console.log('Is response an array?', Array.isArray(assignedCoursesRes.data));
             setAssignedCourses(Array.isArray(assignedCoursesRes.data) ? assignedCoursesRes.data : []);
 
             // Get available courses for assignment (filtered by user role in backend)

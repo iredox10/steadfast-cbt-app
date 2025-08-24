@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Link, useParams } from "react-router-dom";
-import useFetch from "../../hooks/useFetch";
+import axios from "axios";
+import { path } from "../../../utils/path";
 import {
     FaBook,
     FaChalkboardTeacher,
@@ -13,16 +14,55 @@ import {
 
 const Instructor = () => {
     const { id } = useParams();
-    
-    // Temporarily disable useFetch calls to isolate the issue
-    const courses = [];
-    const loading = false;
-    const err = null;
-    const user = { full_name: "Test User" };
-    const userLoading = false;
-    const userErr = null;
+    const [courses, setCourses] = useState([]);
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [userLoading, setUserLoading] = useState(true);
+    const [err, setErr] = useState(null);
+    const [userErr, setUserErr] = useState(null);
 
-    // Stats based on what instructors can actually access
+    useEffect(() => {
+        const fetchInstructorData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { Authorization: `Bearer ${token}` };
+
+                // Fetch current user info
+                setUserLoading(true);
+                const userRes = await axios.get(`${path}/user`, { headers });
+                setUser(userRes.data);
+                setUserLoading(false);
+
+                // Fetch instructor's assigned courses
+                setLoading(true);
+                console.log('Fetching courses for instructor ID:', id);
+                const coursesRes = await axios.get(`${path}/get-lecturer-courses/${id}`, { headers });
+                console.log('Instructor courses response:', coursesRes.data);
+                
+                // Ensure courses is always an array
+                const coursesData = Array.isArray(coursesRes.data) ? coursesRes.data : [];
+                setCourses(coursesData);
+                setLoading(false);
+
+            } catch (error) {
+                console.error("Error fetching instructor data:", error);
+                if (error.response?.status === 401) {
+                    setUserErr("Authentication failed. Please log in again.");
+                } else {
+                    const errorMessage = error.response?.data?.error || error.response?.data?.message || "Failed to load data";
+                    setErr(typeof errorMessage === 'string' ? errorMessage : "Failed to load courses");
+                }
+                setLoading(false);
+                setUserLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchInstructorData();
+        }
+    }, [id]);
+
+    // Stats based on actual data
     const stats = [
         { title: "Your Courses", value: courses ? courses.length : 0, icon: <FaBook />, color: "bg-blue-100 text-blue-500" },
         { title: "Active Exams", value: "0", icon: <FaFileAlt />, color: "bg-yellow-100 text-yellow-500" },
@@ -108,20 +148,29 @@ const Instructor = () => {
                         </div>
                     </div>
 
-                    {userLoading ? (
+                    {loading ? (
                         <div className="flex items-center justify-center h-64">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                         </div>
                     ) : err ? (
                         <div className="text-center py-8">
                             <i className="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
-                            <p className="text-gray-600">Error loading courses</p>
+                            <p className="text-gray-600">Error loading courses: {err}</p>
+                            <button 
+                                onClick={() => window.location.reload()} 
+                                className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                            >
+                                Retry
+                            </button>
                         </div>
                     ) : !courses || courses.length === 0 ? (
                         <div className="text-center py-12">
                             <i className="fas fa-book text-gray-300 text-5xl mb-4"></i>
                             <h3 className="text-xl font-medium text-gray-900 mb-2">No Courses Assigned</h3>
                             <p className="text-gray-600 mb-6">Contact your administrator to assign courses to you</p>
+                            <p className="text-sm text-gray-500">
+                                If courses were recently assigned, try refreshing the page
+                            </p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

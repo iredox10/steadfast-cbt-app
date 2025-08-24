@@ -259,3 +259,13 @@ Route::get('/debug-get-semesters/{sessionId}', function($sessionId) {
         'count' => $semesters->count()
     ]);
 })->middleware('auth:sanctum');
+
+// Debug route for testing lecturer courses without auth
+Route::get('/debug-lecturer-courses/{user_id}', function($user_id) {
+    $courses = App\Models\LecturerCourse::where('user_id', $user_id)->get();
+    return response()->json([
+        'user_id' => $user_id,
+        'courses_count' => $courses->count(),
+        'courses' => $courses
+    ]);
+});

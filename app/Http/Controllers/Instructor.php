@@ -6,6 +6,7 @@ use App\Models\Answers;
 use App\Models\Candidate;
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\LecturerCourse;
 use App\Models\Question;
 use App\Models\QuestionBank;
 use App\Models\Student;
@@ -296,9 +297,22 @@ class Instructor extends Controller
     public function get_courses(Request $request, $user_id)
     {
         try {
-            $courses = User::findOrFail($user_id)->courses;
-            return response()->json($courses);
+            // Get lecturer courses directly from LecturerCourse table
+            $lecturerCourses = LecturerCourse::where('user_id', $user_id)->get();
+            
+            // Log for debugging
+            \Log::info('get_courses called', [
+                'user_id' => $user_id,
+                'courses_count' => $lecturerCourses->count(),
+                'courses' => $lecturerCourses->toArray()
+            ]);
+            
+            return response()->json($lecturerCourses);
         } catch (\Exception $err) {
+            \Log::error('Error in get_courses', [
+                'user_id' => $user_id,
+                'error' => $err->getMessage()
+            ]);
             return response()->json(['error' => $err->getMessage()], 500);
         }
     }
