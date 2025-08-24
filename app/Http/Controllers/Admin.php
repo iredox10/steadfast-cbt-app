@@ -257,16 +257,39 @@ class Admin extends Controller
         ]);
 
         try {
+            $user = $request->user();
+            
+            // Check if course code already exists
+            $existingCourse = Course::where('code', $validate['code'])->first();
+            if ($existingCourse) {
+                return response()->json([
+                    'error' => "Course code '{$validate['code']}' already exists. Please use a different course code."
+                ], 400);
+            }
+
+            // Check if user has permission to add course to this semester
+            $semester = Semester::find($semester_id);
+            if (!$semester) {
+                return response()->json(['error' => 'Semester not found'], 404);
+            }
+
+            // If user is level admin, check if they own the semester
+            if ($user->role === 'level_admin' && $semester->created_by !== $user->id) {
+                return response()->json(['error' => 'You can only add courses to semesters you created'], 403);
+            }
+
             $course = Course::create([
                 'semester_id' => $semester_id,
                 'title' => $validate['title'],
                 'code' => $validate['code'],
                 'credit_unit' => $validate['credit_unit'],
-                'created_by' => $request->user()->id
+                'created_by' => $user->id
             ]);
             return response()->json($course, 201);
         } catch (Exception $e) {
-            return response()->json($e->getMessage(), 400);
+            return response()->json([
+                'error' => 'Failed to create course: ' . $e->getMessage()
+            ], 500);
         }
     }
 

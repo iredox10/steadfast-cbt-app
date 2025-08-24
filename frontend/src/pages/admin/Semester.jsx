@@ -16,7 +16,9 @@ const Semester = () => {
     const fetchSemesterAndCourses = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${path}/get-semester/${semesterId}`);
+            const res = await axios.get(`${path}/get-semester/${semesterId}`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
             setSemester(res.data.semester);
             setCourses(res.data.courses);
         } catch (err) {
@@ -39,13 +41,16 @@ const Semester = () => {
         }
         setErrMsg("");
         try {
-            await axios.post(`${path}/add-course/${semesterId}`, newCourse);
+            await axios.post(`${path}/add-course/${semesterId}`, newCourse, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
             setShowAddModal(false);
             setNewCourse({ title: "", code: "", credit_unit: "" });
             fetchSemesterAndCourses();
         } catch (err) {
             console.error("Error adding course:", err);
-            setErrMsg(err.response?.data || "Failed to add course.");
+            const errorMessage = err.response?.data?.message || err.response?.data?.error || err.response?.data || "Failed to add course.";
+            setErrMsg(typeof errorMessage === 'string' ? errorMessage : "Failed to add course.");
         }
     };
 
@@ -153,7 +158,8 @@ const Semester = () => {
                                 </div>
                                 <div>
                                     <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">Course Code</label>
-                                    <input id="code" name="code" type="text" value={newCourse.code} onChange={handleInputChange} placeholder="e.g., PHY101" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                                    <input id="code" name="code" type="text" value={newCourse.code} onChange={handleInputChange} placeholder="e.g., PHY101, MTH201, CSC301" className="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                                    <p className="text-xs text-gray-500 mt-1">Course codes must be unique across the entire system</p>
                                 </div>
                                 <div>
                                     <label htmlFor="credit_unit" className="block text-sm font-medium text-gray-700 mb-1">Credit Units</label>
