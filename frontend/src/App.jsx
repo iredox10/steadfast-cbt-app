@@ -94,6 +94,10 @@ function App() {
                         element={<InstructorsCourses />}
                     />
                     <Route
+                        path="/assign-courses/:id"
+                        element={<InstructorsCourses />}
+                    />
+                    <Route
                         path="/add-student-to-course/:id"
                         element={<CourseStudents />}
                     />

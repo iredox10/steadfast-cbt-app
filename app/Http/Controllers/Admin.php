@@ -350,15 +350,31 @@ class Admin extends Controller
     public function add_lecturer_course(Request $request, $user_id, $course_id)
     {
         try {
-            // $course = Course::findOrFail($course_id);
+            $currentUser = $request->user();
             $course = Course::findOrFail($course_id);
             $user = User::findOrFail($user_id);
+
+            // Check if level admin is trying to assign a course they don't own
+            if ($currentUser->role === 'level_admin' && $course->created_by !== $currentUser->id) {
+                return response()->json([
+                    'error' => 'You can only assign courses that you created'
+                ], 403);
+            }
+
+            // Check if level admin is trying to assign course to instructor from another department
+            if ($currentUser->role === 'level_admin' && $user->level_id !== $currentUser->level_id) {
+                return response()->json([
+                    'error' => 'You can only assign courses to instructors in your department'
+                ], 403);
+            }
 
             $lecturerCourses = LecturerCourse::where('user_id', $user_id)->get();
 
             foreach ($lecturerCourses as $key => $value) {
                 if ($value->course_id == $course_id) {
-                    return response()->json('course already added', 404);
+                    return response()->json([
+                        'error' => 'Course already assigned to this instructor'
+                    ], 400);
                 }
             }
 
@@ -372,7 +388,9 @@ class Admin extends Controller
             ]);
             return response()->json($lecturerCourse, 201);
         } catch (Exception $err) {
-            return response()->json($err->getMessage());
+            return response()->json([
+                'error' => 'Failed to assign course: ' . $err->getMessage()
+            ], 500);
         }
     }
 

@@ -14,7 +14,8 @@ import {
     FaCog,
     FaSignOutAlt,
     FaListAlt,
-    FaUserShield
+    FaUserShield,
+    FaUserPlus
 } from 'react-icons/fa';
 
 const Instructors = () => {
@@ -238,6 +239,9 @@ const Instructors = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                {currentUser?.role === 'level_admin' && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -268,11 +272,26 @@ const Instructors = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                                         {new Date(instructor.created_at).toLocaleDateString()}
                                     </td>
+                                    {currentUser?.role === 'level_admin' && (
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {instructor.role === 'lecturer' ? (
+                                                <Link
+                                                    to={`/assign-courses/${instructor.id}`}
+                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                                                >
+                                                    <FaUserPlus className="mr-1" />
+                                                    Assign Courses
+                                                </Link>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">Not applicable</span>
+                                            )}
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                             {instructors.length === 0 && (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                    <td colSpan={currentUser?.role === 'level_admin' ? "7" : "6"} className="px-6 py-8 text-center text-gray-500">
                                         <FaUsers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                                         <p>No instructors found</p>
                                         {currentUser?.role === 'level_admin' && (
