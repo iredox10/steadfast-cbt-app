@@ -14,7 +14,9 @@ class LecturerCourse extends Model
         'course_id',
         'title',
         'code',
-        'credit_unit'
+        'credit_unit',
+        'status',
+        'created_by'
     ];
 
     public function courses(){

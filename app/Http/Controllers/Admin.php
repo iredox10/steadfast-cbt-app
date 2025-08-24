@@ -393,6 +393,7 @@ class Admin extends Controller
                 'code' => $course->code,
                 'credit_unit' => $course->credit_unit,
                 'status' => $course->status,
+                'created_by' => $currentUser->id, // Set the admin who assigned this course
             ]);
             return response()->json($lecturerCourse, 201);
         } catch (Exception $err) {
@@ -405,10 +406,48 @@ class Admin extends Controller
     public function get_exams()
     {
         try {
-            $exams = Exam::where('submission_status', 'submitted')->get();
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            $query = Exam::where('submission_status', 'submitted');
+
+            // If user is level_admin, filter by their lecturers' exams
+            if ($user->role === 'level_admin') {
+                // Get courses assigned to lecturers by this level admin
+                $assignedCourseIds = LecturerCourse::where('created_by', $user->id)
+                                                   ->pluck('course_id')
+                                                   ->toArray();
+                
+                // Also get lecturer IDs assigned by this level admin
+                $assignedLecturerIds = LecturerCourse::where('created_by', $user->id)
+                                                     ->pluck('user_id')
+                                                     ->toArray();
+                
+                // Filter exams by either course assignment OR lecturer assignment
+                if (!empty($assignedCourseIds) || !empty($assignedLecturerIds)) {
+                    $query->where(function($q) use ($assignedCourseIds, $assignedLecturerIds) {
+                        if (!empty($assignedCourseIds)) {
+                            $q->whereIn('course_id', $assignedCourseIds);
+                        }
+                        if (!empty($assignedLecturerIds)) {
+                            $q->orWhereIn('user_id', $assignedLecturerIds);
+                        }
+                    });
+                } else {
+                    // No assignments found, return empty result
+                    return response()->json([]);
+                }
+            }
+            // Super admin sees all exams (no filtering)
+
+            $exams = $query->get();
+            
             return response()->json($exams);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

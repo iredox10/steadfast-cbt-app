@@ -129,11 +129,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
 
-Route::get('/get-exams', [Admin::class,'get_exams']);
+Route::get('/get-exams', [Admin::class,'get_exams'])->middleware(['auth:sanctum']);
 
-Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam']);
+Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam'])->middleware(['auth:sanctum']);
 
-Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam']);
+Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam'])->middleware(['auth:sanctum']);
 
 Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum']);
 
@@ -143,7 +143,7 @@ Route::post('/upload-excel', [Admin::class, 'upload_excel']);
 
 Route::get('/dashboard-stats', [Admin::class, 'getDashboardStats']);
 
-Route::get('/get-invigilators', [Admin::class, 'get_invigilators']);
+Route::get('/get-invigilators', [Admin::class, 'get_invigilators'])->middleware(['auth:sanctum']);
 
 Route::get('/get-invigilator/{invigilator_id}', [Admin::class, 'get_invigilator']);
 
@@ -255,3 +255,38 @@ Route::get('/debug-lecturer-courses/{user_id}', function($user_id) {
         'courses' => $courses
     ]);
 });
+
+// Debug route for level admin exam filtering
+Route::get('/debug-exam-filtering', function() {
+    $user = auth('sanctum')->user();
+    
+    if (!$user) {
+        return response()->json(['error' => 'Not authenticated'], 401);
+    }
+    
+    // Get all submitted exams
+    $allExams = App\Models\Exam::where('submission_status', 'submitted')->get();
+    
+    // Get courses assigned by this level admin
+    $assignedCourses = App\Models\LecturerCourse::where('created_by', $user->id)->get();
+    $assignedCourseIds = $assignedCourses->pluck('course_id')->toArray();
+    
+    // Get filtered exams
+    $filteredExams = App\Models\Exam::where('submission_status', 'submitted')
+                                   ->whereIn('course_id', $assignedCourseIds)
+                                   ->get();
+    
+    return response()->json([
+        'user' => [
+            'id' => $user->id,
+            'role' => $user->role,
+            'name' => $user->full_name
+        ],
+        'all_submitted_exams_count' => $allExams->count(),
+        'assigned_courses' => $assignedCourses,
+        'assigned_course_ids' => $assignedCourseIds,
+        'filtered_exams_count' => $filteredExams->count(),
+        'filtered_exams' => $filteredExams,
+        'all_exams' => $allExams
+    ]);
+})->middleware('auth:sanctum');

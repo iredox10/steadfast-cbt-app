@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import {
@@ -26,18 +25,43 @@ import logo from "../../../public/assets/buk.png";
 const AdminExam = () => {
     const { userId } = useParams();
 
-    const {
-        data: invigilators,
-    } = useFetch(`/get-invigilators`);
+    // State for invigilators data
+    const [invigilators, setInvigilators] = useState([]);
+    const [invigilatorsLoading, setInvigilatorsLoading] = useState(true);
 
-    const [exams, setExams] = useState();
+    // Helper function to get auth headers
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    };
+
+    // Fetch invigilators with authentication
+    const fetchInvigilators = async () => {
+        try {
+            setInvigilatorsLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-invigilators`, { headers });
+            setInvigilators(res.data);
+        } catch (err) {
+            console.error("Error fetching invigilators:", err);
+        } finally {
+            setInvigilatorsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchInvigilators();
+    }, []);
+
+    const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [showTerminateModel, setShowTerminateModel] = useState(false);
     const [showAssignInvigilator, SetshowAssignInvigilator] = useState(false);
     const [examId, setexamId] = useState();
     const [invigilator, setInvigilator] = useState();
 
-    const [courses, setCourses] = useState();
+    const [courses, setCourses] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(5);
@@ -45,11 +69,20 @@ const AdminExam = () => {
 
     const fetchExams = async () => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await axios(`${path}/get-exams`);
-            setExams(res.data);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-exams`, { headers });
+            // Ensure the response data is an array
+            setExams(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-            console.log(err);
+            console.error("Error fetching exams:", err);
+            if (err.response?.status === 401) {
+                setError("Authentication failed. Please log in again.");
+            } else {
+                setError(err.response?.data?.message || "Error loading exams");
+            }
+            setExams([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
@@ -61,10 +94,16 @@ const AdminExam = () => {
 
     const fetchCourses = async () => {
         try {
-            const res = await axios(`${path}/get-courses`);
-            setCourses(res.data);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/get-courses`, { headers });
+            // Ensure the response data is an array
+            setCourses(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-            console.log(err);
+            console.error("Error fetching courses:", err);
+            if (err.response?.status === 401) {
+                console.error("Authentication failed");
+            }
+            setCourses([]); // Set empty array on error
         }
     };
 
@@ -79,14 +118,18 @@ const AdminExam = () => {
 
     const handleActivateExam = async (id) => {
         try {
+            const headers = getAuthHeaders();
             const res = await axios.post(`${path}/activate-exam/${id}`, {
                 invigilator,
-            });
+            }, { headers });
             if (res.status == 200) {
                 fetchExams();
             }
         } catch (err) {
-            console.log(err);
+            console.error("Error activating exam:", err);
+            if (err.response?.status === 401) {
+                console.error("Authentication failed");
+            }
         } finally {
             SetshowAssignInvigilator(false);
         }
@@ -94,18 +137,22 @@ const AdminExam = () => {
 
     const handleTerminateExam = async (id) => {
         try {
-            const res = await axios.post(`${path}/terminate-exam/${id}`);
+            const headers = getAuthHeaders();
+            const res = await axios.post(`${path}/terminate-exam/${id}`, {}, { headers });
             if (res.status == 200) {
                 fetchExams();
                 setShowTerminateModel(false);
             }
         } catch (err) {
-            console.log(err);
+            console.error("Error terminating exam:", err);
+            if (err.response?.status === 401) {
+                console.error("Authentication failed");
+            }
         }
     };
 
     // Filter exams based on search and status
-    const filteredExams = exams?.filter((exam) => {
+    const filteredExams = Array.isArray(exams) ? exams.filter((exam) => {
         const courseName =
             courses?.find((course) => course.id === exam.course_id)?.title ||
             "";
@@ -113,8 +160,8 @@ const AdminExam = () => {
         // Apply search filter
         const matchesSearch =
             courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            exam.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            exam.exam_duration.toString().includes(searchTerm);
+            (exam.exam_type && exam.exam_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (exam.exam_duration && exam.exam_duration.toString().includes(searchTerm));
 
         // Apply status filter
         let matchesStatus = true;
@@ -125,7 +172,7 @@ const AdminExam = () => {
         }
 
         return matchesSearch && matchesStatus;
-    });
+    }) : [];
 
     // Calculate pagination
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -139,9 +186,9 @@ const AdminExam = () => {
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     // Calculate stats
-    const activeExams = exams?.filter(exam => exam.activated === "yes").length || 0;
-    const inactiveExams = exams?.filter(exam => exam.activated === "no").length || 0;
-    const totalExams = exams?.length || 0;
+    const activeExams = Array.isArray(exams) ? exams.filter(exam => exam.activated === "yes").length : 0;
+    const inactiveExams = Array.isArray(exams) ? exams.filter(exam => exam.activated === "no").length : 0;
+    const totalExams = Array.isArray(exams) ? exams.length : 0;
 
     // Stats cards matching admin dashboard
     const stats = [
@@ -252,7 +299,23 @@ const AdminExam = () => {
 
                 {/* Exams Table */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    {loading ? (
+                    {error ? (
+                        <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
+                            <div className="text-red-500 mb-4">
+                                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.694-.833-2.464 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-medium text-gray-900 mb-2">Error Loading Exams</h3>
+                            <p className="text-gray-600 mb-6 text-center">{error}</p>
+                            <button
+                                onClick={fetchExams}
+                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    ) : loading ? (
                         <div className="flex flex-col items-center justify-center min-h-[400px]">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
                             <p className="text-xl font-medium text-gray-700">Loading exams...</p>
