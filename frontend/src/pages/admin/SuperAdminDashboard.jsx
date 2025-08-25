@@ -48,20 +48,20 @@ const SuperAdminDashboard = () => {
             setLoading(true);
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
-            
+
             console.log('Fetching stats with token:', token ? 'Token exists' : 'No token');
-            
+
             // Fetch overall statistics with individual error handling
             try {
                 const studentsRes = await axios.get(`${path}/students-by-level`, { headers });
                 console.log('Students response:', studentsRes.data);
-                
+
                 const usersRes = await axios.get(`${path}/users-by-level`, { headers });
                 console.log('Users response:', usersRes.data);
-                
+
                 const examsRes = await axios.get(`${path}/exams-by-level`, { headers });
                 console.log('Exams response:', examsRes.data);
-                
+
                 const sessionsRes = await axios.get(`${path}/get-acd-sessions`);
                 console.log('Sessions response:', sessionsRes.data);
 
@@ -88,7 +88,7 @@ const SuperAdminDashboard = () => {
             } catch (apiError) {
                 console.error('API Error details:', apiError);
                 console.error('API Error response:', apiError.response?.data);
-                
+
                 // Set default stats if API calls fail
                 setStats({
                     totalStudents: 0,
@@ -122,7 +122,7 @@ const SuperAdminDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
-            
+
             const [studentsRes, usersRes, examsRes] = await Promise.all([
                 axios.get(`${path}/students-by-level?level_id=${selectedLevel}`, { headers }),
                 axios.get(`${path}/users-by-level?level_id=${selectedLevel}`, { headers }),
@@ -153,7 +153,7 @@ const SuperAdminDashboard = () => {
     };
 
     const StatCard = ({ icon, title, value, color = "blue", onClick }) => (
-        <div 
+        <div
             className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
             onClick={onClick}
         >
@@ -193,13 +193,7 @@ const SuperAdminDashboard = () => {
                     )}
                 </div>
                 <div className="flex gap-4">
-                    <Link
-                        to="/admin-management"
-                        className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                        <FaUserShield className="mr-2" />
-                        Manage Admins
-                    </Link>
+
                     <Link
                         to={`/admin-students/${userId}`}
                         className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
@@ -312,7 +306,7 @@ const SuperAdminDashboard = () => {
                             <div className="text-sm text-gray-600">Register a new student</div>
                         </div>
                     </Link>
-                    
+
                     <Link
                         to={`/admin-instructors/${userId}`}
                         className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
