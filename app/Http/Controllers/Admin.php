@@ -657,10 +657,19 @@ class Admin extends Controller
         }
     }
 
-    public function get_invigilators()
+    public function get_invigilators(Request $request)
     {
         try {
-            $invigilators = User::where('role', 'regular')->get();
+            $user = $request->user();
+            $query = User::whereIn('role', ['regular', 'invigilator']);
+            
+            // If user is level_admin, filter invigilators by their level_id
+            if ($user && $user->role === 'level_admin' && $user->level_id) {
+                $query->where('level_id', $user->level_id);
+            }
+            // Super admins see all invigilators (no additional filtering)
+            
+            $invigilators = $query->get();
             return response()->json($invigilators);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
