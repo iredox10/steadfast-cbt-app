@@ -122,7 +122,12 @@ class InvigilatorController extends Controller
             foreach ($students as $student_course) {
                 $student = Student::findOrFail($student_course->student_id);
                 
-                // Apply level filtering for level admins
+                // Apply level filtering based on the active exam's level_id
+                if ($active_exam && $active_exam->level_id && $student->level_id !== $active_exam->level_id) {
+                    continue; // Skip students not in the exam's level
+                }
+                
+                // Apply level filtering for level admins (existing functionality)
                 $user = $request->user();
                 if ($user && $user->role === 'level_admin' && $user->level_id && $student->level_id !== $user->level_id) {
                     continue; // Skip students not in the admin's level

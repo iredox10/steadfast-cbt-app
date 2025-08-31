@@ -461,6 +461,13 @@ class Admin extends Controller
             $exam->activated = 'yes';
             $exam->activated_date = Carbon::now();
             $exam->invigilator = $request->invigilator;
+            
+            // Set level_id if the user is a level admin
+            $user = $request->user();
+            if ($user && $user->role === 'level_admin' && $user->level_id) {
+                $exam->level_id = $user->level_id;
+            }
+            
             // $exam->start_time = Carbon::
             $exam->save();
             return response()->json($exam);
