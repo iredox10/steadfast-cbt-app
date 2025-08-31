@@ -167,7 +167,7 @@ const Instructors = () => {
                     <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaUsers className="mr-3" /> Students
                     </Link>
-                    {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                    {currentUser?.role === 'super_admin' && (
                         <Link to="/admin-management" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                             <FaUserShield className="mr-3" /> Admin Management
                         </Link>

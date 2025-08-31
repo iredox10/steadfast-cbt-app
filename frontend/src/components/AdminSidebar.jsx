@@ -176,8 +176,8 @@ const AdminSidebar = ({ userId }) => {
                     </Link>
                 )}
 
-                {/* Admin Management - Super Admin and Level Admin only */}
-                {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                {/* Admin Management - Super Admin only */}
+                {currentUser?.role === 'super_admin' && (
                     <Link 
                         to="/admin-management" 
                         className={getLinkClass('admin-management')}

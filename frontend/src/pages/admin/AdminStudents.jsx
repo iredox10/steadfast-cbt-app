@@ -72,7 +72,23 @@ const AdminStudents = () => {
             }
 
             console.log('Fetching students for course:', currentExam.course_id);
-            // Get students for the active exam's course, filtered by level
+            
+            // For level admins, always use level-based filtering regardless of active exam
+            // This ensures they see all their students, not just those enrolled in the active course
+            if (userRes.data.role === 'level_admin') {
+                console.log('Level admin detected, using level-based student fetching');
+                const res = await axios.get(`${path}/students-by-level`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                console.log('Students fetched (level admin):', res.data);
+                setStudents(res.data.map(student => ({
+                    ...student,
+                    exam_id: currentExam.id
+                })));
+                return;
+            }
+            
+            // For super admins, get students for the active exam's course, filtered by level
             let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
             
             // For super admins, add level filter if a specific level is selected
@@ -282,7 +298,7 @@ const AdminStudents = () => {
                     <Link to={`/admin-students/${userId}`} className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
                         <FaUsers className="mr-3" /> Students
                     </Link>
-                    {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                    {currentUser?.role === 'super_admin' && (
                         <Link to="/admin-management" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                             <FaUserShield className="mr-3" /> Admin Management
                         </Link>
