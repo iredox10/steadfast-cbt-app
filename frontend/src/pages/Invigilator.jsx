@@ -52,7 +52,12 @@ const Invigilator = () => {
             // Get the active course from the exam data
             if (userData?.exam?.course_id) {
                 console.log('Fetching students for course:', userData.exam.course_id);
-                const res = await axios(`${path}/invigilator/students/${userData.exam.course_id}`);
+                
+                // Get the auth token from localStorage
+                const token = localStorage.getItem('token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await axios.get(`${path}/invigilator/students/${userData.exam.course_id}`, { headers });
                 const studentsData = res.data || [];
                 console.log('Received student data:', studentsData);
 
@@ -81,7 +86,11 @@ const Invigilator = () => {
 
     const fetchCurrentExam = async () => {
         try {
-            const res = await axios(`${path}/get-current-exam`);
+            // Get the auth token from localStorage
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            const res = await axios.get(`${path}/get-current-exam`, { headers });
             setCurrentExam(res.data);
         } catch (err) {
             console.log(err);
@@ -186,10 +195,15 @@ const Invigilator = () => {
         setCheckingIn(studentId); // Set loading state
         try {
             console.log('Generating ticket for student:', studentId);
+            
+            // Get the auth token from localStorage
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
             // Make the API call to generate ticket
             const response = await axios.post(`${path}/invigilator/generate-ticket`, {
                 student_id: studentId
-            });
+            }, { headers });
 
             console.log('Ticket generation response:', response);
 
@@ -274,7 +288,10 @@ const Invigilator = () => {
             }
 
             // Fetch scores data
-            const response = await axios.get(`${path}/get-students-score/${courseId}`);
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            const response = await axios.get(`${path}/get-students-score/${courseId}`, { headers });
             const scoresData = response.data;
 
             // Create CSV content
