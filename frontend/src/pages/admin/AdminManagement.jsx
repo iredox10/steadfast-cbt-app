@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 const AdminManagement = () => {
     const navigate = useNavigate();
     const [admins, setAdmins] = useState([]);
-    const [academicSessions, setAcademicSessions] = useState([]);
+    const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -19,13 +19,13 @@ const AdminManagement = () => {
         email: '',
         password: '',
         role: 'level_admin',
-        level_id: ''
+        department_id: ''
     });
     const [editAdmin, setEditAdmin] = useState({
         full_name: '',
         email: '',
         role: '',
-        level_id: '',
+        department_id: '',
         status: ''
     });
     const [errMsg, setErrMsg] = useState('');
@@ -55,9 +55,9 @@ const AdminManagement = () => {
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
 
-            // Fetch academic sessions
-            const sessionsRes = await axios.get(`${path}/get-acd-sessions`);
-            setAcademicSessions(sessionsRes.data);
+            // Fetch departments
+            const departmentsRes = await axios.get(`${path}/departments`, { headers });
+            setDepartments(departmentsRes.data);
 
             // Fetch admin users
             const adminsRes = await axios.get(`${path}/get-admins`, { headers });
@@ -78,7 +78,7 @@ const AdminManagement = () => {
             full_name: admin.full_name,
             email: admin.email,
             role: admin.role,
-            level_id: admin.level_id || '',
+            department_id: admin.department_id || '',
             status: admin.status || 'active'
         });
         setShowEditModal(true);
@@ -100,7 +100,7 @@ const AdminManagement = () => {
                     full_name: editAdmin.full_name,
                     email: editAdmin.email,
                     role: editAdmin.role,
-                    level_id: editAdmin.level_id || null,
+                    department_id: editAdmin.department_id || null,
                     status: editAdmin.status
                 })
             });
@@ -117,7 +117,7 @@ const AdminManagement = () => {
                     full_name: '',
                     email: '',
                     role: '',
-                    level_id: '',
+                    department_id: '',
                     status: ''
                 });
                 // Refresh the admin list to get updated relationships
@@ -193,7 +193,7 @@ const AdminManagement = () => {
                     email: '',
                     password: '',
                     role: 'level_admin',
-                    level_id: ''
+                    department_id: ''
                 });
                 // Refresh the admin list
                 fetchData();
@@ -388,16 +388,16 @@ const AdminManagement = () => {
                                     </div>
                                     {newAdmin.role === 'level_admin' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Academic Session</label>
+                                            <label className="block text-sm font-medium text-gray-700">Department</label>
                                             <select
-                                                value={newAdmin.level_id}
-                                                onChange={(e) => setNewAdmin({ ...newAdmin, level_id: e.target.value })}
+                                                value={newAdmin.department_id}
+                                                onChange={(e) => setNewAdmin({ ...newAdmin, department_id: e.target.value })}
                                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                                 required
                                             >
-                                                <option value="">Select Academic Session</option>
-                                                {academicSessions.map(session => (
-                                                    <option key={session.id} value={session.id}>{session.title}</option>
+                                                <option value="">Select Department</option>
+                                                {departments.map(department => (
+                                                    <option key={department.id} value={department.id}>{department.title}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -472,16 +472,16 @@ const AdminManagement = () => {
 
                                     {editAdmin.role === 'level_admin' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Academic Session</label>
+                                            <label className="block text-sm font-medium text-gray-700">Department</label>
                                             <select
-                                                value={editAdmin.level_id}
-                                                onChange={(e) => setEditAdmin({ ...editAdmin, level_id: e.target.value })}
+                                                value={editAdmin.department_id}
+                                                onChange={(e) => setEditAdmin({ ...editAdmin, department_id: e.target.value })}
                                                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                <option value="">Select Academic Session</option>
-                                                {academicSessions.map((session) => (
-                                                    <option key={session.id} value={session.id}>
-                                                        {session.name}
+                                                <option value="">Select Department</option>
+                                                {departments.map((department) => (
+                                                    <option key={department.id} value={department.id}>
+                                                        {department.title}
                                                     </option>
                                                 ))}
                                             </select>
@@ -511,7 +511,7 @@ const AdminManagement = () => {
                                                 full_name: '',
                                                 email: '',
                                                 role: '',
-                                                level_id: '',
+                                                department_id: '',
                                                 status: ''
                                             });
                                         }}
