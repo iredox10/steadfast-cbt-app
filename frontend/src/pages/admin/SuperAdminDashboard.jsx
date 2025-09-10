@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
-import { FaUsers, FaBook, FaChalkboardTeacher, FaCalendarAlt, FaUserShield, FaCrown, FaEye, FaPlus, FaGraduationCap, FaBuilding } from 'react-icons/fa';
+import { FaUsers, FaBook, FaChalkboardTeacher, FaCalendarAlt, FaUserShield, FaCrown, FaEye, FaPlus, FaGraduationCap, FaBuilding, FaSignOutAlt } from 'react-icons/fa';
 import { path } from '../../../utils/path';
 import LevelSelector from '../../components/LevelSelector';
 
@@ -193,7 +193,13 @@ const SuperAdminDashboard = () => {
                     )}
                 </div>
                 <div className="flex gap-4">
-
+                    <Link
+                        to="/admin-login"
+                        className="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                    >
+                        <FaSignOutAlt className="mr-2" />
+                        Logout
+                    </Link>
                     <Link
                         to={`/admin-students/${userId}`}
                         className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
