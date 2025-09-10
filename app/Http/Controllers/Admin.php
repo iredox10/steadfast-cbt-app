@@ -117,9 +117,37 @@ class Admin extends Controller
     public function get_acd_sessions()
     {
         try {
-            // Get all academic sessions without eager loading to avoid foreign key issues
-            $sessions = Acd_session::orderBy('title')->get();
-            return response()->json($sessions);
+            // Get all sessions and filter out departments
+            $allSessions = Acd_session::orderBy('title')->get();
+            
+            // Filter to only include academic sessions (exclude departments)
+            $academicSessions = $allSessions->filter(function ($session) {
+                $title = strtolower($session->title);
+                
+                // Exclude common department names
+                $isDepartment = strpos($title, 'computer') !== false ||
+                               strpos($title, 'science') !== false ||
+                               strpos($title, 'engineering') !== false ||
+                               strpos($title, 'business') !== false ||
+                               strpos($title, 'mathematics') !== false ||
+                               strpos($title, 'physics') !== false ||
+                               strpos($title, 'chemistry') !== false ||
+                               strpos($title, 'biology') !== false ||
+                               strpos($title, 'department') !== false ||
+                               strpos($title, 'admin') !== false;
+                
+                // Include items that look like academic sessions or exclude departments
+                $isAcademicSession = strpos($title, '/') !== false || // e.g., "2024/2025"
+                                   strpos($title, '-') !== false || // e.g., "2024-2025"
+                                   strpos($title, 'session') !== false || // e.g., "Session 1"
+                                   strpos($title, 'semester') !== false || // e.g., "Semester 1"
+                                   preg_match('/\d{4}/', $title); // Contains a 4-digit year
+                
+                // Return true if it looks like academic session AND is not a department
+                return $isAcademicSession && !$isDepartment;
+            });
+            
+            return response()->json($academicSessions->values());
         } catch (Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch academic sessions',
