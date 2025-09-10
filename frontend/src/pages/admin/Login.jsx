@@ -25,12 +25,12 @@ const AdminLogin = () => {
             setLoading(true);
             const res = await axios.post(`${path}/login`, { email, password });
             const user = res.data;
-            
+
             // Store token if returned
             if (res.data.token) {
                 localStorage.setItem('token', res.data.token);
             }
-            
+            console.log(res)
             // Role-based navigation
             if (user.role === "admin") {
                 navigate(`/dashboard/${user.id}`);
