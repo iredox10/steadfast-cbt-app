@@ -39,9 +39,12 @@ const AcdSession = () => {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                     });
                     setActiveSession(activeSessionRes.data);
+                    setErrMsg(""); // Clear any previous errors
                 } catch (err) {
                     if (err.response?.status === 404) {
-                        setErrMsg("No global active session has been set by the super administrator.");
+                        // This is expected when no global session is set - not an error
+                        setActiveSession(null);
+                        setErrMsg(""); // Don't show error, we'll show an info message instead
                     } else {
                         setErrMsg("Failed to load active session.");
                     }
