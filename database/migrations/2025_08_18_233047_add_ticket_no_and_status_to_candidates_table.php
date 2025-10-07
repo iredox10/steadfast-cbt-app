@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('candidates', function (Blueprint $table) {
-            $table->string('ticket_no')->nullable()->after('student_id');
-            $table->string('status')->default('pending')->after('ticket_no');
+            $table->string('ticket_no')->nullable();
+            $table->string('status')->default('pending');
         });
     }
 

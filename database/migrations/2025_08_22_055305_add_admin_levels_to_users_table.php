@@ -18,11 +18,8 @@ return new class extends Migration
             $table->foreign('level_id')->references('id')->on('acd_sessions')->onDelete('set null');
         });
 
-        // For PostgreSQL, we need to drop and recreate the enum constraint
-        DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check");
-        DB::statement("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(255)");
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('super_admin', 'level_admin', 'admin', 'regular', 'lecturer', 'invigilator'))");
-        DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'regular'");
+        // For MySQL/MariaDB, modify the enum to include new roles
+        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin', 'level_admin', 'admin', 'regular', 'lecturer', 'invigilator') NOT NULL DEFAULT 'regular'");
     }
 
     /**
@@ -35,9 +32,7 @@ return new class extends Migration
             $table->dropColumn('level_id');
         });
         
-        // Revert back to original enum
-        DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check");
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'regular', 'lecturer', 'invigilator'))");
-        DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'regular'");
+        // Revert back to original enum for MySQL/MariaDB
+        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'regular', 'lecturer', 'invigilator') NOT NULL DEFAULT 'regular'");
     }
 };
