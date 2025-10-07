@@ -55,9 +55,11 @@ const AdminManagement = () => {
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
 
-            // Fetch academic sessions (levels) for level admin assignment
+            // Fetch departments (acd_sessions) for level admin assignment
             const departmentsRes = await axios.get(`${path}/get-acd-sessions`, { headers });
-            setDepartments(departmentsRes.data);
+            // Filter to only show entries that have department-related data
+            const deptData = departmentsRes.data.filter(dept => dept.title);
+            setDepartments(deptData);
 
             // Fetch admin users
             const adminsRes = await axios.get(`${path}/get-admins`, { headers });
@@ -388,16 +390,16 @@ const AdminManagement = () => {
                                     </div>
                                     {newAdmin.role === 'level_admin' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Academic Level/Session</label>
+                                            <label className="block text-sm font-medium text-gray-700">Department</label>
                                             <select
                                                 value={newAdmin.level_id}
                                                 onChange={(e) => setNewAdmin({ ...newAdmin, level_id: e.target.value })}
                                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                                                 required
                                             >
-                                                <option value="">Select Academic Level</option>
-                                                {departments.map(level => (
-                                                    <option key={level.id} value={level.id}>{level.session}</option>
+                                                <option value="">Select Department</option>
+                                                {departments.map(dept => (
+                                                    <option key={dept.id} value={dept.id}>{dept.title}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -472,16 +474,16 @@ const AdminManagement = () => {
 
                                     {editAdmin.role === 'level_admin' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Academic Level/Session</label>
+                                            <label className="block text-sm font-medium text-gray-700">Department</label>
                                             <select
                                                 value={editAdmin.level_id}
                                                 onChange={(e) => setEditAdmin({ ...editAdmin, level_id: e.target.value })}
                                                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                             >
-                                                <option value="">Select Academic Level</option>
-                                                {departments.map((level) => (
-                                                    <option key={level.id} value={level.id}>
-                                                        {level.session}
+                                                <option value="">Select Department</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept.id} value={dept.id}>
+                                                        {dept.title}
                                                     </option>
                                                 ))}
                                             </select>

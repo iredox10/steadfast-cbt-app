@@ -13,7 +13,6 @@ class Acd_session extends Model
         'title',
         'status',
         'description',
-        'department_code',
         'head_of_department',
         'contact_email',
         'contact_phone'
