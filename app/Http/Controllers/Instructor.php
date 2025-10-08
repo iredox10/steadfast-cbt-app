@@ -407,13 +407,15 @@ class Instructor extends Controller
             $student_list = [];
 
             foreach ($students as $student) {
-                $std = Student::findOrFail($student->student_id);
-                $student_list[] = $std;
+                $std = Student::find($student->student_id);
+                if ($std) {
+                    $student_list[] = $std;
+                }
             }
 
-            if (!$students) {
-                return response()->json(['message' => 'No students found for this course'], 404);
-            }
+            // if (empty($student_list)) {
+            //     return response()->json(['message' => 'No students found for this course'], 404);
+            // }
 
             return response()->json($student_list, 200);
         } catch (Exception $err) {

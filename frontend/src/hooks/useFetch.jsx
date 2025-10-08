@@ -11,7 +11,11 @@ const useFetch = (uri) => {
         const fetch = async () => {
             try {
                 setLoading(true);
-                const res = await axios.get(`${path}${uri}`);
+                // Get token from localStorage for authentication
+                const token = localStorage.getItem('token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await axios.get(`${path}${uri}`, { headers });
                 setData(res.data);
             } catch (error) {
                 console.error("Fetch error:", error);

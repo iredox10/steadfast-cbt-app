@@ -25,6 +25,19 @@ const InstructorStudents = () => {
     
     const { data: course } = useFetch(`/get-course/${courseId}`);
 
+    // Debug logging
+    console.log("InstructorStudents Debug:", {
+        userId,
+        courseId,
+        students,
+        studentsLoading,
+        studentsError,
+        scores,
+        scoresLoading,
+        scoresError,
+        course
+    });
+
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
