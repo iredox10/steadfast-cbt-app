@@ -227,12 +227,12 @@ const Student = () => {
             return shuffledOptions[question.id];
         }
 
-        // Create new shuffled options for this question
+        // Create options array with original types
         const options = [
-            { label: "A", value: question.option_a, type: "a" },
-            { label: "B", value: question.option_b, type: "b" },
-            { label: "C", value: question.option_c, type: "c" },
-            { label: "D", value: question.option_d, type: "d" },
+            { value: question.option_a, type: "a" },
+            { value: question.option_b, type: "b" },
+            { value: question.option_c, type: "c" },
+            { value: question.option_d, type: "d" },
         ];
 
         // Filter out any options that might be null, empty, or default placeholder values
@@ -242,15 +242,23 @@ const Student = () => {
             !option.value.toLowerCase().includes('default option')
         );
 
-        const shuffled = shuffleArray(validOptions);
+        // Shuffle the option values
+        const shuffledValues = shuffleArray(validOptions);
+
+        // Re-assign labels A, B, C, D to the shuffled options
+        const labelsArray = ["A", "B", "C", "D"];
+        const shuffledWithLabels = shuffledValues.map((option, index) => ({
+            ...option,
+            label: labelsArray[index]
+        }));
 
         // Store the shuffled options
         setShuffledOptions(prev => ({
             ...prev,
-            [question.id]: shuffled
+            [question.id]: shuffledWithLabels
         }));
 
-        return shuffled;
+        return shuffledWithLabels;
     };
 
     // Get shuffled options for current question (consistent order)
