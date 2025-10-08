@@ -64,7 +64,7 @@ const Semester = () => {
             {/* Sidebar */}
             <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
                 <div className="flex items-center mb-10">
-                    <img src="/assets/logo.webp" alt="School Logo" className="h-10 w-10 mr-3" />
+                    <img src="/assets/buk.png" alt="School Logo" className="h-10 w-10 mr-3" />
                     <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
                 </div>
                 <nav className="space-y-2">
