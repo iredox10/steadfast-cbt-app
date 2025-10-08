@@ -1,6 +1,6 @@
 <div class="flex flex-col h-screen bg-black text-white">
     <div class="flex flex-col items-center my-6">
-        <img src="{{ asset('logo.webp') }}" class="w-16 h-16 object-contain" alt="Logo">
+        <img src="{{ asset('buk.png') }}" class="w-16 h-16 object-contain" alt="Logo">
         <h1 class="text-white font-bold mt-2">HUK POLY</h1>
     </div>
     

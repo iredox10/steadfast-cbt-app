@@ -104,14 +104,6 @@ const Invigilator = () => {
             console.log('Fetching students and exam data');
             fetchStudents();
             fetchCurrentExam();
-
-            // Set up polling for real-time updates (every 15 seconds for better responsiveness)
-            const interval = setInterval(() => {
-                console.log('Polling for student updates');
-                fetchStudents();
-            }, 15000);
-
-            return () => clearInterval(interval);
         }
     }, [userData, userLoading]);
 
@@ -394,7 +386,7 @@ const Invigilator = () => {
                         <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                             <FaCog className="mr-3" /> Settings
                         </Link>
-                        <Link to="/login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                             <FaSignOutAlt className="mr-3" /> Logout
                         </Link>
                     </div>
@@ -623,20 +615,6 @@ const Invigilator = () => {
                             >
                                 <FaFilter className="mr-2" /> Reset Filters
                             </button>
-
-                            <button
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
-                                onClick={downloadScores}
-                            >
-                                <FaDownload className="mr-2" /> Download Scores
-                            </button>
-
-                            <button
-                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-                                onClick={fetchStudents}
-                            >
-                                <FaSync className="mr-2" /> Refresh Data
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -681,9 +659,6 @@ const Invigilator = () => {
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Ticket Number
-                                            </th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Score
                                             </th>
                                             <th
                                                 scope="col"
@@ -743,18 +718,6 @@ const Invigilator = () => {
                                                     ) : (
                                                         <div className="text-sm text-gray-500">
                                                             Not generated
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                {/* Score */}
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {student.score !== null && student.score !== undefined ? (
-                                                        <div className="text-sm font-medium text-green-600">
-                                                            {student.score}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-sm text-gray-500">
-                                                            Not available
                                                         </div>
                                                     )}
                                                 </td>

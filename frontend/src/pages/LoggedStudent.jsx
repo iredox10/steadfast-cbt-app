@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { FaExclamationTriangle, FaHome } from 'react-icons/fa'
-import logo from '../../public/assets/logo.webp'
+import logo from '../../public/assets/buk.png'
 
 const LoggedStudent = () => {
   return (
@@ -16,7 +16,7 @@ const LoggedStudent = () => {
               alt="HUK POLY Logo"
             />
             <div>
-              <h1 className="text-xl font-bold text-gray-800">HUK POLY</h1>
+              <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
               <p className="text-xs text-gray-600">Computer Based Test Portal</p>
             </div>
           </div>
