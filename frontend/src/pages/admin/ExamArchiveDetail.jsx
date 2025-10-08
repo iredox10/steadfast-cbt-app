@@ -21,7 +21,10 @@ const ExamArchiveDetail = () => {
         const fetchArchiveDetails = async () => {
             setLoading(true);
             try {
+                console.log('Fetching archive details for ID:', archiveId);
                 const res = await axios.get(`${path}/exam-archives/${archiveId}`);
+                console.log('Archive data received:', res.data);
+                console.log('Student results:', res.data.student_results);
                 setArchive(res.data);
             } catch (err) {
                 console.error("Error fetching archive details:", err);
