@@ -182,6 +182,9 @@ class Admin extends Controller
             $session->status = 'active';
             $session->save();
 
+            // Also set as global active session for level admins
+            SystemConfig::setGlobalActiveSession($session_id);
+
             return response()->json($session);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
