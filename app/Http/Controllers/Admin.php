@@ -719,10 +719,15 @@ class Admin extends Controller
         if (!$exam) {
             return response()->json('no exam activated');
         }
-        if ($invigilator->email == $exam->invigilator) {
-            return response()->json(['invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
+        // Check if invigilator is assigned - compare email or full_name since the field can contain either
+        $isAssigned = ($invigilator->email == $exam->invigilator) || 
+                      ($invigilator->full_name == $exam->invigilator) ||
+                      ($invigilator->id == $exam->invigilator);
+        
+        if ($isAssigned) {
+            return response()->json(['Invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
         }
-        return response()->json(['invigilator' => $invigilator, 'examAssigned' => false]);
+        return response()->json(['Invigilator' => $invigilator, 'examAssigned' => false]);
     }
 
     public function get_current_exam()
