@@ -24,6 +24,9 @@ use Maatwebsite\Excel\Collections\ExcelCollection;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpParser\Node\Stmt\TryCatch;
 use App\Models\ExamArchive;
+use App\Models\Question;
+use App\Models\Answers;
+use App\Models\StudentExamScore;
 
 class Admin extends Controller
 {
@@ -768,6 +771,51 @@ class Admin extends Controller
     {
         try {
             $archive = ExamArchive::findOrFail($archive_id);
+            
+            // Get the exam details
+            $exam = Exam::find($archive->exam_id);
+            
+            if ($exam) {
+                // Count questions for this exam
+                $totalQuestions = Question::where('exam_id', $exam->id)->count();
+                $totalMarks = $exam->marks_per_question * $totalQuestions;
+                
+                // Add exam details to response
+                $archive->total_questions = $totalQuestions;
+                $archive->marks_per_question = $exam->marks_per_question;
+                $archive->total_marks = $totalMarks;
+                
+                // Enhance student results with answers count
+                $enhancedResults = collect($archive->student_results)->map(function ($result) use ($exam) {
+                    // Get candidate for this student
+                    $candidate = Candidate::where('student_id', $result['student_id'])
+                                         ->where('exam_id', $exam->id)
+                                         ->first();
+                    
+                    if ($candidate) {
+                        // Count answers for this candidate
+                        $answersCount = Answers::where('course_id', $exam->course_id)
+                                              ->where('candidate_id', $candidate->id)
+                                              ->count();
+                        
+                        $correctAnswers = Answers::where('course_id', $exam->course_id)
+                                                ->where('candidate_id', $candidate->id)
+                                                ->where('is_correct', true)
+                                                ->count();
+                        
+                        $result['questions_answered'] = $answersCount;
+                        $result['correct_answers'] = $correctAnswers;
+                    } else {
+                        $result['questions_answered'] = 0;
+                        $result['correct_answers'] = 0;
+                    }
+                    
+                    return $result;
+                })->toArray();
+                
+                $archive->student_results = $enhancedResults;
+            }
+            
             return response()->json($archive);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

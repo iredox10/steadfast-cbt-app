@@ -79,16 +79,23 @@ const ExamArchiveDetail = () => {
 
     const handleDownloadPdf = () => {
         const doc = new jsPDF();
+        doc.setFontSize(16);
         doc.text(`Exam Results for ${archive.exam_title}`, 14, 15);
+        doc.setFontSize(10);
         doc.text(`Course: ${archive.course_title}`, 14, 22);
-        doc.text(`Date: ${format(new Date(archive.exam_date), 'PPP')}`, 14, 29);
+        doc.text(`Date: ${format(new Date(archive.exam_date), 'PPP')}`, 14, 27);
+        doc.text(`Duration: ${archive.duration} minutes`, 14, 32);
+        doc.text(`Total Questions: ${archive.total_questions || 'N/A'}`, 14, 37);
+        doc.text(`Total Marks: ${archive.total_marks || 'N/A'}`, 14, 42);
 
         autoTable(doc, {
-            startY: 35,
-            head: [['Full Name', 'Candidate No.', 'Score', 'Submission Time']],
+            startY: 48,
+            head: [['Full Name', 'Candidate No.', 'Questions Answered', 'Correct', 'Score', 'Time']],
             body: sortedAndFilteredResults.map(result => [
                 result.full_name,
                 result.candidate_no,
+                `${result.questions_answered || 0}/${archive.total_questions || 'N/A'}`,
+                result.correct_answers || 0,
                 result.score,
                 format(new Date(result.submission_time), 'Pp')
             ]),
@@ -102,6 +109,9 @@ const ExamArchiveDetail = () => {
             sortedAndFilteredResults.map(result => ({
                 'Full Name': result.full_name,
                 'Candidate No.': result.candidate_no,
+                'Questions Answered': result.questions_answered || 0,
+                'Total Questions': archive.total_questions || 'N/A',
+                'Correct Answers': result.correct_answers || 0,
                 'Score': result.score,
                 'Submission Time': format(new Date(result.submission_time), 'Pp')
             }))
@@ -167,12 +177,44 @@ const ExamArchiveDetail = () => {
                     </div>
                 </header>
 
-                {loading ? <p>Loading...</p> : (
+                {loading ? <p>Loading...</p> : archive ? (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-white p-6 rounded-xl shadow-sm border">
-                            <div><span className="font-semibold">Exam:</span> {archive.exam_title}</div>
-                            <div><span className="font-semibold">Course:</span> {archive.course_title}</div>
-                            <div><span className="font-semibold">Date:</span> {format(new Date(archive.exam_date), 'PPP')}</div>
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">Exam Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="p-4 bg-blue-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Exam Title</span>
+                                    <p className="font-semibold text-gray-900">{archive?.exam_title || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-green-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Course</span>
+                                    <p className="font-semibold text-gray-900">{archive?.course_title || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-purple-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Date</span>
+                                    <p className="font-semibold text-gray-900">{archive?.exam_date ? format(new Date(archive.exam_date), 'PPP') : 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-yellow-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Duration</span>
+                                    <p className="font-semibold text-gray-900">{archive?.duration ? `${archive.duration} minutes` : 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-pink-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Total Questions</span>
+                                    <p className="font-semibold text-gray-900">{archive?.total_questions || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-indigo-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Marks per Question</span>
+                                    <p className="font-semibold text-gray-900">{archive?.marks_per_question || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-red-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Total Marks</span>
+                                    <p className="font-semibold text-gray-900">{archive.total_marks || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-teal-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Total Students</span>
+                                    <p className="font-semibold text-gray-900">{archive.student_results?.length || 0}</p>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -191,6 +233,8 @@ const ExamArchiveDetail = () => {
                                     <tr>
                                         <SortableHeader name="full_name">Full Name</SortableHeader>
                                         <SortableHeader name="candidate_no">Candidate No.</SortableHeader>
+                                        <SortableHeader name="questions_answered">Questions Answered</SortableHeader>
+                                        <SortableHeader name="correct_answers">Correct Answers</SortableHeader>
                                         <SortableHeader name="score">Score</SortableHeader>
                                         <SortableHeader name="submission_time">Submission Time</SortableHeader>
                                     </tr>
@@ -198,10 +242,30 @@ const ExamArchiveDetail = () => {
                                 <tbody className="divide-y divide-gray-200">
                                     {paginatedResults.map((result, index) => (
                                         <tr key={index}>
-                                            <td className="px-6 py-4 whitespace-nowrap">{result.full_name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{result.candidate_no}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{result.score}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{format(new Date(result.submission_time), 'Pp')}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-medium text-gray-900">{result.full_name}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">{result.candidate_no}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">
+                                                    {result.questions_answered || 0} / {archive.total_questions || 'N/A'}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                    {result.correct_answers || 0}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                    {result.score}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-500">{format(new Date(result.submission_time), 'Pp')}</div>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -221,6 +285,10 @@ const ExamArchiveDetail = () => {
                             </div>
                         </div>
                     </>
+                ) : (
+                    <div className="text-center py-8">
+                        <p className="text-gray-500">No archive data found</p>
+                    </div>
                 )}
             </main>
         </div>
