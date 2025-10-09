@@ -15,11 +15,20 @@ class DepartmentController extends Controller
 {
     /**
      * Get all departments (for REST API)
+     * Filter out academic sessions - only return actual departments
      */
     public function index()
     {
         try {
-            $departments = Acd_session::orderBy('title')->get();
+            // Filter to get only departments (not academic sessions)
+            // Departments have either head_of_department OR title that doesn't match "YYYY/YYYY" format
+            $departments = Acd_session::where(function($query) {
+                $query->whereNotNull('head_of_department')
+                      ->orWhereNotNull('contact_email')
+                      ->orWhereNotNull('contact_phone')
+                      ->orWhere('title', 'NOT LIKE', '%/%');
+            })->orderBy('title')->get();
+            
             return response()->json($departments, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
