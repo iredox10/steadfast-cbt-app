@@ -41,9 +41,14 @@ class Admin extends Controller
             return null;
         }
 
-        // Super admins can see everything (no filter)
+        // Super admins can see everything, but can also filter by level_id if provided
         if ($user->role === 'super_admin') {
-            return null;
+            // Check if level_id query parameter is provided
+            $levelId = $request->query('level_id');
+            if ($levelId && $levelId !== '' && $levelId !== 'all') {
+                return $levelId;
+            }
+            return null; // No filter, show all
         }
 
         // Level admins can only see their level
@@ -120,37 +125,19 @@ class Admin extends Controller
     public function get_acd_sessions()
     {
         try {
-            // Get all sessions and filter out departments
-            $allSessions = Acd_session::orderBy('title')->get();
+            // Get only academic sessions (not departments)
+            // Academic sessions have "/" in title (e.g., "2023/2024", "2024/2025")
+            // Or they are entries WITHOUT head_of_department field (departments have this field)
+            $academicSessions = Acd_session::where(function($query) {
+                $query->where('title', 'LIKE', '%/%')
+                      ->orWhere(function($q) {
+                          $q->whereNull('head_of_department')
+                            ->whereNull('contact_email')
+                            ->whereNull('contact_phone');
+                      });
+            })->orderBy('title')->get();
             
-            // Filter to only include academic sessions (exclude departments)
-            $academicSessions = $allSessions->filter(function ($session) {
-                $title = strtolower($session->title);
-                
-                // Exclude common department names
-                $isDepartment = strpos($title, 'computer') !== false ||
-                               strpos($title, 'science') !== false ||
-                               strpos($title, 'engineering') !== false ||
-                               strpos($title, 'business') !== false ||
-                               strpos($title, 'mathematics') !== false ||
-                               strpos($title, 'physics') !== false ||
-                               strpos($title, 'chemistry') !== false ||
-                               strpos($title, 'biology') !== false ||
-                               strpos($title, 'department') !== false ||
-                               strpos($title, 'admin') !== false;
-                
-                // Include items that look like academic sessions or exclude departments
-                $isAcademicSession = strpos($title, '/') !== false || // e.g., "2024/2025"
-                                   strpos($title, '-') !== false || // e.g., "2024-2025"
-                                   strpos($title, 'session') !== false || // e.g., "Session 1"
-                                   strpos($title, 'semester') !== false || // e.g., "Semester 1"
-                                   preg_match('/\d{4}/', $title); // Contains a 4-digit year
-                
-                // Return true if it looks like academic session AND is not a department
-                return $isAcademicSession && !$isDepartment;
-            });
-            
-            return response()->json($academicSessions->values());
+            return response()->json($academicSessions);
         } catch (Exception $e) {
             return response()->json([
                 'error' => 'Failed to fetch academic sessions',
