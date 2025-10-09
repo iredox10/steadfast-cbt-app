@@ -21,9 +21,11 @@ class Exam extends Model
         'exam_duration',
         'invigilator',
         'submission_status',
+        'submission_count',
         'submission_date',
         'activated_date',
         'start_time',
+        'finished_time',
         'finished',
         'activated'
     ];

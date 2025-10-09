@@ -153,6 +153,12 @@ const AdminExam = () => {
 
     // Filter exams based on search and status
     const filteredExams = Array.isArray(exams) ? exams.filter((exam) => {
+        // Remove terminated exams from the list
+        // Terminated exams are identified by having finished_time set (exam was completed/terminated)
+        if (exam.finished_time !== null) {
+            return false; // Don't show terminated exams
+        }
+
         const courseName =
             courses?.find((course) => course.id === exam.course_id)?.title ||
             "";
@@ -372,11 +378,25 @@ const AdminExam = () => {
                                                                 <FaBook className="text-blue-500" />
                                                             </div>
                                                             <div className="ml-4">
-                                                                <div className="text-sm font-medium text-gray-900">
-                                                                    {course?.title || "Unknown Course"}
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="text-sm font-medium text-gray-900">
+                                                                        {course?.title || "Unknown Course"}
+                                                                    </div>
+                                                                    {/* Show "Previously Activated" badge for inactive exams that have been activated before */}
+                                                                    {exam.activated_date && exam.activated === "no" && !exam.finished_time && (
+                                                                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                                                                            <FaPlay className="text-[10px]" />
+                                                                            Previously Activated
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 <div className="text-sm text-gray-500">
                                                                     {exam.exam_type}
+                                                                    {exam.activated_date && exam.activated === "no" && !exam.finished_time && (
+                                                                        <span className="text-gray-400 ml-2">
+                                                                            • Last activated: {new Date(exam.activated_date).toLocaleDateString()}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>

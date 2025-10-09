@@ -377,29 +377,56 @@ const Exams = () => {
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6">
-                                                {exam.submission_status === "submitted" ? (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        <FaCheck className="w-3 h-3" />
-                                                        Submitted
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                        <FaTimes className="w-3 h-3" />
-                                                        Pending
-                                                    </span>
-                                                )}
+                                                <div className="flex flex-col gap-1">
+                                                    {exam.finished_time ? (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 w-fit">
+                                                            <i className="fas fa-flag-checkered"></i>
+                                                            Terminated
+                                                        </span>
+                                                    ) : exam.submission_status === "submitted" ? (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
+                                                            <FaCheck className="w-3 h-3" />
+                                                            Submitted
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 w-fit">
+                                                            <FaTimes className="w-3 h-3" />
+                                                            Pending
+                                                        </span>
+                                                    )}
+                                                    {exam.submission_count > 0 && (
+                                                        <span className="text-xs text-gray-500">
+                                                            Submitted {exam.submission_count} time{exam.submission_count > 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
                                                 {exam.updated_at ? format(new Date(exam.updated_at), "Pp") : "N/A"}
                                             </td>
                                             <td className="py-4 px-6">
-                                                <button
-                                                    onClick={() => handleShowSubmitModel(exam.id)}
-                                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                                                    disabled={loading || exam.submission_status === "submitted"}
-                                                >
-                                                    {exam.submission_status === "submitted" ? "Submitted" : "Submit"}
-                                                </button>
+                                                {exam.finished_time ? (
+                                                    <button
+                                                        onClick={() => handleShowSubmitModel(exam.id)}
+                                                        className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                                        disabled={loading}
+                                                    >
+                                                        <i className="fas fa-redo"></i>
+                                                        Resubmit
+                                                    </button>
+                                                ) : exam.submission_status === "submitted" ? (
+                                                    <span className="text-sm font-medium text-gray-400">
+                                                        Submitted
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleShowSubmitModel(exam.id)}
+                                                        className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                                        disabled={loading}
+                                                    >
+                                                        Submit
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))
@@ -472,19 +499,42 @@ const Exams = () => {
             </main>
 
             {/* Submit Exam Confirmation Modal */}
-            {showSubmitModel && (
+            {showSubmitModel && exam && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
                         <div className="text-center">
                             <div className="mb-6">
-                                <i className="fas fa-exclamation-circle text-yellow-500 text-4xl"></i>
+                                {exam.finished_time ? (
+                                    <i className="fas fa-redo text-blue-500 text-4xl"></i>
+                                ) : (
+                                    <i className="fas fa-exclamation-circle text-yellow-500 text-4xl"></i>
+                                )}
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                                Submit Exam?
+                                {exam.finished_time ? 'Resubmit Exam?' : 'Submit Exam?'}
                             </h2>
-                            <p className="text-gray-600 mb-8">
-                                Are you sure you want to submit this exam? This action cannot be undone.
-                            </p>
+                            {exam.finished_time ? (
+                                <div className="mb-6">
+                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                                        <p className="text-sm text-orange-800 font-medium mb-2">
+                                            <i className="fas fa-info-circle mr-1"></i>
+                                            This exam was previously terminated
+                                        </p>
+                                        {exam.submission_count > 0 && (
+                                            <p className="text-xs text-orange-700">
+                                                Previous submissions: {exam.submission_count}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <p className="text-gray-600">
+                                        Resubmitting will make this exam available to the admin for activation again. The exam will be reset to inactive status.
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-gray-600 mb-8">
+                                    Are you sure you want to submit this exam? Once submitted, it will be available for the admin to activate.
+                                </p>
+                            )}
                             <div className="flex justify-center gap-4">
                                 <button
                                     onClick={handleSubmitExam}
@@ -493,8 +543,10 @@ const Exams = () => {
                                 >
                                     {loading ? (
                                         <i className="fas fa-spinner fa-spin mr-2"></i>
+                                    ) : exam.finished_time ? (
+                                        <i className="fas fa-redo mr-2"></i>
                                     ) : null}
-                                    Yes, Submit
+                                    {exam.finished_time ? 'Yes, Resubmit' : 'Yes, Submit'}
                                 </button>
                                 <button
                                     onClick={() => setShowSubmitModel(false)}

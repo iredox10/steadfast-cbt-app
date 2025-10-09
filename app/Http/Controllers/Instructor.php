@@ -241,14 +241,38 @@ class Instructor extends Controller
     public function submitExam(Request $request, $exam_id)
     {
         try {
-            // TODO: ask if you should cancel the other submission for any submmissio
-            // TODO: Life you so in admin activate_exam controller.
-
-            // Exam::query()->update(['submission_status' => 'not_submitted']);
             $exam = Exam::findOrFail($exam_id);
+            
+            // Check if exam can be submitted
+            // Allow submission if:
+            // 1. Never submitted before (submission_status != 'submitted')
+            // 2. OR exam was terminated (finished_time is not null)
+            $canSubmit = $exam->submission_status !== 'submitted' || $exam->finished_time !== null;
+            
+            if (!$canSubmit) {
+                return response()->json([
+                    'error' => 'This exam has already been submitted and is not terminated yet.'
+                ], 400);
+            }
+            
+            // If resubmitting after termination, reset exam state
+            if ($exam->finished_time !== null) {
+                $exam->finished_time = null; // Clear terminated status
+                $exam->activated = 'no'; // Reset to inactive
+                $exam->activated_date = null; // Clear activation date
+                $exam->invigilator = null; // Clear invigilator
+            }
+            
+            // Update submission status and increment count
             $exam->submission_status = 'submitted';
+            $exam->submission_count = ($exam->submission_count ?? 0) + 1;
+            $exam->submission_date = now();
             $exam->save();
-            return response()->json($exam);
+            
+            return response()->json([
+                'message' => 'Exam submitted successfully',
+                'exam' => $exam
+            ]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

@@ -12,6 +12,9 @@ class ExamArchive extends Model
         'course_title',
         'exam_date',
         'duration',
+        'total_questions',
+        'marks_per_question',
+        'total_marks',
         'student_results'
     ];
 

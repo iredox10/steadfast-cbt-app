@@ -503,6 +503,10 @@ class Admin extends Controller
             $exam = Exam::findOrFail($exam_id);
             $course = Course::findOrFail($exam->course_id);
 
+            // Get total questions and marks for this exam
+            $totalQuestions = Question::where('exam_id', $exam_id)->count();
+            $totalMarks = $exam->marks_per_question * $totalQuestions;
+
             // Get all students who took this exam with their scores from student_exam_score table
             $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
                 $query->where('exam_id', $exam_id);
@@ -516,26 +520,45 @@ class Admin extends Controller
                 }
             ])
             ->get()
-            ->map(function ($student) {
+            ->map(function ($student) use ($exam) {
                 $candidate = $student->candidates->first();
                 $examScore = $student->examScores->first();
+                
+                // Get answer statistics before candidates are deleted
+                $questionsAnswered = 0;
+                $correctAnswers = 0;
+                if ($candidate) {
+                    $questionsAnswered = Answers::where('course_id', $exam->course_id)
+                                               ->where('candidate_id', $candidate->id)
+                                               ->count();
+                    $correctAnswers = Answers::where('course_id', $exam->course_id)
+                                            ->where('candidate_id', $candidate->id)
+                                            ->where('is_correct', true)
+                                            ->count();
+                }
+                
                 return [
                     'student_id' => $student->id,
                     'candidate_no' => $student->candidate_no,
                     'full_name' => $student->full_name,
                     'score' => $examScore ? $examScore->score : 0,
                     'submission_time' => $candidate ? $candidate->created_at : null,
+                    'questions_answered' => $questionsAnswered,
+                    'correct_answers' => $correctAnswers,
                 ];
             })
             ->toArray();
 
-            // Create exam archive
+            // Create exam archive with complete data
             ExamArchive::create([
                 'exam_id' => $exam_id,
                 'exam_title' => $exam->title ?? $course->title . ' Exam',
                 'course_title' => $course->title,
                 'exam_date' => $exam->activated_date,
                 'duration' => $exam->exam_duration,
+                'total_questions' => $totalQuestions,
+                'marks_per_question' => $exam->marks_per_question,
+                'total_marks' => $totalMarks,
                 'student_results' => $studentResults,
             ]);
 
@@ -552,6 +575,7 @@ class Admin extends Controller
             // Deactivate exam and clear invigilator
             Exam::query()->update(['invigilator' => null]);
             $exam->activated = 'no';
+            $exam->finished_time = now(); // Mark as finished/terminated
             $exam->save();
 
             return response()->json([
@@ -762,48 +786,63 @@ class Admin extends Controller
         try {
             $archive = ExamArchive::findOrFail($archive_id);
             
-            // Get the exam details
-            $exam = Exam::find($archive->exam_id);
+            // Check if archive already has exam statistics stored
+            // (New archives created after the update will have these fields)
+            if (!isset($archive->total_questions) || $archive->total_questions === null) {
+                // For old archives, try to get exam details if exam still exists
+                $exam = Exam::find($archive->exam_id);
+                
+                if ($exam) {
+                    // Count questions for this exam
+                    $totalQuestions = Question::where('exam_id', $exam->id)->count();
+                    $totalMarks = $exam->marks_per_question * $totalQuestions;
+                    
+                    // Add exam details to response
+                    $archive->total_questions = $totalQuestions;
+                    $archive->marks_per_question = $exam->marks_per_question;
+                    $archive->total_marks = $totalMarks;
+                }
+            }
             
-            if ($exam) {
-                // Count questions for this exam
-                $totalQuestions = Question::where('exam_id', $exam->id)->count();
-                $totalMarks = $exam->marks_per_question * $totalQuestions;
+            // Check if student results already have answer statistics
+            // (New archives will have questions_answered and correct_answers)
+            $studentResults = collect($archive->student_results);
+            $firstResult = $studentResults->first();
+            
+            if ($firstResult && !isset($firstResult['questions_answered'])) {
+                // For old archives, try to calculate from candidates (if they still exist)
+                $exam = Exam::find($archive->exam_id);
                 
-                // Add exam details to response
-                $archive->total_questions = $totalQuestions;
-                $archive->marks_per_question = $exam->marks_per_question;
-                $archive->total_marks = $totalMarks;
-                
-                // Enhance student results with answers count
-                $enhancedResults = collect($archive->student_results)->map(function ($result) use ($exam) {
-                    // Get candidate for this student
-                    $candidate = Candidate::where('student_id', $result['student_id'])
-                                         ->where('exam_id', $exam->id)
-                                         ->first();
-                    
-                    if ($candidate) {
-                        // Count answers for this candidate
-                        $answersCount = Answers::where('course_id', $exam->course_id)
-                                              ->where('candidate_id', $candidate->id)
-                                              ->count();
+                if ($exam) {
+                    $enhancedResults = $studentResults->map(function ($result) use ($exam) {
+                        // Try to get candidate (may not exist for terminated exams)
+                        $candidate = Candidate::where('student_id', $result['student_id'])
+                                             ->where('exam_id', $exam->id)
+                                             ->first();
                         
-                        $correctAnswers = Answers::where('course_id', $exam->course_id)
-                                                ->where('candidate_id', $candidate->id)
-                                                ->where('is_correct', true)
-                                                ->count();
+                        if ($candidate) {
+                            $answersCount = Answers::where('course_id', $exam->course_id)
+                                                  ->where('candidate_id', $candidate->id)
+                                                  ->count();
+                            
+                            $correctAnswers = Answers::where('course_id', $exam->course_id)
+                                                    ->where('candidate_id', $candidate->id)
+                                                    ->where('is_correct', true)
+                                                    ->count();
+                            
+                            $result['questions_answered'] = $answersCount;
+                            $result['correct_answers'] = $correctAnswers;
+                        } else {
+                            // Candidate doesn't exist (exam was terminated)
+                            $result['questions_answered'] = 0;
+                            $result['correct_answers'] = 0;
+                        }
                         
-                        $result['questions_answered'] = $answersCount;
-                        $result['correct_answers'] = $correctAnswers;
-                    } else {
-                        $result['questions_answered'] = 0;
-                        $result['correct_answers'] = 0;
-                    }
+                        return $result;
+                    })->toArray();
                     
-                    return $result;
-                })->toArray();
-                
-                $archive->student_results = $enhancedResults;
+                    $archive->student_results = $enhancedResults;
+                }
             }
             
             return response()->json($archive);
