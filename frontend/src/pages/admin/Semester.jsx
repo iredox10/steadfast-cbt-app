@@ -116,8 +116,13 @@ const Semester = () => {
                 </header>
 
                 {loading ? (
-                    <p>Loading courses...</p>
-                ) : (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Loading courses...</p>
+                        </div>
+                    </div>
+                ) : courses.length > 0 ? (
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <table className="min-w-full">
                             <thead className="bg-gray-50">
@@ -137,6 +142,27 @@ const Semester = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                ) : (
+                    <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100">
+                        <div className="text-center">
+                            <div className="mx-auto h-24 w-24 text-gray-300 mb-4">
+                                <FaBook className="w-full h-full" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                No Courses Available
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                This semester doesn't have any courses yet. Click the button below to add your first course.
+                            </p>
+                            <button
+                                onClick={() => setShowAddModal(true)}
+                                className="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                <FaPlus className="mr-2" />
+                                Add First Course
+                            </button>
+                        </div>
                     </div>
                 )}
             </main>
