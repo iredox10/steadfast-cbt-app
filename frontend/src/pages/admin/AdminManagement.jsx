@@ -55,11 +55,9 @@ const AdminManagement = () => {
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
 
-            // Fetch departments (acd_sessions) for level admin assignment
-            const departmentsRes = await axios.get(`${path}/get-acd-sessions`, { headers });
-            // Filter to only show entries that have department-related data
-            const deptData = departmentsRes.data.filter(dept => dept.title);
-            setDepartments(deptData);
+            // Fetch departments (filtered to exclude academic sessions)
+            const departmentsRes = await axios.get(`${path}/departments`, { headers });
+            setDepartments(departmentsRes.data);
 
             // Fetch admin users
             const adminsRes = await axios.get(`${path}/get-admins`, { headers });
