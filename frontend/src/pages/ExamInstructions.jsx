@@ -16,8 +16,11 @@ const ExamInstructions = () => {
     const fetchCourse = async () => {
         try {
             if (examData?.exam?.course_id) {
+                const token = localStorage.getItem('token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
                 const res = await axios.get(
-                    `${path}/get-course/${examData.exam.course_id}`
+                    `${path}/get-course/${examData.exam.course_id}`,
+                    { headers }
                 );
                 setCourse(res.data);
             }
