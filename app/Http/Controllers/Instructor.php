@@ -415,8 +415,11 @@ class Instructor extends Controller
     public function get_students(Request $request, $user_id, $course_id)
     {
         try {
-            // Find the instructor and their courses
-            $instructor_courses = User::findOrFail($user_id)->courses;
+            // Find the instructor
+            $instructor = User::findOrFail($user_id);
+            
+            // Find the instructor's courses
+            $instructor_courses = $instructor->courses;
 
             // Check if the course_id exists in the instructor's courses
             // $course = $instructor_courses->where('id', $course_id)->first();
@@ -425,6 +428,7 @@ class Instructor extends Controller
             if (!$course) {
                 return response()->json(['message' => 'Course not found for this instructor'], 404);
             }
+            
             // Retrieve students for the specific course
             $students = Course::findOrFail($course_id)->studentCourses;
 
@@ -433,6 +437,12 @@ class Instructor extends Controller
             foreach ($students as $student) {
                 $std = Student::find($student->student_id);
                 if ($std) {
+                    // Filter students by instructor's level_id (department)
+                    // Only show students from the same department as the instructor
+                    if ($instructor->level_id && $std->level_id != $instructor->level_id) {
+                        continue; // Skip students not in the instructor's department
+                    }
+                    
                     $student_list[] = $std;
                 }
             }
@@ -488,17 +498,26 @@ class Instructor extends Controller
         }
     }
 
-    public function get_student_scores_for_course($course_id)
+    public function get_student_scores_for_course(Request $request, $course_id)
     {
         try {
+            // Get the authenticated instructor
+            $instructor = $request->user();
+            
             // Get student scores for this course
             $scores = StudentExamScore::where('course_id', $course_id)->get();
             
-            // Enhance the data with student information
+            // Enhance the data with student information and filter by instructor's department
             $enhancedScores = [];
             foreach ($scores as $score) {
                 $student = Student::find($score->student_id);
                 if ($student) {
+                    // Filter students by instructor's level_id (department)
+                    // Only show scores for students from the same department as the instructor
+                    if ($instructor && $instructor->level_id && $student->level_id != $instructor->level_id) {
+                        continue; // Skip students not in the instructor's department
+                    }
+                    
                     $enhancedScores[] = [
                         'id' => $score->id,
                         'student_id' => $student->id,
