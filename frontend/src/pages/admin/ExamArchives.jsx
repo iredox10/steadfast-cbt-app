@@ -16,7 +16,9 @@ const ExamArchives = () => {
     const fetchArchives = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${path}/exam-archives`);
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await axios.get(`${path}/exam-archives`, { headers });
             setArchives(res.data);
         } catch (err) {
             console.error("Error fetching archives:", err);

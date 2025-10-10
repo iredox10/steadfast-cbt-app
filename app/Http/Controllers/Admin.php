@@ -771,10 +771,27 @@ class Admin extends Controller
         }
     }
 
-    public function getExamArchives()
+    public function getExamArchives(Request $request)
     {
         try {
-            $archives = ExamArchive::orderBy('created_at', 'desc')->get();
+            $user = $request->user();
+            
+            // Get level filter based on user role
+            $levelFilter = $this->getAdminLevelFilter($request);
+            
+            // Build the query
+            $query = ExamArchive::query();
+            
+            // If there's a level filter (level admin), filter archives by exam level_id
+            if ($levelFilter !== null) {
+                // Join with exams table to filter by level_id
+                $query->whereHas('exam', function($q) use ($levelFilter) {
+                    $q->where('level_id', $levelFilter);
+                });
+            }
+            
+            $archives = $query->orderBy('created_at', 'desc')->get();
+            
             return response()->json($archives);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

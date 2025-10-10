@@ -341,7 +341,7 @@ const Invigilator = () => {
                         <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                             <FaCog className="mr-3" /> Settings
                         </Link>
-                        <Link to="/login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                             <FaSignOutAlt className="mr-3" /> Logout
                         </Link>
                     </div>

@@ -31,6 +31,16 @@ const Exams = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(5);
 
+    // Automatically calculate maximum score based on marks per question and actual questions
+    useEffect(() => {
+        if (marksPerQuestion && actualQuestions) {
+            const calculatedMaxScore = parseFloat(marksPerQuestion) * parseInt(actualQuestions);
+            setMaxScore(calculatedMaxScore.toString());
+        } else {
+            setMaxScore("");
+        }
+    }, [marksPerQuestion, actualQuestions]);
+
     // Helper function to get auth headers
     const getAuthHeaders = () => {
         const token = localStorage.getItem('token');
@@ -628,21 +638,6 @@ const Exams = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Maximum Score
-                                    </label>
-                                    <input
-                                        type="number"
-                                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="Enter max score"
-                                        value={maxScore}
-                                        onChange={(e) => setMaxScore(e.target.value)}
-                                        disabled={loading}
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Duration (minutes)
                                     </label>
                                     <input
@@ -685,22 +680,44 @@ const Exams = () => {
                                         required
                                     />
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Marks per Question
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter marks per question"
+                                        value={marksPerQuestion}
+                                        onChange={(e) => setMarksPerQuestion(e.target.value)}
+                                        disabled={loading}
+                                        required
+                                    />
+                                </div>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Marks per Question
+                                    Maximum Score
+                                    <span className="ml-2 text-xs text-green-600 font-normal">
+                                        (Auto-calculated)
+                                    </span>
                                 </label>
                                 <input
                                     type="number"
-                                    step="0.01"
-                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Enter marks per question"
-                                    value={marksPerQuestion}
-                                    onChange={(e) => setMarksPerQuestion(e.target.value)}
-                                    disabled={loading}
-                                    required
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                    placeholder="Will be calculated automatically"
+                                    value={maxScore}
+                                    readOnly
+                                    disabled
                                 />
+                                {maxScore && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {actualQuestions} questions × {marksPerQuestion} marks = {maxScore} total marks
+                                    </p>
+                                )}
                             </div>
                         </div>
 

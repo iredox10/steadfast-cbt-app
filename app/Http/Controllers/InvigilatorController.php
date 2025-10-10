@@ -118,22 +118,20 @@ class InvigilatorController extends Controller
             $student_list = [];
 
             $active_exam = Exam::where('course_id', $course_id)->where('activated', 'yes')->first();
+            
+            // Get the authenticated user (invigilator)
+            $invigilator = $request->user();
 
             foreach ($students as $student_course) {
                 $student = Student::findOrFail($student_course->student_id);
                 
-                // Apply level filtering based on the active exam's level_id
-                if ($active_exam && $active_exam->level_id && $student->level_id !== $active_exam->level_id) {
-                    continue; // Skip students not in the exam's level
+                // Filter students by the invigilator's level_id (department)
+                // This ensures invigilators only see students from their own department
+                if ($invigilator && $invigilator->level_id && $student->level_id != $invigilator->level_id) {
+                    continue; // Skip students not in the invigilator's department
                 }
                 
-                // Apply level filtering for level admins (existing functionality)
-                $user = $request->user();
-                if ($user && $user->role === 'level_admin' && $user->level_id && $student->level_id !== $user->level_id) {
-                    continue; // Skip students not in the admin's level
-                }
-                
-                // Apply level filtering if level_id is provided in request (for super admins)
+                // Also allow super admin filtering via query parameter
                 if ($request->has('level_id') && $request->level_id && $student->level_id != $request->level_id) {
                     continue; // Skip students not in the specified level
                 }

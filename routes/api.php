@@ -155,8 +155,8 @@ Route::get('/question-bank/{user_id}/{exam_id}', [Instructor::class, 'getExamQue
 
 Route::get('/get-current-exam', [Admin::class, 'get_current_exam']);
 
-Route::get('/exam-archives', [Admin::class, 'getExamArchives']);
-Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive']);
+Route::get('/exam-archives', [Admin::class, 'getExamArchives'])->middleware(['auth:sanctum']);
+Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive'])->middleware(['auth:sanctum']);
 
 // Dashboard routes
 Route::get('/upcoming-exams', [Admin::class, 'getUpcomingExams']);
