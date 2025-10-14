@@ -22,7 +22,12 @@ const ExamArchiveDetail = () => {
             setLoading(true);
             try {
                 console.log('Fetching archive details for ID:', archiveId);
-                const res = await axios.get(`${path}/exam-archives/${archiveId}`);
+                
+                // Get the auth token from localStorage
+                const token = localStorage.getItem('token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                
+                const res = await axios.get(`${path}/exam-archives/${archiveId}`, { headers });
                 console.log('Archive data received:', res.data);
                 console.log('Student results:', res.data.student_results);
                 setArchive(res.data);
@@ -250,12 +255,20 @@ const ExamArchiveDetail = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900">
-                                                    {result.questions_answered || 0} / {archive.total_questions || 'N/A'}
+                                                    {result.questions_answered !== undefined && result.questions_answered !== null 
+                                                        ? `${result.questions_answered} / ${archive.total_questions || 'N/A'}` 
+                                                        : 'N/A'}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    {result.correct_answers || 0}
+                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                    result.correct_answers === 'N/A' || result.correct_answers === undefined || result.correct_answers === null
+                                                        ? 'bg-gray-100 text-gray-800'
+                                                        : 'bg-green-100 text-green-800'
+                                                }`}>
+                                                    {result.correct_answers !== undefined && result.correct_answers !== null 
+                                                        ? result.correct_answers 
+                                                        : 'N/A'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

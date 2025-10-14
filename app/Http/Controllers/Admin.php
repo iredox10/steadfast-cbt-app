@@ -596,6 +596,7 @@ class Admin extends Controller
                 'full_name' => 'required|string|max:255',
                 'department' => 'required|string|max:255',
                 'programme' => 'required|string|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             ]);
 
             $levelId = $this->getAdminLevelFilter($request);
@@ -606,25 +607,108 @@ class Admin extends Controller
                 $levelId = $user->level_id;
             }
 
+            // Handle image upload
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('uploads/students'), $imageName);
+                $imagePath = 'uploads/students/' . $imageName;
+            }
+
             $student = Student::create([
                 'candidate_no' => $request->candidate_no,
                 'full_name' => $request->full_name,
                 'department' => $request->department,
                 'programme' => $request->programme,
                 'password' => bcrypt($request->password),
+                'image' => $imagePath,
                 'is_logged_on' => 'no',
                 'level_id' => $levelId
             ]);
             return response()->json($student, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            // Format validation errors into a readable message
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = implode(' ', $messages);
+            }
             return response()->json([
-                'error' => 'All fields are required.',
-                'details' => $e->errors()
+                'error' => implode(' ', $errorMessages),
+                'details' => $errors
             ], 422);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function update_student(Request $request, $student_id)
+    {
+        try {
+            $student = Student::findOrFail($student_id);
+            
+            // Validate the request
+            $request->validate([
+                'candidate_no' => 'nullable|string|max:50',
+                'full_name' => 'nullable|string|max:255',
+                'department' => 'nullable|string|max:255',
+                'programme' => 'nullable|string|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            ]);
+
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($student->image && file_exists(public_path($student->image))) {
+                    unlink(public_path($student->image));
+                }
+
+                $image = $request->file('image');
+                $imageName = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('uploads/students'), $imageName);
+                $student->image = 'uploads/students/' . $imageName;
+            }
+
+            // Update other fields if provided
+            if ($request->has('candidate_no')) {
+                $student->candidate_no = $request->candidate_no;
+            }
+            if ($request->has('full_name')) {
+                $student->full_name = $request->full_name;
+            }
+            if ($request->has('department')) {
+                $student->department = $request->department;
+            }
+            if ($request->has('programme')) {
+                $student->programme = $request->programme;
+            }
+            if ($request->has('password')) {
+                $student->password = bcrypt($request->password);
+            }
+
+            $student->save();
+
+            return response()->json([
+                'message' => 'Student updated successfully',
+                'student' => $student
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Format validation errors into a readable message
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                $errorMessages[] = implode(' ', $messages);
+            }
+            return response()->json([
+                'error' => implode(' ', $errorMessages),
+                'details' => $errors
+            ], 422);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+    
     // public function register_student(Request $request, $user_id)
     // {
     //     // Validate the request data
@@ -824,37 +908,17 @@ class Admin extends Controller
             // Check if student results already have answer statistics
             // (New archives will have questions_answered and correct_answers)
             $studentResults = collect($archive->student_results);
-            $firstResult = $studentResults->first();
             
-            if ($firstResult && !isset($firstResult['questions_answered'])) {
-                // For old archives, try to calculate from candidates (if they still exist)
-                $exam = Exam::find($archive->exam_id);
+            if ($studentResults->isNotEmpty()) {
+                $firstResult = $studentResults->first();
                 
-                if ($exam) {
-                    $enhancedResults = $studentResults->map(function ($result) use ($exam) {
-                        // Try to get candidate (may not exist for terminated exams)
-                        $candidate = Candidate::where('student_id', $result['student_id'])
-                                             ->where('exam_id', $exam->id)
-                                             ->first();
-                        
-                        if ($candidate) {
-                            $answersCount = Answers::where('course_id', $exam->course_id)
-                                                  ->where('candidate_id', $candidate->id)
-                                                  ->count();
-                            
-                            $correctAnswers = Answers::where('course_id', $exam->course_id)
-                                                    ->where('candidate_id', $candidate->id)
-                                                    ->where('is_correct', true)
-                                                    ->count();
-                            
-                            $result['questions_answered'] = $answersCount;
-                            $result['correct_answers'] = $correctAnswers;
-                        } else {
-                            // Candidate doesn't exist (exam was terminated)
-                            $result['questions_answered'] = 0;
-                            $result['correct_answers'] = 0;
-                        }
-                        
+                if (!isset($firstResult['questions_answered'])) {
+                    // For old archives, add default values since data cannot be retrieved after termination
+                    $enhancedResults = $studentResults->map(function ($result) {
+                        // Set default values for old archives
+                        // Data is not available because candidates were deleted on termination
+                        $result['questions_answered'] = 'N/A';
+                        $result['correct_answers'] = 'N/A';
                         return $result;
                     })->toArray();
                     

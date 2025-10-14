@@ -15,6 +15,7 @@ class Student extends Model
         'programme',
         'department',
         'password',
+        'image',
         'is_logged_on',
         'checkin_time',
         'checkout_time',

@@ -241,6 +241,7 @@ const InstructorStudents = () => {
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100">
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S/N</th>
+                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Photo</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Full Name</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Candidate Number</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Programme</th>
@@ -253,6 +254,19 @@ const InstructorStudents = () => {
                                     currentStudents.map((student, index) => (
                                         <tr key={student.id} className="hover:bg-gray-50 transition-colors duration-200">
                                             <td className="py-4 px-6 text-sm text-gray-600">{indexOfFirstItem + index + 1}</td>
+                                            <td className="py-4 px-6">
+                                                {student.image ? (
+                                                    <img 
+                                                        src={`${path.replace('/api', '')}/${student.image}`} 
+                                                        alt={student.full_name}
+                                                        className="w-10 h-10 rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                        <i className="fas fa-user text-gray-400"></i>
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="py-4 px-6 text-sm font-medium text-gray-900">
                                                 {student.full_name || "N/A"}
                                             </td>
@@ -274,7 +288,7 @@ const InstructorStudents = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="6" className="text-center py-8">
+                                        <td colSpan="7" className="text-center py-8">
                                             <i className="fas fa-users text-gray-300 text-3xl mb-3"></i>
                                             <p className="text-gray-500">No students found</p>
                                             <p className="text-gray-400 text-sm mt-1">There are no students enrolled in this course</p>

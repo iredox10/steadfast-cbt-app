@@ -136,6 +136,7 @@ Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam'])->middlew
 Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam'])->middleware(['auth:sanctum']);
 
 Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum']);
+Route::post('/update-student/{student_id}', [Admin::class, 'update_student'])->middleware(['auth:sanctum']);
 
 Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_students']);
 

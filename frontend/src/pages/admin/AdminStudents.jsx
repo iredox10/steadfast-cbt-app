@@ -11,8 +11,9 @@ const AdminStudents = () => {
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
-    const [newStudent, setNewStudent] = useState({ full_name: "", candidate_no: "", department: "", programme: "" });
+    const [newStudent, setNewStudent] = useState({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
     const [file, setFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [errMsg, setErrMsg] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -44,11 +45,23 @@ const AdminStudents = () => {
                 }
             }
 
-            // Get the active exam first
-            const examRes = await axios.get(`${path}/get-current-exam`);
-            const currentExam = examRes.data;
-            console.log('Current exam from API:', currentExam);
-            setActiveExam(currentExam);
+            // Get the active exam first (handle 404 if no active exam)
+            let currentExam = null;
+            try {
+                const examRes = await axios.get(`${path}/get-current-exam`);
+                currentExam = examRes.data;
+                console.log('Current exam from API:', currentExam);
+                setActiveExam(currentExam);
+            } catch (examErr) {
+                // If 404, there's no active exam - this is okay
+                if (examErr.response?.status === 404) {
+                    console.log('No active exam found (404) - this is normal');
+                    setActiveExam(null);
+                } else {
+                    // Other errors should be logged
+                    console.error('Error fetching active exam:', examErr);
+                }
+            }
 
             if (!currentExam || !currentExam.course_id) {
                 console.log('No active exam or course_id found');
@@ -108,7 +121,9 @@ const AdminStudents = () => {
             })));
         } catch (err) {
             console.error("Error fetching students:", err);
-            setErrMsg("Failed to load students.");
+            console.error("Error response:", err.response?.data);
+            console.error("Error status:", err.response?.status);
+            setErrMsg(`Failed to load students: ${err.response?.data?.error || err.message}`);
         } finally {
             setLoading(false);
         }
@@ -144,36 +159,45 @@ const AdminStudents = () => {
 
         setErrMsg("");
         try {
-            const studentData = { 
-                full_name: newStudent.full_name,
-                candidate_no: newStudent.candidate_no, // Keep as candidate_no to match backend
-                password: "password", 
-                is_logged_on: "no"
-            };
+            // Use FormData to handle file upload
+            const formData = new FormData();
+            formData.append('full_name', newStudent.full_name);
+            formData.append('candidate_no', newStudent.candidate_no);
+            formData.append('password', 'password');
+            formData.append('is_logged_on', 'no');
+
+            // Add image if selected
+            if (newStudent.image) {
+                formData.append('image', newStudent.image);
+            }
 
             // For level admins, automatically set department and programme from their academic session
             if (currentUser?.role === 'level_admin' && currentUser?.level_id) {
-                studentData.level_id = currentUser.level_id;
-                studentData.department = currentUser.level?.title || "Department";
-                studentData.programme = currentUser.level?.title || "Programme";
-                console.log('Level admin student data:', studentData);
+                formData.append('level_id', currentUser.level_id);
+                formData.append('department', currentUser.level?.title || "Department");
+                formData.append('programme', currentUser.level?.title || "Programme");
+                console.log('Level admin student data');
             } else {
                 // For super admins, use the form data
-                studentData.department = newStudent.department;
-                studentData.programme = newStudent.programme;
+                formData.append('department', newStudent.department);
+                formData.append('programme', newStudent.programme);
                 if (selectedLevel) {
-                    studentData.level_id = selectedLevel;
+                    formData.append('level_id', selectedLevel);
                 }
-                console.log('Super admin student data:', studentData);
+                console.log('Super admin student data');
             }
 
-            await axios.post(`${path}/register-student/${userId}`, studentData, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            await axios.post(`${path}/register-student/${userId}`, formData, {
+                headers: { 
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
             });
             
             console.log('Student added successfully, refreshing list...');
             setShowAddModal(false);
-            setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "" });
+            setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
+            setImagePreview(null);
             
             // Wait a bit for the database to update, then refresh
             setTimeout(() => {
@@ -374,6 +398,7 @@ const AdminStudents = () => {
                     <table className="min-w-full">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate No.</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
@@ -389,6 +414,19 @@ const AdminStudents = () => {
                         <tbody className="divide-y divide-gray-200">
                             {paginatedStudents.map(student => (
                                 <tr key={student.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {student.image ? (
+                                            <img 
+                                                src={`${path.replace('/api', '')}/${student.image}`} 
+                                                alt={student.full_name}
+                                                className="w-10 h-10 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                <FaUsers className="text-gray-400" />
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.full_name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.candidate_no}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">{student.department}</td>
@@ -474,6 +512,38 @@ const AdminStudents = () => {
                                 className="w-full px-4 py-2 border rounded-lg" 
                                 required
                             />
+                            
+                            {/* Image Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Student Photo (Optional)
+                                </label>
+                                <input 
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            setNewStudent({ ...newStudent, image: file });
+                                            // Create preview
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setImagePreview(reader.result);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="w-full px-4 py-2 border rounded-lg" 
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Supported formats: JPEG, PNG, JPG, GIF, WEBP (max 2MB)
+                                </p>
+                                {imagePreview && (
+                                    <div className="mt-2">
+                                        <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+                                    </div>
+                                )}
+                            </div>
                             
                             {/* Only show department and programme fields for super admins */}
                             {currentUser?.role !== 'level_admin' && (
