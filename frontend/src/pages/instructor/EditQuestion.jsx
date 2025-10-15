@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
-import { FaPlus, FaTimes, FaSave, FaArrowLeft, FaCheck, FaInfoCircle } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaArrowLeft, FaCheck, FaInfoCircle, FaEdit } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -61,6 +61,8 @@ const EditQuestion = () => {
     const [correctAnswerIndex, setCorrectAnswerIndex] = useState(0); // Track which option is correct
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [editingOptionIndex, setEditingOptionIndex] = useState(null); // Track which option is being edited
+    const [editingOptionContent, setEditingOptionContent] = useState(""); // Store the content being edited
 
     useEffect(() => {
         if (userId) {
@@ -151,6 +153,36 @@ const EditQuestion = () => {
         else if (correctAnswerIndex >= newValue.length) {
             setCorrectAnswerIndex(0);
         }
+        
+        // If we were editing this option, cancel the edit
+        if (editingOptionIndex === index) {
+            setEditingOptionIndex(null);
+            setEditingOptionContent("");
+        }
+    };
+
+    const startEditingOption = (index) => {
+        setEditingOptionIndex(index);
+        setEditingOptionContent(options[index]);
+    };
+
+    const saveEditedOption = () => {
+        if (editingOptionContent.trim() === "") {
+            setError("Option cannot be empty");
+            return;
+        }
+        
+        const newOptions = [...options];
+        newOptions[editingOptionIndex] = editingOptionContent;
+        setOptions(newOptions);
+        setEditingOptionIndex(null);
+        setEditingOptionContent("");
+        setError("");
+    };
+
+    const cancelEditingOption = () => {
+        setEditingOptionIndex(null);
+        setEditingOptionContent("");
     };
 
     const handleSubmit = async (e) => {
@@ -420,38 +452,85 @@ const EditQuestion = () => {
                                     {options && options.map((option, index) => (
                                         <div
                                             key={index}
-                                            className={`flex items-center justify-between p-4 bg-white border rounded-lg hover:border-gray-300 transition-colors ${
+                                            className={`p-4 bg-white border rounded-lg transition-colors ${
                                                 correctAnswerIndex === index
                                                     ? 'border-green-500 bg-green-50'
-                                                    : 'border-gray-200'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                         >
-                                            <div className="flex-1 mr-4">
-                                                <div className="flex items-center mb-2">
-                                                    <span className="font-medium text-gray-900 mr-2">
-                                                        Option {String.fromCharCode(65 + index)}
-                                                    </span>
-                                                    {correctAnswerIndex === index && (
-                                                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                                            <FaCheck className="mr-1" /> Correct Answer
+                                            {editingOptionIndex === index ? (
+                                                // Edit Mode
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-gray-900">
+                                                            Editing Option {String.fromCharCode(65 + index)}
                                                         </span>
-                                                    )}
+                                                    </div>
+                                                    <div className="border border-gray-200 rounded-lg">
+                                                        <ReactQuill
+                                                            value={editingOptionContent}
+                                                            onChange={setEditingOptionContent}
+                                                            theme="snow"
+                                                            modules={modules}
+                                                            className="min-h-[100px]"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={saveEditedOption}
+                                                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                                                        >
+                                                            <FaCheck />
+                                                            <span>Save</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditingOption}
+                                                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                                        >
+                                                            <FaTimes />
+                                                            <span>Cancel</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div 
-                                                    className="text-gray-700 break-words overflow-auto max-h-32"
-                                                    dangerouslySetInnerHTML={{ __html: option }} 
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                <button
-                                                    onClick={() => removeOption(index)}
-                                                    disabled={loading}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                                    title="Remove option"
-                                                >
-                                                    <FaTimes />
-                                                </button>
-                                            </div>
+                                            ) : (
+                                                // View Mode
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1 mr-4">
+                                                        <div className="flex items-center mb-2">
+                                                            <span className="font-medium text-gray-900 mr-2">
+                                                                Option {String.fromCharCode(65 + index)}
+                                                            </span>
+                                                            {correctAnswerIndex === index && (
+                                                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                                                    <FaCheck className="mr-1" /> Correct Answer
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div 
+                                                            className="text-gray-700 break-words overflow-auto max-h-32"
+                                                            dangerouslySetInnerHTML={{ __html: option }} 
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        <button
+                                                            onClick={() => startEditingOption(index)}
+                                                            disabled={loading || editingOptionIndex !== null}
+                                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Edit option"
+                                                        >
+                                                            <FaEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeOption(index)}
+                                                            disabled={loading || editingOptionIndex !== null}
+                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Remove option"
+                                                        >
+                                                            <FaTimes />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
