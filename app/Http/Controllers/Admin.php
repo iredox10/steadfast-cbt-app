@@ -27,6 +27,7 @@ use App\Models\ExamArchive;
 use App\Models\Question;
 use App\Models\Answers;
 use App\Models\StudentExamScore;
+use App\Models\StudentCourse;
 
 class Admin extends Controller
 {
@@ -491,9 +492,68 @@ class Admin extends Controller
             
             // $exam->start_time = Carbon::
             $exam->save();
-            return response()->json($exam);
+
+            // Automatically generate tickets for students in this department/level
+            $course = Course::find($exam->course_id);
+            $ticketsGenerated = 0;
+            
+            if ($course) {
+                $studentCourses = $course->studentCourses;
+                
+                foreach ($studentCourses as $studentCourse) {
+                    $student = Student::find($studentCourse->student_id);
+                    
+                    if (!$student) {
+                        continue;
+                    }
+                    
+                    // Filter by level_id if exam has a level assigned (for level admins)
+                    if ($exam->level_id && $student->level_id != $exam->level_id) {
+                        continue; // Skip students not in this department/level
+                    }
+                    
+                    // Check if a candidate record already exists
+                    $existingCandidate = Candidate::where('student_id', $student->id)
+                        ->where('exam_id', $exam->id)
+                        ->first();
+
+                    // Only generate ticket if candidate doesn't exist or doesn't have a ticket
+                    if (!$existingCandidate || !$existingCandidate->ticket_no) {
+                        // Generate a unique 6-digit ticket number
+                        do {
+                            $ticket_no = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                        } while (Candidate::where('exam_id', $exam->id)->where('ticket_no', $ticket_no)->exists());
+
+                        Candidate::updateOrCreate(
+                            [
+                                'student_id' => $student->id,
+                                'exam_id' => $exam->id,
+                            ],
+                            [
+                                'full_name' => $student->full_name,
+                                'programme' => $student->programme,
+                                'department' => $student->department,
+                                'password' => $student->password,
+                                'is_logged_on' => 0,
+                                'is_checkout' => 0,
+                                'checkin_time' => now(),
+                                'checkout_time' => '',
+                                'ticket_no' => $ticket_no,
+                                'status' => 'pending',
+                            ]
+                        );
+                        $ticketsGenerated++;
+                    }
+                }
+            }
+
+            return response()->json([
+                'exam' => $exam,
+                'tickets_generated' => $ticketsGenerated,
+                'message' => "Exam activated and {$ticketsGenerated} tickets generated for enrolled students in this department"
+            ]);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -541,6 +601,9 @@ class Admin extends Controller
                     'student_id' => $student->id,
                     'candidate_no' => $student->candidate_no,
                     'full_name' => $student->full_name,
+                    'department' => $student->department,
+                    'programme' => $student->programme,
+                    'level_id' => $student->level_id,
                     'score' => $examScore ? $examScore->score : 0,
                     'submission_time' => $candidate ? $candidate->created_at : null,
                     'questions_answered' => $questionsAnswered,
@@ -569,7 +632,7 @@ class Admin extends Controller
                 'checkout_time' => null,
             ]);
 
-            // Clear candidates table for this exam
+            // Clear candidates table for this exam (removes all ticket numbers)
             Candidate::where('exam_id', $exam_id)->delete();
 
             // Deactivate exam and clear invigilator
@@ -626,6 +689,48 @@ class Admin extends Controller
                 'is_logged_on' => 'no',
                 'level_id' => $levelId
             ]);
+
+            // Check if there's an active exam and automatically generate ticket
+            // Only if student is enrolled in the exam's course
+            $activeExam = Exam::where('activated', 'yes')->first();
+            if ($activeExam) {
+                // Check if student is enrolled in this exam's course
+                $isEnrolled = \App\Models\StudentCourse::where('student_id', $student->id)
+                    ->where('course_id', $activeExam->course_id)
+                    ->exists();
+
+                if ($isEnrolled) {
+                    $existingCandidate = Candidate::where('student_id', $student->id)
+                        ->where('exam_id', $activeExam->id)
+                        ->first();
+
+                    if (!$existingCandidate) {
+                        // Generate a unique 6-digit ticket number
+                        do {
+                            $ticket_no = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                        } while (Candidate::where('exam_id', $activeExam->id)->where('ticket_no', $ticket_no)->exists());
+
+                        Candidate::create([
+                            'student_id' => $student->id,
+                            'exam_id' => $activeExam->id,
+                            'full_name' => $student->full_name,
+                            'programme' => $student->programme,
+                            'department' => $student->department,
+                            'password' => $student->password,
+                            'is_logged_on' => 0,
+                            'is_checkout' => 0,
+                            'checkin_time' => now(),
+                            'checkout_time' => '',
+                            'ticket_no' => $ticket_no,
+                            'status' => 'pending',
+                        ]);
+
+                        // Add student to the ticket_no field for response
+                        $student->ticket_no = $ticket_no;
+                    }
+                }
+            }
+
             return response()->json($student, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Format validation errors into a readable message
@@ -752,11 +857,25 @@ class Admin extends Controller
     public function get_course_students($course_id)
     {
         try {
-            $course = Course::find($course_id);
-            $students = $course->students;
+            $course = Course::findOrFail($course_id);
+            
+            // Get all enrolled students for this course
+            $studentCourses = $course->studentCourses;
+            $students = [];
+            
+            foreach ($studentCourses as $studentCourse) {
+                $student = Student::find($studentCourse->student_id);
+                if ($student) {
+                    $students[] = $student;
+                }
+            }
+            
             return response()->json($students);
         } catch (Exception $e) {
-            return response()->json($e->getMessage());
+            return response()->json([
+                'error' => 'Failed to get course students',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -882,7 +1001,7 @@ class Admin extends Controller
         }
     }
 
-    public function getExamArchive($archive_id)
+    public function getExamArchive(Request $request, $archive_id)
     {
         try {
             $archive = ExamArchive::findOrFail($archive_id);
@@ -922,8 +1041,29 @@ class Admin extends Controller
                         return $result;
                     })->toArray();
                     
-                    $archive->student_results = $enhancedResults;
+                    $studentResults = collect($enhancedResults);
                 }
+            }
+            
+            // Filter student results based on admin level (department)
+            $user = $request->user();
+            $levelFilter = $this->getAdminLevelFilter($request);
+            
+            if ($levelFilter !== null) {
+                // Filter student results to show only students from admin's level/department
+                $filteredResults = $studentResults->filter(function ($result) use ($levelFilter) {
+                    // Check if level_id is stored in the result (new archives)
+                    if (isset($result['level_id'])) {
+                        return $result['level_id'] == $levelFilter;
+                    }
+                    // For old archives without level_id, query the student
+                    $student = Student::find($result['student_id']);
+                    return $student && $student->level_id == $levelFilter;
+                })->values()->toArray();
+                
+                $archive->student_results = $filteredResults;
+            } else {
+                $archive->student_results = $studentResults->toArray();
             }
             
             return response()->json($archive);
@@ -1157,6 +1297,26 @@ class Admin extends Controller
             }
 
             $students = $studentsQuery->orderBy('checkin_time')->get();
+
+            // Get the active exam to fetch ticket numbers
+            $activeExam = Exam::where('activated', 'yes')->first();
+
+            // Add ticket information to each student
+            if ($activeExam) {
+                foreach ($students as $student) {
+                    $candidate = Candidate::where('student_id', $student->id)
+                        ->where('exam_id', $activeExam->id)
+                        ->first();
+                    $student->ticket_no = $candidate ? $candidate->ticket_no : null;
+                    $student->candidate_id = $candidate ? $candidate->id : null;
+                }
+            } else {
+                // If no active exam, set ticket_no to null for all students
+                foreach ($students as $student) {
+                    $student->ticket_no = null;
+                    $student->candidate_id = null;
+                }
+            }
 
             \Log::info('Students returned', [
                 'count' => $students->count(),
@@ -1584,6 +1744,179 @@ class Admin extends Controller
 
         } catch (Exception $e) {
             return response()->json(['error' => 'Failed to fetch semesters: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Enroll students in a course
+     */
+    public function enrollStudents(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'student_ids' => 'required|array',
+                'student_ids.*' => 'exists:students,id'
+            ]);
+
+            $enrolled = [];
+            $alreadyEnrolled = [];
+            $errors = [];
+
+            foreach ($validate['student_ids'] as $studentId) {
+                // Check if already enrolled
+                $existingEnrollment = StudentCourse::where('student_id', $studentId)
+                    ->where('course_id', $validate['course_id'])
+                    ->first();
+
+                if ($existingEnrollment) {
+                    $student = Student::find($studentId);
+                    $alreadyEnrolled[] = $student->full_name;
+                } else {
+                    try {
+                        StudentCourse::create([
+                            'student_id' => $studentId,
+                            'course_id' => $validate['course_id'],
+                        ]);
+                        $student = Student::find($studentId);
+                        $enrolled[] = $student->full_name;
+                    } catch (Exception $e) {
+                        $errors[] = "Failed to enroll student ID {$studentId}: " . $e->getMessage();
+                    }
+                }
+            }
+
+            return response()->json([
+                'message' => 'Enrollment process completed',
+                'enrolled' => $enrolled,
+                'enrolled_count' => count($enrolled),
+                'already_enrolled' => $alreadyEnrolled,
+                'already_enrolled_count' => count($alreadyEnrolled),
+                'errors' => $errors
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to enroll students',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Unenroll a student from a course
+     */
+    public function unenrollStudent(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'student_id' => 'required|exists:students,id'
+            ]);
+
+            $enrollment = StudentCourse::where('student_id', $validate['student_id'])
+                ->where('course_id', $validate['course_id'])
+                ->first();
+
+            if (!$enrollment) {
+                return response()->json([
+                    'error' => 'Student is not enrolled in this course'
+                ], 404);
+            }
+
+            $enrollment->delete();
+
+            return response()->json([
+                'message' => 'Student successfully unenrolled from the course'
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to unenroll student',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get students not enrolled in a specific course
+     */
+    public function getUnenrolledStudents(Request $request, $courseId)
+    {
+        try {
+            $levelFilter = $this->getAdminLevelFilter($request);
+
+            // Get all enrolled student IDs for this course
+            $enrolledStudentIds = StudentCourse::where('course_id', $courseId)
+                ->pluck('student_id')
+                ->toArray();
+
+            // Get students not enrolled in this course
+            $studentsQuery = Student::whereNotIn('id', $enrolledStudentIds);
+
+            // Apply level filter if applicable
+            if ($levelFilter !== null) {
+                $studentsQuery->where('level_id', $levelFilter);
+            }
+
+            $students = $studentsQuery->orderBy('full_name', 'asc')->get();
+
+            return response()->json($students, 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to get unenrolled students',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Enroll all students from a specific level in a course
+     */
+    public function enrollStudentsByLevel(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'level_id' => 'required|exists:acd_sessions,id'
+            ]);
+
+            // Get all students from the specified level
+            $students = Student::where('level_id', $validate['level_id'])->get();
+
+            $enrolled = [];
+            $alreadyEnrolled = [];
+
+            foreach ($students as $student) {
+                // Check if already enrolled
+                $existingEnrollment = StudentCourse::where('student_id', $student->id)
+                    ->where('course_id', $validate['course_id'])
+                    ->first();
+
+                if ($existingEnrollment) {
+                    $alreadyEnrolled[] = $student->full_name;
+                } else {
+                    StudentCourse::create([
+                        'student_id' => $student->id,
+                        'course_id' => $validate['course_id'],
+                    ]);
+                    $enrolled[] = $student->full_name;
+                }
+            }
+
+            return response()->json([
+                'message' => "Enrolled all students from the selected level/department",
+                'enrolled' => $enrolled,
+                'enrolled_count' => count($enrolled),
+                'already_enrolled_count' => count($alreadyEnrolled)
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to enroll students by level',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }

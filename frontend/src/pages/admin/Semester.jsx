@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link, useParams } from "react-router-dom";
-import { FaCalendarAlt, FaPlus, FaTimes, FaUsers, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaChevronRight } from "react-icons/fa";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { FaCalendarAlt, FaPlus, FaTimes, FaUsers, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaChevronRight, FaUserPlus } from "react-icons/fa";
 import { path } from "../../../utils/path";
 
 const Semester = () => {
     const { id: semesterId, userId } = useParams();
+    const navigate = useNavigate();
     const [semester, setSemester] = useState(null);
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -130,14 +131,30 @@ const Semester = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Title</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Code</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credit Units</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {courses.map((course) => (
-                                    <tr key={course.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{course.title}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{course.code}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{course.credit_unit}</td>
+                                    <tr key={course.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900">{course.title}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-600">{course.code}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-600">{course.credit_unit}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => navigate(`/student-enrollment/${course.id}`)}
+                                                className="inline-flex items-center px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                            >
+                                                <FaUserPlus className="mr-2" />
+                                                Enroll Students
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

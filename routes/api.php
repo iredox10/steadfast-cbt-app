@@ -198,6 +198,14 @@ Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, '
 Route::post('/extend-time', [InvigilatorController::class, 'extend_time']);
 Route::post('/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam']);
 
+// Student Enrollment routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/enroll-students', [Admin::class, 'enrollStudents']);
+    Route::post('/unenroll-student', [Admin::class, 'unenrollStudent']);
+    Route::get('/unenrolled-students/{course_id}', [Admin::class, 'getUnenrolledStudents']);
+    Route::post('/enroll-students-by-level', [Admin::class, 'enrollStudentsByLevel']);
+});
+
 // Global Session Management (Super Admin)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/set-global-session', [Admin::class, 'setGlobalActiveSession']);

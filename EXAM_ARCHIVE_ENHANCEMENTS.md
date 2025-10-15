@@ -3,12 +3,26 @@
 ## Changes Made
 
 ### Backend Changes (Admin.php)
-Enhanced the `getExamArchive()` method to include:
+
+#### 1. Enhanced Archive Data Storage (`terminate_exam()`)
+When creating exam archives, additional student information is now stored:
+- **department**: Student's department
+- **programme**: Student's program
+- **level_id**: Student's level/department ID (for filtering)
+- **Questions Answered**: Number of questions each student answered
+- **Correct Answers**: Number of correct answers per student
+
+#### 2. Department Filtering (`getExamArchive()`)
+Enhanced the method to filter student results by admin's department:
+- **Level Admins**: See only students from their department/level
+- **Super Admins**: See all students (no filtering)
+- **Backward Compatible**: Works with old archives that don't have level_id
+
+#### 3. Exam Statistics
+Enhanced to include:
 - **Total Questions**: Count of questions in the exam
 - **Marks per Question**: Points awarded per question
 - **Total Marks**: Calculated total marks for the exam
-- **Questions Answered**: Number of questions each student answered
-- **Correct Answers**: Number of correct answers per student
 
 ### Frontend Changes (ExamArchiveDetail.jsx)
 

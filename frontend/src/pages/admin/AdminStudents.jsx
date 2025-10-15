@@ -412,7 +412,41 @@ const AdminStudents = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {paginatedStudents.map(student => (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                                            <p className="text-gray-600 text-lg">Loading students...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : paginatedStudents.length === 0 ? (
+                                <tr>
+                                    <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center justify-center text-gray-500">
+                                            <FaUsers className="text-6xl mb-4 text-gray-300" />
+                                            <h3 className="text-xl font-semibold mb-2">No Students Found</h3>
+                                            <p className="text-gray-400 mb-4">
+                                                {searchTerm 
+                                                    ? `No students match "${searchTerm}"`
+                                                    : currentUser?.role === 'level_admin'
+                                                        ? `No students in your department yet`
+                                                        : selectedLevel
+                                                            ? `No students in the selected department`
+                                                            : `No students registered yet`
+                                                }
+                                            </p>
+                                            <button
+                                                onClick={() => setShowAddModal(true)}
+                                                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+                                            >
+                                                <FaPlus className="mr-2" /> Register First Student
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : paginatedStudents.map(student => (
                                 <tr key={student.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {student.image ? (
@@ -442,9 +476,15 @@ const AdminStudents = () => {
                                         {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 py-1 text-xs font-mono bg-gray-100 rounded">
-                                            {student.ticket_no || 'Not generated'}
-                                        </span>
+                                        {student.ticket_no ? (
+                                            <span className="px-3 py-1 text-sm font-mono bg-green-100 text-green-800 rounded-full border border-green-300">
+                                                {student.ticket_no}
+                                            </span>
+                                        ) : (
+                                            <span className="px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-full italic">
+                                                Not generated
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {activeExam && (
@@ -472,7 +512,37 @@ const AdminStudents = () => {
                             ))}
                         </tbody>
                     </table>
+                    
+                    {/* Error Message */}
+                    {errMsg && !loading && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-center">{errMsg}</p>
+                        </div>
+                    )}
                     {/* Pagination Controls */}
+                    {!loading && filteredStudents.length > studentsPerPage && (
+                        <div className="flex justify-between items-center mt-6 px-6">
+                            <p className="text-sm text-gray-600">
+                                Showing {((currentPage - 1) * studentsPerPage) + 1} to {Math.min(currentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} students
+                            </p>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className={`px-4 py-2 rounded-lg ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                    disabled={currentPage * studentsPerPage >= filteredStudents.length}
+                                    className={`px-4 py-2 rounded-lg ${currentPage * studentsPerPage >= filteredStudents.length ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main>
 

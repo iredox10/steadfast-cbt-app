@@ -34,6 +34,7 @@ import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import DepartmentManagement from "./pages/admin/DepartmentManagement";
 import GlobalSessionManagement from "./pages/admin/GlobalSessionManagement";
 import LevelAdminCourseManagement from "./pages/admin/LevelAdminCourseManagement";
+import StudentEnrollment from "./pages/admin/StudentEnrollment";
 
 function App() {
     return (
@@ -120,6 +121,7 @@ function App() {
                     <Route path="/department-management" element={<DepartmentManagement />} />
                     <Route path="/global-session-management" element={<GlobalSessionManagement />} />
                     <Route path="/level-admin-courses" element={<LevelAdminCourseManagement />} />
+                    <Route path="/student-enrollment/:courseId" element={<StudentEnrollment />} />
                 </Routes>
             </Router>
         </div>
