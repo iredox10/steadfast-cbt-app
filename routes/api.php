@@ -131,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/get-exams', [Admin::class,'get_exams'])->middleware(['auth:sanctum']);
 
+Route::get('/exam-tickets/{exam_id}', [Admin::class,'get_exam_tickets'])->middleware(['auth:sanctum']);
+
 Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam'])->middleware(['auth:sanctum']);
 
 Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam'])->middleware(['auth:sanctum']);

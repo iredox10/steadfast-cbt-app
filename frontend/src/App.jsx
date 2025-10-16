@@ -35,6 +35,7 @@ import DepartmentManagement from "./pages/admin/DepartmentManagement";
 import GlobalSessionManagement from "./pages/admin/GlobalSessionManagement";
 import LevelAdminCourseManagement from "./pages/admin/LevelAdminCourseManagement";
 import StudentEnrollment from "./pages/admin/StudentEnrollment";
+import Tickets from "./pages/admin/Tickets";
 
 function App() {
     return (
@@ -122,6 +123,7 @@ function App() {
                     <Route path="/global-session-management" element={<GlobalSessionManagement />} />
                     <Route path="/level-admin-courses" element={<LevelAdminCourseManagement />} />
                     <Route path="/student-enrollment/:courseId" element={<StudentEnrollment />} />
+                    <Route path="/admin-tickets/:id" element={<Tickets />} />
                 </Routes>
             </Router>
         </div>

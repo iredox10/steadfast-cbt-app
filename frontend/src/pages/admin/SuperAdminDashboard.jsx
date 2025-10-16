@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
-import { FaUsers, FaBook, FaChalkboardTeacher, FaCalendarAlt, FaUserShield, FaCrown, FaEye, FaPlus, FaGraduationCap, FaBuilding, FaSignOutAlt } from 'react-icons/fa';
+import { FaUsers, FaBook, FaChalkboardTeacher, FaCalendarAlt, FaUserShield, FaCrown, FaEye, FaPlus, FaGraduationCap, FaBuilding, FaSignOutAlt, FaTicketAlt } from 'react-icons/fa';
 import { path } from '../../../utils/path';
 import LevelSelector from '../../components/LevelSelector';
 
@@ -264,12 +264,21 @@ const SuperAdminDashboard = () => {
                     </>
                 )}
                 {currentUser?.role === 'level_admin' && (
-                    <StatCard
-                        icon={<FaCalendarAlt />}
-                        title="Active Exams"
-                        value={stats?.activeExams || 0}
-                        color="red"
-                    />
+                    <>
+                        <StatCard
+                            icon={<FaCalendarAlt />}
+                            title="Active Exams"
+                            value={stats?.activeExams || 0}
+                            color="red"
+                        />
+                        <StatCard
+                            icon={<FaTicketAlt />}
+                            title="Exam Tickets"
+                            value={stats?.activeExams > 0 ? "View Tickets" : "No Active Exams"}
+                            color="blue"
+                            onClick={() => window.location.href = `/admin-tickets/${userId}`}
+                        />
+                    </>
                 )}
             </div>
 
@@ -380,6 +389,17 @@ const SuperAdminDashboard = () => {
                         <div>
                             <div className="font-medium">Exam Archives</div>
                             <div className="text-sm text-gray-600">View past exam results</div>
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={`/admin-tickets/${userId}`}
+                        className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        <FaTicketAlt className="mr-3 text-blue-500" />
+                        <div>
+                            <div className="font-medium">Exam Tickets</div>
+                            <div className="text-sm text-gray-600">View and manage exam tickets</div>
                         </div>
                     </Link>
                 </div>

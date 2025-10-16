@@ -330,6 +330,9 @@ const AdminStudents = () => {
                     <Link to={`/admin-instructors/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaChalkboardTeacher className="mr-3" /> Instructors
                     </Link>
+                    <Link to={`/admin-tickets/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <FaCalendarAlt className="mr-3" /> Tickets
+                    </Link>
                     <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                         <FaBook className="mr-3" /> Exam Archives
                     </Link>

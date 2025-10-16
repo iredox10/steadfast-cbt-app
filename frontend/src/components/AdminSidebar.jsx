@@ -13,7 +13,8 @@ import {
     FaUserShield, 
     FaCrown,
     FaGraduationCap,
-    FaEye
+    FaEye,
+    FaTicketAlt
 } from 'react-icons/fa';
 
 const AdminSidebar = ({ userId }) => {
@@ -146,6 +147,14 @@ const AdminSidebar = ({ userId }) => {
                     className={getLinkClass('admin-exam')}
                 >
                     <FaBook className="mr-3" /> Exams
+                </Link>
+
+                {/* Tickets */}
+                <Link 
+                    to={`/admin-tickets/${userId}`} 
+                    className={getLinkClass('admin-tickets')}
+                >
+                    <FaTicketAlt className="mr-3" /> Tickets
                 </Link>
 
                 {/* Exam Archives */}

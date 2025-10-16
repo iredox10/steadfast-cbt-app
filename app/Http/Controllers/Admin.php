@@ -28,6 +28,7 @@ use App\Models\Question;
 use App\Models\Answers;
 use App\Models\StudentExamScore;
 use App\Models\StudentCourse;
+use App\Models\ExamTicket;
 
 class Admin extends Controller
 {
@@ -473,6 +474,68 @@ class Admin extends Controller
         }
     }
 
+    public function get_exam_tickets($exam_id)
+    {
+        try {
+            $exam = Exam::findOrFail($exam_id);
+            
+            // Get all tickets for this exam with student information
+            $tickets = ExamTicket::where('exam_id', $exam_id)
+                ->with(['student' => function($query) {
+                    $query->select('id', 'candidate_no', 'full_name', 'department', 'programme');
+                }])
+                ->orderBy('is_used', 'asc') // Show available tickets first
+                ->orderBy('ticket_no', 'asc')
+                ->get()
+                ->map(function ($ticket) {
+                    return [
+                        'id' => $ticket->id,
+                        'ticket_no' => $ticket->ticket_no,
+                        'is_used' => $ticket->is_used,
+                        'status' => $ticket->is_used ? 'Used' : 'Available',
+                        'assigned_to_student_id' => $ticket->assigned_to_student_id,
+                        'assigned_at' => $ticket->assigned_at ? $ticket->assigned_at->format('M d, Y g:i A') : null,
+                        'student' => $ticket->student ? [
+                            'id' => $ticket->student->id,
+                            'candidate_no' => $ticket->student->candidate_no,
+                            'full_name' => $ticket->student->full_name,
+                            'department' => $ticket->student->department,
+                            'programme' => $ticket->student->programme,
+                        ] : null,
+                        'created_at' => $ticket->created_at,
+                    ];
+                });
+
+            // Get statistics
+            $total = $tickets->count();
+            $available = $tickets->where('is_used', false)->count();
+            $used = $tickets->where('is_used', true)->count();
+
+            return response()->json([
+                'exam' => [
+                    'id' => $exam->id,
+                    'course_id' => $exam->course_id,
+                    'activated' => $exam->activated,
+                    'activated_date' => $exam->activated_date,
+                ],
+                'statistics' => [
+                    'total' => $total,
+                    'available' => $available,
+                    'used' => $used,
+                    'percentage_used' => $total > 0 ? round(($used / $total) * 100, 2) : 0,
+                ],
+                'tickets' => $tickets,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching exam tickets: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Failed to load tickets: ' . $e->getMessage(),
+                'exam_id' => $exam_id
+            ], 500);
+        }
+    }
+
     public function activate_exam(Request $request, $exam_id)
     {
         try {
@@ -490,16 +553,17 @@ class Admin extends Controller
                 $exam->level_id = $user->level_id;
             }
             
-            // $exam->start_time = Carbon::
             $exam->save();
 
-            // Automatically generate tickets for students in this department/level
+            // Generate ticket pool for enrolled students
             $course = Course::find($exam->course_id);
             $ticketsGenerated = 0;
             
             if ($course) {
                 $studentCourses = $course->studentCourses;
                 
+                // Count eligible students
+                $eligibleStudents = 0;
                 foreach ($studentCourses as $studentCourse) {
                     $student = Student::find($studentCourse->student_id);
                     
@@ -509,48 +573,32 @@ class Admin extends Controller
                     
                     // Filter by level_id if exam has a level assigned (for level admins)
                     if ($exam->level_id && $student->level_id != $exam->level_id) {
-                        continue; // Skip students not in this department/level
+                        continue;
                     }
                     
-                    // Check if a candidate record already exists
-                    $existingCandidate = Candidate::where('student_id', $student->id)
-                        ->where('exam_id', $exam->id)
-                        ->first();
-
-                    // Only generate ticket if candidate doesn't exist or doesn't have a ticket
-                    if (!$existingCandidate || !$existingCandidate->ticket_no) {
-                        // Generate a unique 6-digit ticket number
-                        do {
-                            $ticket_no = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-                        } while (Candidate::where('exam_id', $exam->id)->where('ticket_no', $ticket_no)->exists());
-
-                        Candidate::updateOrCreate(
-                            [
-                                'student_id' => $student->id,
-                                'exam_id' => $exam->id,
-                            ],
-                            [
-                                'full_name' => $student->full_name,
-                                'programme' => $student->programme,
-                                'department' => $student->department,
-                                'password' => $student->password,
-                                'is_logged_on' => 0,
-                                'is_checkout' => 0,
-                                'checkin_time' => now(),
-                                'checkout_time' => '',
-                                'ticket_no' => $ticket_no,
-                                'status' => 'pending',
-                            ]
-                        );
-                        $ticketsGenerated++;
-                    }
+                    $eligibleStudents++;
+                }
+                
+                // Generate exact number of tickets matching eligible students
+                for ($i = 0; $i < $eligibleStudents; $i++) {
+                    $ticket_no = ExamTicket::generateUniqueTicketNumber($exam->id);
+                    
+                    ExamTicket::create([
+                        'exam_id' => $exam->id,
+                        'ticket_no' => $ticket_no,
+                        'is_used' => false,
+                        'assigned_to_student_id' => null,
+                        'assigned_at' => null,
+                    ]);
+                    
+                    $ticketsGenerated++;
                 }
             }
 
             return response()->json([
                 'exam' => $exam,
                 'tickets_generated' => $ticketsGenerated,
-                'message' => "Exam activated and {$ticketsGenerated} tickets generated for enrolled students in this department"
+                'message' => "Exam activated and {$ticketsGenerated} tickets generated in the ticket pool. Students will be assigned tickets upon login."
             ]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -632,8 +680,11 @@ class Admin extends Controller
                 'checkout_time' => null,
             ]);
 
-            // Clear candidates table for this exam (removes all ticket numbers)
+            // Clear candidates table for this exam (removes all candidate records)
             Candidate::where('exam_id', $exam_id)->delete();
+
+            // Delete all tickets for this exam (both used and unused)
+            ExamTicket::where('exam_id', $exam_id)->delete();
 
             // Deactivate exam and clear invigilator
             Exam::query()->update(['invigilator' => null]);
@@ -642,7 +693,7 @@ class Admin extends Controller
             $exam->save();
 
             return response()->json([
-                'message' => 'Exam terminated and archived successfully',
+                'message' => 'Exam terminated, archived, and all tickets removed successfully',
                 'exam' => $exam
             ]);
         } catch (Exception $e) {

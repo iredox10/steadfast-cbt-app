@@ -5,7 +5,8 @@ import { path } from "../../../utils/path";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import Model from "../../components/Model";
-import { FaEye, FaCheck, FaTimes, FaSearch, FaFilter, FaUser, FaChevronDown, FaUserGraduate, FaChalkboardTeacher, FaClock } from "react-icons/fa";
+import ViewTicketsModal from "../../components/ViewTicketsModal";
+import { FaEye, FaCheck, FaTimes, FaSearch, FaFilter, FaUser, FaChevronDown, FaUserGraduate, FaChalkboardTeacher, FaClock, FaTicketAlt } from "react-icons/fa";
 import { FaPenToSquare } from "react-icons/fa6";
 
 const AdminDashboard = () => {
@@ -32,6 +33,8 @@ const AdminDashboard = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(5);
+    const [showTicketsModal, setShowTicketsModal] = useState(false);
+    const [selectedExamForTickets, setSelectedExamForTickets] = useState(null);
 
     const fetchExams = async () => {
         setLoading(true);
@@ -93,6 +96,11 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleViewTickets = (exam) => {
+        setSelectedExamForTickets(exam);
+        setShowTicketsModal(true);
+    };
+
     // Filter exams based on search
     const filteredExams = exams?.filter((exam) => {
         const courseName =
@@ -139,6 +147,13 @@ const AdminDashboard = () => {
                 >
                     <FaUserGraduate />
                     <span>Students</span>
+                </Link>
+                <Link
+                    to={`/admin-tickets/${id}`}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+                >
+                    <FaTicketAlt />
+                    <span>Tickets</span>
                 </Link>
             </Sidebar>
 
@@ -274,15 +289,25 @@ const AdminDashboard = () => {
                                                                 </button>
                                                             )}
                                                             {exam.activated == "yes" && (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setexamId(exam.id);
-                                                                        setShowTerminateModel(true);
-                                                                    }}
-                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                                                >
-                                                                    Terminate
-                                                                </button>
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleViewTickets(exam)}
+                                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                                        title="View exam tickets"
+                                                                    >
+                                                                        <FaTicketAlt className="mr-1" />
+                                                                        Tickets
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setexamId(exam.id);
+                                                                            setShowTerminateModel(true);
+                                                                        }}
+                                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                                    >
+                                                                        Terminate
+                                                                    </button>
+                                                                </>
                                                             )}
                                                         </div>
                                                     </div>
@@ -444,6 +469,22 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 </Model>
+            )}
+
+            {/* View Tickets Modal */}
+            {showTicketsModal && selectedExamForTickets && (
+                <ViewTicketsModal
+                    examId={selectedExamForTickets.id}
+                    courseName={
+                        courses?.find(
+                            (course) => course.id === selectedExamForTickets.course_id
+                        )?.title || "Exam"
+                    }
+                    onClose={() => {
+                        setShowTicketsModal(false);
+                        setSelectedExamForTickets(null);
+                    }}
+                />
             )}
         </div>
     );

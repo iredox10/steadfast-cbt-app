@@ -44,4 +44,12 @@ class Exam extends Model
     public function questions(){
         return $this->hasMany(Question::class);
     }
+    
+    /**
+     * Get the tickets for this exam.
+     */
+    public function tickets()
+    {
+        return $this->hasMany(ExamTicket::class);
+    }
 }

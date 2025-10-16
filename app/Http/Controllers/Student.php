@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\Student as ModelsStudent;
 use App\Models\StudentCourse;
+use App\Models\ExamTicket;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -30,37 +31,112 @@ class Student extends Controller
         $password = $request->input('password');
         
         if ($ticketNo) {
-            // Validate using ticket number
-            $candidate = \App\Models\Candidate::where('student_id', $student->id)
-                ->where('ticket_no', $ticketNo)
+            // NEW TICKET SYSTEM: Check if student already has an assigned ticket
+            $existingTicket = \App\Models\ExamTicket::where('assigned_to_student_id', $student->id)
+                ->where('is_used', true)
                 ->first();
+            
+            if ($existingTicket) {
+                // Student is re-logging in with their previously assigned ticket
+                if ($existingTicket->ticket_no !== $ticketNo) {
+                    return response()->json('This ticket number does not match your assigned ticket. Please use your original ticket number.', 403);
+                }
                 
-            if (!$candidate) {
-                return response()->json('invalid ticket number', 404);
+                // Find or create candidate record for this student
+                $candidate = \App\Models\Candidate::firstOrCreate(
+                    [
+                        'student_id' => $student->id,
+                        'exam_id' => $existingTicket->exam_id,
+                    ],
+                    [
+                        'full_name' => $student->full_name,
+                        'programme' => $student->programme,
+                        'department' => $student->department,
+                        'password' => $student->password,
+                        'is_logged_on' => 0,
+                        'is_checkout' => 0,
+                        'checkin_time' => $existingTicket->assigned_at,
+                        'checkout_time' => null,
+                        'ticket_no' => $ticketNo,
+                        'status' => 'active',
+                    ]
+                );
+                
+                // Update student checkin time
+                if (!$student->checkin_time) {
+                    $student->checkin_time = $existingTicket->assigned_at;
+                    $student->save();
+                }
+                
+                $student->refresh();
+                return response()->json($student);
             }
             
-            // Update the student's checkin_time to match the candidate's checkin_time
-            // This ensures the frontend check still works
-            $student->checkin_time = $candidate->checkin_time;
-            $student->save();
+            // First-time login: Find an available ticket from the pool
+            $activeExam = Exam::where('activated', 'yes')->first();
+            if (!$activeExam) {
+                return response()->json('No active exam found', 404);
+            }
             
-            // Reload the student to ensure we have the latest data
+            // Check if the provided ticket exists and is available
+            $examTicket = \App\Models\ExamTicket::where('exam_id', $activeExam->id)
+                ->where('ticket_no', $ticketNo)
+                ->where('is_used', false)
+                ->first();
+            
+            if (!$examTicket) {
+                return response()->json('Invalid or already used ticket number', 404);
+            }
+            
+            // Check if student is enrolled in the exam's course
+            $isEnrolled = \App\Models\StudentCourse::where('student_id', $student->id)
+                ->where('course_id', $activeExam->course_id)
+                ->exists();
+            
+            if (!$isEnrolled) {
+                return response()->json('You are not enrolled in this exam\'s course', 403);
+            }
+            
+            // Assign ticket to student
+            $examTicket->assignToStudent($student->id);
+            
+            // Create candidate record
+            $candidate = \App\Models\Candidate::create([
+                'student_id' => $student->id,
+                'exam_id' => $activeExam->id,
+                'full_name' => $student->full_name,
+                'programme' => $student->programme,
+                'department' => $student->department,
+                'password' => $student->password,
+                'is_logged_on' => 0,
+                'is_checkout' => 0,
+                'checkin_time' => now(),
+                'checkout_time' => null,
+                'ticket_no' => $ticketNo,
+                'status' => 'active',
+            ]);
+            
+            // Update student checkin time
+            $student->checkin_time = now();
+            $student->save();
             $student->refresh();
+            
+            return response()->json($student);
+            
         } else if ($password) {
-            // Validate using password (legacy method)
+            // Legacy password login (kept for backward compatibility)
             if (!Hash::check($password, $student->password)) {
                 return response()->json('wrong password!!', 404);
             }
             
-            // For legacy password login, check if student has been checked in
             if ($student->checkin_time == null) {
                 return response()->json('user not checked in', 400);
             }
+            
+            return response()->json($student);
         } else {
             return response()->json('ticket number or password required', 400);
         }
-        
-        return response()->json($student);
     }
 
     public function index(Request $request)
