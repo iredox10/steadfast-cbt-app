@@ -110,6 +110,112 @@ class InvigilatorController extends Controller
         }
     }
 
+    public function checkin_student(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'student_id' => 'required|numeric',
+                'course_id' => 'required|numeric',
+            ]);
+
+            \Log::info('Check-in request received', $validate);
+
+            $student = Student::findOrFail($validate['student_id']);
+            \Log::info('Student found', ['student_id' => $student->id, 'name' => $student->full_name]);
+
+            $active_exam = Exam::where('course_id', $validate['course_id'])
+                ->where('activated', 'yes')
+                ->first();
+
+            if (!$active_exam) {
+                \Log::error('No active exam found', ['course_id' => $validate['course_id']]);
+                return response()->json(['error' => 'No active exam found for this course'], 404);
+            }
+
+            \Log::info('Active exam found', ['exam_id' => $active_exam->id]);
+
+            // Check if student is enrolled in this course
+            $studentCourse = \App\Models\StudentCourse::where('student_id', $student->id)
+                ->where('course_id', $validate['course_id'])
+                ->first();
+
+            if (!$studentCourse) {
+                \Log::error('Student not enrolled in course', [
+                    'student_id' => $student->id,
+                    'course_id' => $validate['course_id']
+                ]);
+                return response()->json(['error' => 'Student is not enrolled in this course'], 404);
+            }
+
+            // Find or create candidate record
+            $candidate = Candidate::where('student_id', $student->id)
+                ->where('exam_id', $active_exam->id)
+                ->first();
+
+            if (!$candidate) {
+                \Log::info('Candidate record not found, creating one', [
+                    'student_id' => $student->id,
+                    'exam_id' => $active_exam->id
+                ]);
+
+                // Create candidate record for this student
+                $candidate = Candidate::create([
+                    'student_id' => $student->id,
+                    'exam_id' => $active_exam->id,
+                    'full_name' => $student->full_name,
+                    'programme' => $student->programme,
+                    'department' => $student->department,
+                    'password' => $student->password,
+                    'is_logged_on' => 0,
+                    'is_checkout' => 0,
+                    'is_checked_in' => false,
+                    'checkin_time' => null,
+                    'checkout_time' => null,
+                    'ticket_no' => null, // Will be assigned when student logs in
+                    'status' => 'pending',
+                ]);
+
+                \Log::info('Candidate record created', ['candidate_id' => $candidate->id]);
+            }
+
+            \Log::info('Candidate found/created', ['candidate_id' => $candidate->id]);
+
+            // Mark student as checked in
+            $candidate->update([
+                'is_checked_in' => true,
+                'checkin_time' => now(),
+            ]);
+
+            \Log::info('Candidate updated with check-in status');
+
+            // Also update student record if needed
+            $student->update([
+                'is_checked_in' => true,
+            ]);
+
+            \Log::info('Student record updated with check-in status');
+
+            return response()->json([
+                'message' => 'Student checked in successfully',
+                'student' => $student,
+                'checkin_time' => $candidate->checkin_time,
+                'is_checked_in' => true
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation error', ['errors' => $e->errors()]);
+            return response()->json(['error' => 'Validation failed: ' . json_encode($e->errors())], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            \Log::error('Model not found', ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'Student or exam not found'], 404);
+        } catch (Exception $e) {
+            \Log::error('Check-in error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function get_students(Request $request, $course_id)
     {
         try {
@@ -143,6 +249,9 @@ class InvigilatorController extends Controller
                     $student->ticket_no = $candidate ? $candidate->ticket_no : null;
                     // Add candidate ID for potential future use
                     $student->candidate_id = $candidate ? $candidate->id : null;
+                    // Add check-in status
+                    $student->is_checked_in = $candidate ? ($candidate->is_checked_in ?? false) : false;
+                    $student->checkin_time = $candidate ? $candidate->checkin_time : null;
                     
                     // Add score if available
                     $score_record = \App\Models\StudentExamScore::where('student_id', $student->id)

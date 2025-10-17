@@ -194,6 +194,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Invigilator routes
+Route::post('/invigilator/checkin-student', [InvigilatorController::class, 'checkin_student'])->middleware(['auth:sanctum']);
 Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'generate_ticket']);
 Route::post('/invigilator/regenerate-ticket', [InvigilatorController::class, 'regenerate_ticket']);
 Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, 'get_students'])->middleware(['auth:sanctum']);

@@ -17,6 +17,7 @@ class Student extends Model
         'password',
         'image',
         'is_logged_on',
+        'is_checked_in',
         'checkin_time',
         'checkout_time',
         'level_id'
