@@ -58,6 +58,8 @@ const AdminExam = () => {
     const [error, setError] = useState(null);
     const [showTerminateModel, setShowTerminateModel] = useState(false);
     const [showAssignInvigilator, SetshowAssignInvigilator] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedExam, setSelectedExam] = useState(null);
     const [examId, setexamId] = useState();
     const [invigilator, setInvigilator] = useState();
 
@@ -149,6 +151,11 @@ const AdminExam = () => {
                 console.error("Authentication failed");
             }
         }
+    };
+
+    const handleViewExam = (exam) => {
+        setSelectedExam(exam);
+        setShowViewModal(true);
     };
 
     // Filter exams based on search and status
@@ -459,7 +466,10 @@ const AdminExam = () => {
                                                                     <FaStop className="mr-1" /> Terminate
                                                                 </button>
                                                             )}
-                                                            <button className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                                            <button 
+                                                                onClick={() => handleViewExam(exam)}
+                                                                className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                            >
                                                                 <FaEye className="mr-1" /> View
                                                             </button>
                                                         </div>
@@ -640,6 +650,201 @@ const AdminExam = () => {
                                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
                             >
                                 Yes, Terminate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Exam Details Modal */}
+            {showViewModal && selectedExam && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-white rounded-xl w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
+                        {/* Modal Header */}
+                        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-xl z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <h2 className="text-2xl font-bold mb-2 flex items-center">
+                                        <FaBook className="mr-3" />
+                                        Exam Details
+                                    </h2>
+                                    <p className="text-blue-100">
+                                        {courses?.find(c => c.id === selectedExam.course_id)?.title || "Course Information"}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowViewModal(false);
+                                        setSelectedExam(null);
+                                    }}
+                                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                                >
+                                    <FaTimes className="text-xl" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6">
+                            {/* Status Badge */}
+                            <div className="mb-6 flex items-center gap-3">
+                                <span className={`px-4 py-2 inline-flex text-sm font-semibold rounded-full ${
+                                    selectedExam.activated === "yes"
+                                        ? "bg-green-100 text-green-800 border border-green-300"
+                                        : "bg-red-100 text-red-800 border border-red-300"
+                                }`}>
+                                    {selectedExam.activated === "yes" ? "✓ Active Exam" : "○ Inactive Exam"}
+                                </span>
+                                {selectedExam.activated_date && selectedExam.activated === "no" && !selectedExam.finished_time && (
+                                    <span className="px-4 py-2 text-sm font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                        Previously Activated
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Exam Information Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                {/* Course Information */}
+                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                    <div className="flex items-center mb-2">
+                                        <FaBook className="text-blue-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Course</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {courses?.find(c => c.id === selectedExam.course_id)?.code || "N/A"}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                        {courses?.find(c => c.id === selectedExam.course_id)?.title || "Unknown Course"}
+                                    </p>
+                                </div>
+
+                                {/* Exam Type */}
+                                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                                    <div className="flex items-center mb-2">
+                                        <FaListAlt className="text-purple-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Exam Type</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {selectedExam.exam_type || "N/A"}
+                                    </p>
+                                </div>
+
+                                {/* Duration */}
+                                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                                    <div className="flex items-center mb-2">
+                                        <FaRegClock className="text-orange-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Duration</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {selectedExam.exam_duration || "0"} minutes
+                                    </p>
+                                </div>
+
+                                {/* Questions */}
+                                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                    <div className="flex items-center mb-2">
+                                        <FaQuestionCircle className="text-green-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Questions</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {selectedExam.actual_questions || 0} / {selectedExam.no_of_questions || 0}
+                                    </p>
+                                    <p className="text-xs text-gray-600">Actual / Total</p>
+                                </div>
+
+                                {/* Marks per Question */}
+                                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                                    <div className="flex items-center mb-2">
+                                        <FaMedal className="text-yellow-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Marks per Question</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {selectedExam.marks_per_question || 0} points
+                                    </p>
+                                </div>
+
+                                {/* Maximum Score */}
+                                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                                    <div className="flex items-center mb-2">
+                                        <FaMedal className="text-red-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Maximum Score</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {selectedExam.max_score || 0} points
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Invigilator Information */}
+                            {selectedExam.invigilator && (
+                                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-6">
+                                    <div className="flex items-center mb-2">
+                                        <FaUsers className="text-indigo-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Assigned Invigilator</h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {selectedExam.invigilator}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Activation Information */}
+                            {selectedExam.activated_date && (
+                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                                    <div className="flex items-center mb-2">
+                                        <FaCalendarAlt className="text-gray-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">
+                                            {selectedExam.activated === "yes" ? "Activated On" : "Last Activated"}
+                                        </h3>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {new Date(selectedExam.activated_date).toLocaleString()}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Additional Details */}
+                            <div className="border-t border-gray-200 pt-6">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">Additional Information</h3>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-600">Exam ID:</span>
+                                        <span className="font-semibold text-gray-900 font-mono">#{selectedExam.id}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-600">Course ID:</span>
+                                        <span className="font-semibold text-gray-900 font-mono">#{selectedExam.course_id}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-600">Created At:</span>
+                                        <span className="font-semibold text-gray-900">
+                                            {selectedExam.created_at 
+                                                ? new Date(selectedExam.created_at).toLocaleString()
+                                                : "N/A"}
+                                        </span>
+                                    </div>
+                                    {selectedExam.updated_at && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-600">Last Updated:</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {new Date(selectedExam.updated_at).toLocaleString()}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowViewModal(false);
+                                    setSelectedExam(null);
+                                }}
+                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                            >
+                                Close
                             </button>
                         </div>
                     </div>
