@@ -165,6 +165,7 @@ class InvigilatorController extends Controller
                     'full_name' => $student->full_name,
                     'programme' => $student->programme,
                     'department' => $student->department,
+                    'image' => $student->image,
                     'password' => $student->password,
                     'is_logged_on' => 0,
                     'is_checkout' => 0,
@@ -252,6 +253,11 @@ class InvigilatorController extends Controller
                     // Add check-in status
                     $student->is_checked_in = $candidate ? ($candidate->is_checked_in ?? false) : false;
                     $student->checkin_time = $candidate ? $candidate->checkin_time : null;
+                    
+                    // Use candidate image if available, otherwise use student image
+                    if ($candidate && $candidate->image) {
+                        $student->image = $candidate->image;
+                    }
                     
                     // Add score if available
                     $score_record = \App\Models\StudentExamScore::where('student_id', $student->id)

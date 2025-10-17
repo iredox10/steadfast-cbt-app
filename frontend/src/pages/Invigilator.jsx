@@ -428,21 +428,19 @@ const Invigilator = () => {
                                     {/* Student Photo - Large and Prominent */}
                                     <div className="relative group cursor-pointer">
                                         {student.image ? (
-                                            <>
-                                                <img
-                                                    src={`${path.replace('/api', '')}/${student.image}`}
-                                                    alt={student.full_name}
-                                                    className="w-full h-64 object-cover"
-                                                    onClick={() => {
-                                                        setSelectedPhoto({ image: student.image, name: student.full_name, id: student.candidate_no });
-                                                        setShowPhotoModal(true);
-                                                    }}
-                                                />
-                                                {/* Zoom overlay hint */}
-                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-                                                    <FaSearchPlus className="text-white text-4xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                                </div>
-                                            </>
+                                            <img
+                                                src={`${path.replace('/api', '')}/${student.image}`}
+                                                alt={student.full_name}
+                                                className="w-full h-64 object-cover cursor-pointer"
+                                                onClick={() => {
+                                                    setSelectedPhoto({ image: student.image, name: student.full_name, id: student.candidate_no });
+                                                    setShowPhotoModal(true);
+                                                }}
+                                                onError={(e) => {
+                                                    console.error('Image failed to load:', student.image);
+                                                    console.error('Full path:', `${path.replace('/api', '')}/${student.image}`);
+                                                }}
+                                            />
                                         ) : (
                                             <div className="w-full h-64 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                                                 <FaGraduationCap className="text-white text-8xl opacity-50" />
