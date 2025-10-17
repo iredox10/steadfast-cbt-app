@@ -64,7 +64,10 @@ const Home = () => {
             setLoading(false);
         } catch (err) {
             // Handle different error types
-            if (err.response?.status === 400 && err.response?.data === 'user not checked in') {
+            if (err.response?.status === 403 && err.response?.data?.error === 'check_in_required') {
+                // Student needs to check in with invigilator first
+                setErrMsg(err.response.data.message || 'Please see the invigilator to check in before starting your exam.');
+            } else if (err.response?.status === 400 && err.response?.data === 'user not checked in') {
                 navigate("/not-check-in");
             } else {
                 // Ensure error message is always a string
@@ -222,10 +225,23 @@ const Home = () => {
                                 </form>
 
                                 {/* Help Text */}
-                                <div className="mt-6 text-center">
-                                    <p className="text-gray-600 text-sm">
-                                        Don't have a ticket number? Contact your invigilator to get checked in.
-                                    </p>
+                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-start">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-blue-600 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <h3 className="text-sm font-medium text-blue-800">
+                                                Important Notice
+                                            </h3>
+                                            <p className="mt-1 text-sm text-blue-700">
+                                                You must be checked in by the invigilator before you can access your exam. 
+                                                Please see the invigilator to verify your identity and check in first.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -26,6 +26,14 @@ class Student extends Controller
             return response()->json('user not found', 404);
         }
         
+        // Check if student has been checked in by invigilator
+        if (!$student->is_checked_in) {
+            return response()->json([
+                'error' => 'check_in_required',
+                'message' => 'Please see the invigilator to check in before starting your exam.'
+            ], 403);
+        }
+        
         // Check if using ticket number or password
         $ticketNo = $request->input('ticket_no');
         $password = $request->input('password');
