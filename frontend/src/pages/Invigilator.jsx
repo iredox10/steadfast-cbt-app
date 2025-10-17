@@ -12,7 +12,11 @@ import {
     FaTimesCircle,
     FaUser,
     FaTimes,
-    FaSearchPlus
+    FaSearchPlus,
+    FaBook,
+    FaRegClock,
+    FaCalendarAlt,
+    FaMedal
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -302,6 +306,62 @@ const Invigilator = () => {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Exam Information Card */}
+                {userData?.exam && (
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-xl shadow-2xl mb-8">
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                                <h2 className="text-3xl font-bold mb-4 flex items-center">
+                                    <FaBook className="mr-3" />
+                                    Current Exam Information
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                                        <p className="text-blue-100 text-sm mb-1">Exam Title</p>
+                                        <p className="text-xl font-bold">{userData.exam.title || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                                        <p className="text-blue-100 text-sm mb-1">Course</p>
+                                        <p className="text-xl font-bold">{userData.exam.course || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                                        <p className="text-blue-100 text-sm mb-1">Duration</p>
+                                        <p className="text-xl font-bold flex items-center">
+                                            <FaRegClock className="mr-2" />
+                                            {userData.exam.exam_duration || 'N/A'} minutes
+                                        </p>
+                                    </div>
+                                    <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                                        <p className="text-blue-100 text-sm mb-1">Activated On</p>
+                                        <p className="text-xl font-bold flex items-center">
+                                            <FaCalendarAlt className="mr-2" />
+                                            {userData.exam.activated_date 
+                                                ? new Date(userData.exam.activated_date).toLocaleString()
+                                                : 'N/A'}
+                                        </p>
+                                    </div>
+                                    {userData.exam.marks_per_question && (
+                                        <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                                            <p className="text-blue-100 text-sm mb-1">Marks per Question</p>
+                                            <p className="text-xl font-bold flex items-center">
+                                                <FaMedal className="mr-2" />
+                                                {userData.exam.marks_per_question} marks
+                                            </p>
+                                        </div>
+                                    )}
+                                    <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
+                                        <p className="text-blue-100 text-sm mb-1">Status</p>
+                                        <p className="text-xl font-bold flex items-center">
+                                            <FaCheckCircle className="mr-2" />
+                                            Active
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Error Alert */}
                 {error && (
                     <div className="bg-red-50 border-l-4 border-red-500 p-6 mb-6 rounded-lg">

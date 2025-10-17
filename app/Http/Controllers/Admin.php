@@ -539,7 +539,8 @@ class Admin extends Controller
     public function activate_exam(Request $request, $exam_id)
     {
         try {
-            $exams = Exam::query()->update(['activated' => 'no']);
+            // DO NOT deactivate other exams - allow multiple active exams
+            // This was removed to support concurrent exam sessions
             $exam = Exam::findOrFail($exam_id);
             $exam_duration = $exam->exam_duration;
 
@@ -673,12 +674,20 @@ class Admin extends Controller
                 'student_results' => $studentResults,
             ]);
 
-            // Reset student statuses and clear exam-related data
-            Student::query()->update([
-                'is_logged_on' => 'no',
-                'checkin_time' => null,
-                'checkout_time' => null,
-            ]);
+            // Get list of student IDs who took this exam
+            $studentIds = Candidate::where('exam_id', $exam_id)
+                ->pluck('student_id')
+                ->toArray();
+
+            // Reset student statuses ONLY for students who took THIS exam
+            if (!empty($studentIds)) {
+                Student::whereIn('id', $studentIds)->update([
+                    'is_logged_on' => 'no',
+                    'checkin_time' => null,
+                    'checkout_time' => null,
+                    'is_checked_in' => false,
+                ]);
+            }
 
             // Clear candidates table for this exam (removes all candidate records)
             Candidate::where('exam_id', $exam_id)->delete();
@@ -686,9 +695,9 @@ class Admin extends Controller
             // Delete all tickets for this exam (both used and unused)
             ExamTicket::where('exam_id', $exam_id)->delete();
 
-            // Deactivate exam and clear invigilator
-            Exam::query()->update(['invigilator' => null]);
+            // Deactivate ONLY this exam and clear its invigilator
             $exam->activated = 'no';
+            $exam->invigilator = null;
             $exam->finished_time = now(); // Mark as finished/terminated
             $exam->save();
 
@@ -976,7 +985,23 @@ class Admin extends Controller
             // Super admins see all invigilators (no additional filtering)
             
             $invigilators = $query->get();
-            return response()->json($invigilators);
+            
+            // Get all invigilators already assigned to active exams
+            $assignedInvigilators = Exam::where('activated', 'yes')
+                ->whereNotNull('invigilator')
+                ->where('invigilator', '!=', '')
+                ->pluck('invigilator')
+                ->toArray();
+            
+            // Filter out invigilators who are already assigned to active exams
+            $availableInvigilators = $invigilators->filter(function($invigilator) use ($assignedInvigilators) {
+                // Check if invigilator's email, full_name, or id is in assigned list
+                return !in_array($invigilator->email, $assignedInvigilators) &&
+                       !in_array($invigilator->full_name, $assignedInvigilators) &&
+                       !in_array($invigilator->id, $assignedInvigilators);
+            })->values(); // Reset array keys
+            
+            return response()->json($availableInvigilators);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
         }
@@ -985,20 +1010,28 @@ class Admin extends Controller
     public function get_invigilator($invigilator_id)
     {
         $invigilator = User::findOrFail($invigilator_id);
-        $exam = Exam::where('activated', 'yes')->first();
+        
+        // Find the active exam assigned to this specific invigilator
+        // Support multiple active exams by finding the one assigned to this invigilator
+        $exam = Exam::where('activated', 'yes')
+            ->where(function($query) use ($invigilator) {
+                $query->where('invigilator', $invigilator->email)
+                      ->orWhere('invigilator', $invigilator->full_name)
+                      ->orWhere('invigilator', $invigilator->id);
+            })
+            ->first();
 
         if (!$exam) {
-            return response()->json('no exam activated');
+            return response()->json(['Invigilator' => $invigilator, 'examAssigned' => false]);
         }
-        // Check if invigilator is assigned - compare email or full_name since the field can contain either
-        $isAssigned = ($invigilator->email == $exam->invigilator) || 
-                      ($invigilator->full_name == $exam->invigilator) ||
-                      ($invigilator->id == $exam->invigilator);
         
-        if ($isAssigned) {
-            return response()->json(['Invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
+        // Load course details for the exam
+        $course = Course::find($exam->course_id);
+        if ($course) {
+            $exam->course = $course->title;
         }
-        return response()->json(['Invigilator' => $invigilator, 'examAssigned' => false]);
+        
+        return response()->json(['Invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
     }
 
     public function get_current_exam()

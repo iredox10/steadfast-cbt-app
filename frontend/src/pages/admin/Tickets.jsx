@@ -63,14 +63,30 @@ const Tickets = () => {
 
     const getCourseName = (courseId) => {
         const course = courses.find(c => c.id === parseInt(courseId));
-        return course ? `${course.course_code} - ${course.course_name}` : 'Unknown Course';
+        if (!course) return 'Unknown Course';
+        
+        // Course model fields are: code, title, credit_unit
+        const code = course.code || '';
+        const title = course.title || '';
+        
+        if (code && title) {
+            return `${code} - ${title}`;
+        } else if (title) {
+            return title;
+        } else if (code) {
+            return code;
+        }
+        return 'Unknown Course';
     };
 
     const filteredExams = exams.filter(exam => {
         const courseName = getCourseName(exam.course_id).toLowerCase();
+        const examTitle = (exam.title || '').toLowerCase();
         const search = searchTerm.toLowerCase();
         return courseName.includes(search) || 
-               exam.id.toString().includes(search);
+               examTitle.includes(search) ||
+               exam.id.toString().includes(search) ||
+               (exam.invigilator && exam.invigilator.toLowerCase().includes(search));
     });
 
     return (
@@ -176,9 +192,11 @@ const Tickets = () => {
                                     <div className="flex items-center justify-between text-white">
                                         <div className="flex items-center gap-2">
                                             <FaBook className="text-xl" />
-                                            <span className="font-semibold">Exam #{exam.id}</span>
+                                            <span className="font-semibold truncate">
+                                                {exam.title || getCourseName(exam.course_id) || `Exam #${exam.id}`}
+                                            </span>
                                         </div>
-                                        <span className="px-3 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium">
+                                        <span className="px-3 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium whitespace-nowrap ml-2">
                                             Active
                                         </span>
                                     </div>
@@ -186,19 +204,33 @@ const Tickets = () => {
 
                                 {/* Card Body */}
                                 <div className="p-4">
-                                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                                    {/* Course Name */}
+                                    <p className="font-bold text-gray-900 mb-4 line-clamp-2 text-base">
                                         {getCourseName(exam.course_id)}
-                                    </h3>
+                                    </p>
                                     
                                     <div className="space-y-2 mb-4">
+                                        {/* Duration */}
                                         <div className="flex items-center gap-2 text-sm text-gray-600">
                                             <FaClock className="text-gray-400" />
-                                            <span>Duration: {exam.duration} minutes</span>
+                                            <span>Duration: {exam.exam_duration || 'N/A'} minutes</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <FaTicketAlt className="text-gray-400" />
-                                            <span>Tickets available</span>
-                                        </div>
+                                        
+                                        {/* Invigilator */}
+                                        {exam.invigilator && (
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <FaChalkboardTeacher className="text-gray-400" />
+                                                <span className="truncate">Invigilator: {exam.invigilator}</span>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Activation Date */}
+                                        {exam.activated_date && (
+                                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                <FaClock className="text-gray-400" />
+                                                <span>Activated: {new Date(exam.activated_date).toLocaleDateString()}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* View Tickets Button */}
