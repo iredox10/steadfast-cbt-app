@@ -763,6 +763,41 @@ const AdminExam = () => {
                                     <p className="text-lg font-bold text-gray-900">
                                         {new Date(selectedExam.activated_date).toLocaleString()}
                                     </p>
+                                    {selectedExam.finished_time && (
+                                        <div className="mt-3 pt-3 border-t border-gray-300">
+                                            <div className="flex items-center mb-1">
+                                                <FaRegClock className="text-gray-600 mr-2 text-sm" />
+                                                <span className="text-sm font-semibold text-gray-700">Finished On</span>
+                                            </div>
+                                            <p className="text-md font-semibold text-gray-900">
+                                                {new Date(selectedExam.finished_time).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Exam Statistics */}
+                            {selectedExam.activated === "no" && selectedExam.finished_time && (
+                                <div className="bg-teal-50 p-4 rounded-lg border border-teal-200 mb-6">
+                                    <div className="flex items-center mb-3">
+                                        <FaUsers className="text-teal-600 mr-2" />
+                                        <h3 className="text-sm font-semibold text-gray-700">Exam Statistics</h3>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-gray-600 mb-1">Total Marks</p>
+                                            <p className="text-lg font-bold text-gray-900">
+                                                {(selectedExam.actual_questions || 0) * (selectedExam.marks_per_question || 0)} points
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-600 mb-1">Status</p>
+                                            <p className="text-lg font-bold text-teal-700">
+                                                Completed
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -770,27 +805,59 @@ const AdminExam = () => {
                             <div className="border-t border-gray-200 pt-6">
                                 <h3 className="text-lg font-bold text-gray-900 mb-4">Additional Information</h3>
                                 <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Exam ID:</span>
-                                        <span className="font-semibold text-gray-900 font-mono">#{selectedExam.id}</span>
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <span className="text-gray-600 font-medium">Exam ID:</span>
+                                        <span className="font-semibold text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded">#{selectedExam.id}</span>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Course ID:</span>
-                                        <span className="font-semibold text-gray-900 font-mono">#{selectedExam.course_id}</span>
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <span className="text-gray-600 font-medium">Course ID:</span>
+                                        <span className="font-semibold text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded">#{selectedExam.course_id}</span>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-600">Created At:</span>
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <span className="text-gray-600 font-medium">Course Code:</span>
+                                        <span className="font-semibold text-gray-900">
+                                            {courses?.find(c => c.id === selectedExam.course_id)?.code || "N/A"}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <span className="text-gray-600 font-medium">Total Possible Marks:</span>
+                                        <span className="font-semibold text-gray-900">
+                                            {(selectedExam.actual_questions || 0) * (selectedExam.marks_per_question || 0)} points
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <span className="text-gray-600 font-medium">Created At:</span>
                                         <span className="font-semibold text-gray-900">
                                             {selectedExam.created_at 
-                                                ? new Date(selectedExam.created_at).toLocaleString()
+                                                ? new Date(selectedExam.created_at).toLocaleDateString('en-US', { 
+                                                    year: 'numeric', 
+                                                    month: 'short', 
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
                                                 : "N/A"}
                                         </span>
                                     </div>
                                     {selectedExam.updated_at && (
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-600">Last Updated:</span>
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                            <span className="text-gray-600 font-medium">Last Updated:</span>
                                             <span className="font-semibold text-gray-900">
-                                                {new Date(selectedExam.updated_at).toLocaleString()}
+                                                {new Date(selectedExam.updated_at).toLocaleDateString('en-US', { 
+                                                    year: 'numeric', 
+                                                    month: 'short', 
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {selectedExam.semester && (
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                            <span className="text-gray-600 font-medium">Semester:</span>
+                                            <span className="font-semibold text-gray-900">
+                                                {selectedExam.semester}
                                             </span>
                                         </div>
                                     )}
