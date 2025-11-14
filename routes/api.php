@@ -144,6 +144,10 @@ Route::get('/get-course-students/{course_id}', [Admin::class, 'get_course_studen
 
 Route::post('/upload-excel', [Admin::class, 'upload_excel']);
 
+Route::post('/upload-instructors-excel', [Admin::class, 'upload_instructors_excel'])->middleware(['auth:sanctum']);
+
+Route::put('/update-instructor-status/{id}', [Admin::class, 'update_instructor_status'])->middleware(['auth:sanctum']);
+
 Route::get('/dashboard-stats', [Admin::class, 'getDashboardStats']);
 
 Route::get('/get-invigilators', [Admin::class, 'get_invigilators'])->middleware(['auth:sanctum']);

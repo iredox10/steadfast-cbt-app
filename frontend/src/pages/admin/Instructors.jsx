@@ -9,9 +9,12 @@ import {
     FaTimes,
     FaUserPlus,
     FaChalkboardTeacher,
-    FaUsers
+    FaUsers,
+    FaUpload,
+    FaDownload
 } from 'react-icons/fa';
 import AdminSidebar from '../../components/AdminSidebar';
+import * as XLSX from 'xlsx';
 
 const Instructors = () => {
     const { userId } = useParams();
@@ -19,7 +22,10 @@ const Instructors = () => {
     const [academicSessions, setAcademicSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
+    const [file, setFile] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [newInstructor, setNewInstructor] = useState({
         full_name: '',
         email: '',
@@ -123,6 +129,114 @@ const Instructors = () => {
         }
     };
 
+    const handleImportInstructors = async (e) => {
+        e.preventDefault();
+        if (!file) {
+            setErrMsg("Please select a file to upload.");
+            return;
+        }
+        setIsUploading(true);
+        setErrMsg("");
+        setSuccessMsg("");
+        
+        const formData = new FormData();
+        formData.append("excel_file", file);
+        
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${path}/upload-instructors-excel`, formData, { 
+                headers: { 
+                    "Content-Type": "multipart/form-data",
+                    Authorization: `Bearer ${token}`
+                } 
+            });
+            setSuccessMsg('Instructors imported successfully!');
+            setShowImportModal(false);
+            setFile(null);
+            fetchData();
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            setErrMsg(error.response?.data?.error || "Error uploading file.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDownloadTemplate = () => {
+        // Create template data with headers and sample row
+        const templateData = [
+            {
+                'Full Name': 'Jane Smith',
+                'Email': 'jane.smith@example.com',
+                'Password': 'securePassword123',
+                'Role': 'lecturer',
+                'Status': 'active'
+            }
+        ];
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(templateData);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 20 }, // Full Name
+            { wch: 30 }, // Email
+            { wch: 20 }, // Password
+            { wch: 15 }, // Role
+            { wch: 12 }  // Status
+        ];
+
+        // Add data validation for Role column (column D, starting from row 2)
+        // Role options: lecturer, invigilator
+        if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+        
+        // Add dropdown validation for Role column (D2:D1000)
+        ws['!dataValidation'].push({
+            type: 'list',
+            allowBlank: false,
+            sqref: 'D2:D1000',
+            formulas: ['"lecturer,invigilator"']
+        });
+
+        // Add dropdown validation for Status column (E2:E1000)
+        ws['!dataValidation'].push({
+            type: 'list',
+            allowBlank: false,
+            sqref: 'E2:E1000',
+            formulas: ['"active,inactive"']
+        });
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Instructors');
+
+        // Generate and download file
+        XLSX.writeFile(wb, 'instructor_import_template.xlsx');
+    };
+
+    const handleStatusChange = async (instructorId, newStatus) => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.put(`${path}/update-instructor-status/${instructorId}`, 
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            // Update local state - map 'inactive' to 'not_active' for consistency with database
+            const dbStatus = newStatus === 'inactive' ? 'not_active' : newStatus;
+            setInstructors(instructors.map(inst => 
+                inst.id === instructorId ? { ...inst, status: dbStatus } : inst
+            ));
+            
+            setSuccessMsg('Status updated successfully!');
+            setTimeout(() => setSuccessMsg(''), 3000);
+        } catch (error) {
+            console.error('Error updating status:', error);
+            setErrMsg('Failed to update status');
+            setTimeout(() => setErrMsg(''), 3000);
+        }
+    };
+
     const getRoleDisplay = (role) => {
         switch (role) {
             case 'lecturer':
@@ -156,13 +270,22 @@ const Instructors = () => {
                         <h2 className="text-3xl font-bold text-gray-900">Instructor Management</h2>
                         <p className="text-gray-600">Manage instructors and lecturers</p>
                     </div>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                        <FaPlus className="mr-2" />
-                        Add Instructor
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                        >
+                            <FaUpload className="mr-2" />
+                            Import Instructors
+                        </button>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        >
+                            <FaPlus className="mr-2" />
+                            Add Instructor
+                        </button>
+                    </div>
                 </header>
 
             {/* Messages */}
@@ -219,11 +342,18 @@ const Instructors = () => {
                                         {instructor.level?.title || 'All Departments'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                            instructor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {instructor.status}
-                                        </span>
+                                        <select
+                                            value={instructor.status === 'not_active' ? 'inactive' : instructor.status}
+                                            onChange={(e) => handleStatusChange(instructor.id, e.target.value)}
+                                            className={`px-3 py-1 text-xs font-semibold rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 ${
+                                                instructor.status === 'active' 
+                                                    ? 'bg-green-100 text-green-800 focus:ring-green-500' 
+                                                    : 'bg-red-100 text-red-800 focus:ring-red-500'
+                                            }`}
+                                        >
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                                         {new Date(instructor.created_at).toLocaleDateString()}
@@ -386,6 +516,67 @@ const Instructors = () => {
                                 </div>
                             </form>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Instructors Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold">Import Instructors</h3>
+                            <button onClick={() => setShowImportModal(false)}><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleImportInstructors} className="space-y-4">
+                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+                            
+                            {/* Download Template Button */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm text-gray-700 mb-3">
+                                    <strong>First time importing?</strong> Download the template to see the required format.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadTemplate}
+                                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full justify-center"
+                                >
+                                    <FaDownload className="mr-2" />
+                                    Download Excel Template
+                                </button>
+                            </div>
+
+                            {/* File Upload */}
+                            <div className="p-4 border-2 border-dashed rounded-lg text-center">
+                                <input 
+                                    type="file" 
+                                    onChange={e => setFile(e.target.files[0])} 
+                                    accept=".xlsx, .xls" 
+                                    className="hidden" 
+                                    id="instructor-file-upload" 
+                                />
+                                <label htmlFor="instructor-file-upload" className="cursor-pointer text-blue-500">
+                                    {file ? file.name : "Choose an Excel file"}
+                                </label>
+                            </div>
+                            
+                            <div className="flex justify-end gap-4 pt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowImportModal(false)} 
+                                    className="px-4 py-2 bg-gray-200 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={isUploading} 
+                                    className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300"
+                                >
+                                    {isUploading ? "Uploading..." : "Import"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

@@ -970,6 +970,124 @@ class Admin extends Controller
         }
     }
 
+    public function upload_instructors_excel(Request $request)
+    {
+        try {
+            $request->validate([
+                'excel_file' => 'required|mimes:xlsx,xls'
+            ]);
+
+            $file = $request->file('excel_file');
+            $reader = ReaderEntityFactory::createXLSXReader();
+            $reader->open($file->getPathname());
+
+            $user = $request->user();
+            $rowCount = 0;
+            $errors = [];
+
+            foreach ($reader->getSheetIterator() as $sheet) {
+                foreach ($sheet->getRowIterator() as $index => $row) {
+                    // Skip header row
+                    if ($index === 1) continue;
+
+                    $cells = $row->getCells();
+                    
+                    // Validate minimum required columns
+                    if (count($cells) < 3) {
+                        $errors[] = "Row $index: Insufficient data";
+                        continue;
+                    }
+
+                    $full_name = $cells[0]->getValue();
+                    $email = $cells[1]->getValue();
+                    $password = $cells[2]->getValue();
+                    $role = isset($cells[3]) ? $cells[3]->getValue() : 'lecturer';
+                    $status = isset($cells[4]) ? $cells[4]->getValue() : 'active';
+
+                    // Validate required fields
+                    if (empty($full_name) || empty($email) || empty($password)) {
+                        $errors[] = "Row $index: Missing required fields";
+                        continue;
+                    }
+
+                    try {
+                        // Create instructor/user
+                        $instructorData = [
+                            'full_name' => $full_name,
+                            'email' => $email,
+                            'password' => bcrypt($password),
+                            'role' => $role,
+                            'status' => $status
+                        ];
+
+                        // If the user is a level admin, set the level_id
+                        if ($user->role === 'level_admin') {
+                            $instructorData['level_id'] = $user->level_id;
+                        }
+
+                        User::create($instructorData);
+                        $rowCount++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Row $index: " . $e->getMessage();
+                    }
+                }
+            }
+
+            $reader->close();
+
+            $response = [
+                'message' => "$rowCount instructors imported successfully"
+            ];
+
+            if (!empty($errors)) {
+                $response['errors'] = $errors;
+                $response['partial'] = true;
+            }
+
+            return response()->json($response, 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error processing file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function update_instructor_status(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'status' => 'required|in:active,inactive,not_active'
+            ]);
+
+            $user = User::findOrFail($id);
+            
+            // Check authorization - only allow updating if user is super_admin or level_admin managing their level
+            $currentUser = $request->user();
+            if ($currentUser->role === 'level_admin') {
+                if ($user->level_id !== $currentUser->level_id) {
+                    return response()->json(['error' => 'Unauthorized'], 403);
+                }
+            }
+
+            // Map 'inactive' to 'not_active' for database compatibility
+            $statusValue = $request->status === 'inactive' ? 'not_active' : $request->status;
+            
+            $user->status = $statusValue;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Instructor status updated successfully',
+                'instructor' => $user
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error updating status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getDashboardStats()
     {
         try {
