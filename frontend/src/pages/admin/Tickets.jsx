@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import Sidebar from '../../components/Sidebar';
+import AdminSidebar from '../../components/AdminSidebar';
 import ViewTicketsModal from '../../components/ViewTicketsModal';
 import { 
     FaClock, 
@@ -91,36 +91,7 @@ const Tickets = () => {
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            <Sidebar>
-                <Link
-                    to={"/admin-sessions"}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
-                >
-                    <FaClock />
-                    <span>Sessions</span>
-                </Link>
-                <Link
-                    to={"/admin-instructors"}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
-                >
-                    <FaChalkboardTeacher />
-                    <span>Instructors</span>
-                </Link>
-                <Link
-                    to={`/admin-students/${id}`}
-                    className="flex items-center gap-3 p-3 hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
-                >
-                    <FaUserGraduate />
-                    <span>Students</span>
-                </Link>
-                <Link
-                    to={`/admin-tickets/${id}`}
-                    className="flex items-center gap-3 p-3 bg-blue-50 text-blue-600 rounded-lg transition-colors"
-                >
-                    <FaTicketAlt />
-                    <span>Tickets</span>
-                </Link>
-            </Sidebar>
+            <AdminSidebar userId={id} />
 
             <div className="flex-1 p-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">

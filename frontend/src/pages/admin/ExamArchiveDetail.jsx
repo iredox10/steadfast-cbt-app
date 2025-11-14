@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaCalendarAlt, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaSearch, FaUsers, FaChevronRight, FaArrowUp, FaArrowDown, FaFilePdf, FaFileExcel } from "react-icons/fa";
+import { FaSearch, FaChevronRight, FaArrowUp, FaArrowDown, FaFilePdf, FaFileExcel } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import { format } from 'date-fns';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import AdminSidebar from "../../components/AdminSidebar";
 
 const ExamArchiveDetail = () => {
     const { archiveId, userId } = useParams();
@@ -128,38 +129,7 @@ const ExamArchiveDetail = () => {
 
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
-                 <div className="flex items-center mb-10">
-                    <img src="/assets/buk.png" alt="School Logo" className="h-10 w-10 mr-3" />
-                    <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-                </div>
-                <nav className="space-y-2">
-                    <Link to={`/admin-dashboard/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaListAlt className="mr-3" /> Dashboard
-                    </Link>
-                    <Link to="/admin-sessions" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaCalendarAlt className="mr-3" /> Sessions
-                    </Link>
-                    <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaUsers className="mr-3" /> Students
-                    </Link>
-                    <Link to={`/admin-instructors/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaChalkboardTeacher className="mr-3" /> Instructors
-                    </Link>
-                    <Link to="/exam-archives" className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
-                        <FaBook className="mr-3" /> Exam Archives
-                    </Link>
-                </nav>
-                <div className="absolute bottom-6 left-6 right-6 w-52">
-                     <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaCog className="mr-3" /> Settings
-                    </Link>
-                    <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <FaSignOutAlt className="mr-3" /> Logout
-                    </Link>
-                </div>
-            </aside>
+            <AdminSidebar userId={userId} />
 
             {/* Main Content */}
             <main className="flex-1 p-8">

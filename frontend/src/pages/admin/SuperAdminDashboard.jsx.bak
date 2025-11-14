@@ -3,9 +3,7 @@ import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
 import { 
     FaEye, FaPlus, FaPlay, FaStop, FaChartLine, FaUserCheck, FaFileSignature, 
-    FaUserPlus, FaClipboardList, FaRegClock, FaBell, FaCrown, FaUserShield, FaListAlt,
-    FaUsers, FaChalkboardTeacher, FaBook, FaBuilding, FaTicketAlt, FaCalendarAlt,
-    FaGraduationCap, FaSun, FaMoon, FaCloudSun
+    FaUserPlus, FaClipboardList, FaRegClock, FaBell
 } from 'react-icons/fa';
 import { path } from '../../../utils/path';
 import AdminSidebar from '../../components/AdminSidebar';
@@ -238,6 +236,93 @@ const SuperAdminDashboard = () => {
     return (
         <div className="flex min-h-screen bg-gray-50">
             <AdminSidebar userId={userId} />
+                    <Link 
+                        to={`/admin-students/${userId}`}
+                        className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <FaUsers className="mr-3" />
+                        <span>Students</span>
+                    </Link>
+
+                    <Link 
+                        to={`/admin-instructors/${userId}`}
+                        className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <FaChalkboardTeacher className="mr-3" />
+                        <span>Instructors</span>
+                    </Link>
+
+                    <Link 
+                        to={`/admin-exam/${userId}`}
+                        className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <FaBook className="mr-3" />
+                        <span>Exams</span>
+                    </Link>
+
+                    <Link 
+                        to={`/admin-tickets/${userId}`}
+                        className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <FaTicketAlt className="mr-3" />
+                        <span>Exam Tickets</span>
+                    </Link>
+
+                    <Link 
+                        to="/exam-archives"
+                        className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <FaEye className="mr-3" />
+                        <span>Exam Archives</span>
+                    </Link>
+
+                    {currentUser?.role === 'super_admin' && (
+                        <>
+                            <Link 
+                                to="/department-management"
+                                className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <FaBuilding className="mr-3" />
+                                <span>Departments</span>
+                            </Link>
+
+                            <Link 
+                                to="/admin-sessions"
+                                className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <FaCalendarAlt className="mr-3" />
+                                <span>Academic Sessions</span>
+                            </Link>
+
+                            <Link 
+                                to="/admin-management"
+                                className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <FaUserShield className="mr-3" />
+                                <span>Admin Management</span>
+                            </Link>
+                        </>
+                    )}
+                </nav>
+
+                {/* Footer Actions - Fixed at bottom */}
+                <div className="mt-auto pt-4 border-t border-gray-200 space-y-2">
+                    <Link 
+                        to="#" 
+                        className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <FaCog className="mr-3" />
+                        <span>Settings</span>
+                    </Link>
+                    <Link 
+                        to="/admin-login"
+                        className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                        <FaSignOutAlt className="mr-3" />
+                        <span>Logout</span>
+                    </Link>
+                </div>
+            </aside>
 
             {/* Main Content */}
             <main className="flex-1 p-8 overflow-y-auto">

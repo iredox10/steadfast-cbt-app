@@ -3,6 +3,7 @@ import axios from 'axios';
 import { path } from '../../../utils/path';
 import { FaPlus, FaUsers, FaUserShield, FaCrown, FaEdit, FaTrash, FaArrowAltCircleLeft, FaArrowLeft } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
+import AdminSidebar from '../../components/AdminSidebar';
 
 
 const AdminManagement = () => {
@@ -243,21 +244,21 @@ const AdminManagement = () => {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
-                <div className='flex items-center gap-3'>
-                    <FaArrowLeft />
-                    <button onClick={() => navigate(-1)}>Go Back</button>
-                </div>
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Admin Management</h1>
-                    <p className="text-gray-600 mt-2">Manage system administrators and their access levels</p>
-                </div>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                    <FaPlus className="mr-2" />
+        <div className="flex min-h-screen bg-gray-50">
+            <AdminSidebar userId={currentUser?.id} />
+            
+            <div className="flex-1 p-8">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">Admin Management</h1>
+                            <p className="text-gray-600 mt-2">Manage system administrators and their access levels</p>
+                        </div>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                        >
+                            <FaPlus className="mr-2" />
                     Create Admin
                 </button>
             </div>
@@ -532,7 +533,9 @@ const AdminManagement = () => {
                     </div>
                 )
             }
-        </div >
+                </div>
+            </div>
+        </div>
     );
 };
 

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaCalendarAlt, FaPlus, FaTimes, FaUsers, FaBook, FaChalkboardTeacher, FaCog, FaSignOutAlt, FaListAlt, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
+import { FaCalendarAlt, FaPlus, FaTimes, FaBook, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
 import { path } from "../../../utils/path";
+import AdminSidebar from "../../components/AdminSidebar";
 
 const AcdSession = () => {
     const { userId } = useParams();
@@ -16,6 +17,7 @@ const AcdSession = () => {
     const [selectedSession, setSelectedSession] = useState(null);
     const [actionType, setActionType] = useState(''); // 'activate' or 'deactivate'
     const [newSessionTitle, setNewSessionTitle] = useState("");
+    const [selectedYear, setSelectedYear] = useState("");
     const [errMsg, setErrMsg] = useState("");
 
     // Helper function to check if a session is active
@@ -68,20 +70,46 @@ const AcdSession = () => {
 
     const handleAddSession = async (e) => {
         e.preventDefault();
-        if (!newSessionTitle) {
-            setErrMsg("Session title cannot be empty.");
+        if (!selectedYear) {
+            setErrMsg("Please select a year.");
             return;
         }
         setErrMsg("");
+        
+        const year = parseInt(selectedYear);
+        const sessionTitle = `${year}/${year + 1}`;
+        
         try {
-            await axios.post(`${path}/add-acd-session`, { title: newSessionTitle, status: "inactive" });
+            await axios.post(`${path}/add-acd-session`, { title: sessionTitle, status: "inactive" });
             setShowAddModal(false);
+            setSelectedYear("");
             setNewSessionTitle("");
             fetchSessions(); // Refetch to show the new session
         } catch (err) {
             console.error("Error adding session:", err);
             setErrMsg(err.response?.data || "Failed to add session.");
         }
+    };
+    
+    const handleYearChange = (e) => {
+        const year = e.target.value;
+        setSelectedYear(year);
+        if (year) {
+            const nextYear = parseInt(year) + 1;
+            setNewSessionTitle(`${year}/${nextYear}`);
+        } else {
+            setNewSessionTitle("");
+        }
+    };
+    
+    const generateYearOptions = () => {
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        // Generate years from 10 years ago to 5 years in the future
+        for (let i = currentYear - 10; i <= currentYear + 5; i++) {
+            years.push(i);
+        }
+        return years;
     };
 
     const handleActivateSession = async () => {
@@ -117,41 +145,7 @@ const AcdSession = () => {
 
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white p-6 flex-shrink-0 border-r border-gray-200">
-                <div className="flex items-center mb-10">
-                    <img src="/assets/buk.png" alt="School Logo" className="h-10 w-10 mr-3" />
-                    <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-                </div>
-                <nav className="space-y-2">
-                    <Link to={`/admin-dashboard/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaListAlt className="mr-3" /> Dashboard
-                    </Link>
-                    <Link to="/admin-sessions" className="flex items-center p-3 bg-blue-500 text-white rounded-lg">
-                        <FaCalendarAlt className="mr-3" /> Sessions
-                    </Link>
-                    <Link to={`/admin-students/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaUsers className="mr-3" /> Students
-                    </Link>
-                    <Link to="/admin-instructors" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaChalkboardTeacher className="mr-3" /> Instructors
-                    </Link>
-                    <Link to="/exam-archives" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaBook className="mr-3" /> Exam Archives
-                    </Link>
-                    <Link to={`/admin-exam/${userId}`} className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaBook className="mr-3" /> Exams
-                    </Link>
-                </nav>
-                <div className="absolute bottom-6 left-6 right-6 w-52">
-                    <Link to="#" className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <FaCog className="mr-3" /> Settings
-                    </Link>
-                    <Link to="/admin-login" className="flex items-center p-3 mt-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                        <FaSignOutAlt className="mr-3" /> Logout
-                    </Link>
-                </div>
-            </aside>
+            <AdminSidebar userId={userId} />
 
             {/* Main Content */}
             <main className="flex-1 p-8">
@@ -299,20 +293,54 @@ const AcdSession = () => {
                         </div>
                         <form onSubmit={handleAddSession}>
                             {errMsg && <p className="text-red-500 mb-4">{errMsg}</p>}
-                            <label htmlFor="sessionTitle" className="block text-sm font-medium text-gray-700 mb-2">Session Title</label>
-                            <input
-                                id="sessionTitle"
-                                type="text"
-                                value={newSessionTitle}
-                                onChange={(e) => setNewSessionTitle(e.target.value)}
-                                placeholder="e.g., 2024/2025"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            />
+                            <div className="mb-4">
+                                <label htmlFor="sessionYear" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Select Academic Year
+                                </label>
+                                <select
+                                    id="sessionYear"
+                                    value={selectedYear}
+                                    onChange={handleYearChange}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                >
+                                    <option value="">-- Select Year --</option>
+                                    {generateYearOptions().map((year) => (
+                                        <option key={year} value={year}>
+                                            {year}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Select the starting year of the academic session
+                                </p>
+                            </div>
+                            
+                            {newSessionTitle && (
+                                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <p className="text-sm text-gray-600 mb-1">Session will be created as:</p>
+                                    <p className="text-lg font-bold text-blue-800">{newSessionTitle}</p>
+                                </div>
+                            )}
+                            
                             <div className="flex justify-end gap-4 mt-6">
-                                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        setShowAddModal(false);
+                                        setSelectedYear("");
+                                        setNewSessionTitle("");
+                                        setErrMsg("");
+                                    }} 
+                                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                <button 
+                                    type="submit" 
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                                    disabled={!selectedYear}
+                                >
                                     Create Session
                                 </button>
                             </div>

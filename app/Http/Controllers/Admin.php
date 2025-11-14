@@ -110,9 +110,23 @@ class Admin extends Controller
     public function add_acd_session(Request $request)
     {
         $validate = request()->validate([
-            'title' => 'string | required',
+            'title' => ['required', 'string', 'regex:/^\d{4}\/\d{4}$/'],
             'status' => 'string',
         ]);
+        
+        // Additional validation: ensure the format is YYYY/YYYY+1
+        $parts = explode('/', $validate['title']);
+        if (count($parts) === 2) {
+            $startYear = (int)$parts[0];
+            $endYear = (int)$parts[1];
+            
+            if ($endYear !== $startYear + 1) {
+                return response()->json([
+                    'error' => 'Invalid session format. The end year must be exactly one year after the start year (e.g., 2022/2023).'
+                ], 422);
+            }
+        }
+        
         try {
             $acd_session = Acd_session::create($validate);
             return response()->json($acd_session, 201);
