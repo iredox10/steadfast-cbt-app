@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import LevelSelector from "../../components/LevelSelector";
 import AdminSidebar from "../../components/AdminSidebar";
+import * as XLSX from 'xlsx';
 
 const AdminStudents = () => {
     const { id: userId } = useParams();
@@ -290,6 +291,38 @@ const AdminStudents = () => {
         } finally {
             setIsUploading(false);
         }
+    };
+
+    const handleDownloadTemplate = () => {
+        // Create template data with headers and sample row
+        const templateData = [
+            {
+                'Full Name': 'John Doe',
+                'Candidate Number': 'STU001',
+                'Department': 'Computer Science',
+                'Programme': 'BSc Computer Science',
+                'Email': 'john.doe@example.com'
+            }
+        ];
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(templateData);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 20 }, // Full Name
+            { wch: 18 }, // Candidate Number
+            { wch: 25 }, // Department
+            { wch: 30 }, // Programme
+            { wch: 25 }  // Email
+        ];
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Students');
+
+        // Generate and download file
+        XLSX.writeFile(wb, 'student_import_template.xlsx');
     };
 
     const filteredStudents = useMemo(() =>
@@ -676,12 +709,30 @@ const AdminStudents = () => {
                         </div>
                         <form onSubmit={handleImportStudents} className="space-y-4">
                             {errMsg && <p className="text-red-500">{errMsg}</p>}
+                            
+                            {/* Download Template Button */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm text-gray-700 mb-3">
+                                    <strong>First time importing?</strong> Download the template to see the required format.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadTemplate}
+                                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full justify-center"
+                                >
+                                    <FaDownload className="mr-2" />
+                                    Download Excel Template
+                                </button>
+                            </div>
+
+                            {/* File Upload */}
                             <div className="p-4 border-2 border-dashed rounded-lg text-center">
                                 <input type="file" onChange={e => setFile(e.target.files[0])} accept=".xlsx, .xls" className="hidden" id="file-upload" />
                                 <label htmlFor="file-upload" className="cursor-pointer text-blue-500">
                                     {file ? file.name : "Choose an Excel file"}
                                 </label>
                             </div>
+                            
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" disabled={isUploading} className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300">
