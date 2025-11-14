@@ -175,16 +175,6 @@ const AdminSidebar = ({ userId }) => {
                     </Link>
                 )}
 
-                {/* Course Management - Level Admin only */}
-                {currentUser?.role === 'level_admin' && (
-                    <Link 
-                        to="/level-admin-courses" 
-                        className={getLinkClass('level-admin-courses')}
-                    >
-                        <FaGraduationCap className="mr-3" /> Course Management
-                    </Link>
-                )}
-
                 {/* Admin Management - Super Admin only */}
                 {currentUser?.role === 'super_admin' && (
                     <Link 
@@ -195,8 +185,8 @@ const AdminSidebar = ({ userId }) => {
                     </Link>
                 )}
 
-                {/* Department Management - Super Admin and Level Admin only */}
-                {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                {/* Department Management - Super Admin only */}
+                {currentUser?.role === 'super_admin' && (
                     <Link 
                         to="/department-management" 
                         className={getLinkClass('department-management')}
