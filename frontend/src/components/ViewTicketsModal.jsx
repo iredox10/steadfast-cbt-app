@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { path } from "../../utils/path";
-import { FaTimes, FaTicketAlt, FaUser, FaCheck, FaClock, FaDownload } from 'react-icons/fa';
+import { FaTimes, FaTicketAlt, FaUser, FaCheck, FaClock, FaDownload, FaFileWord, FaFileExcel } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
 
 const ViewTicketsModal = ({ examId, courseName, onClose }) => {
     const [data, setData] = useState(null);
@@ -84,6 +86,120 @@ const ViewTicketsModal = ({ examId, courseName, onClose }) => {
         a.download = `exam_${examId}_tickets.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
+    };
+
+    const exportToExcel = () => {
+        if (!data?.tickets) return;
+
+        // Prepare data for Excel
+        const excelData = data.tickets.map(ticket => ({
+            'Ticket Number': ticket.ticket_no,
+            'Status': ticket.is_used ? 'Used' : 'Available',
+            'Student Name': ticket.student?.full_name || '-',
+            'Candidate Number': ticket.student?.candidate_no || '-',
+            'Department': ticket.student?.department || '-',
+            'Programme': ticket.student?.programme || '-',
+            'Assigned At': ticket.assigned_at ? new Date(ticket.assigned_at).toLocaleString() : '-',
+            'Used At': ticket.is_used && ticket.updated_at ? new Date(ticket.updated_at).toLocaleString() : '-'
+        }));
+
+        // Create workbook and worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 15 }, // Ticket Number
+            { wch: 12 }, // Status
+            { wch: 25 }, // Student Name
+            { wch: 18 }, // Candidate Number
+            { wch: 25 }, // Department
+            { wch: 30 }, // Programme
+            { wch: 22 }, // Assigned At
+            { wch: 22 }  // Used At
+        ];
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Exam Tickets');
+
+        // Generate and download file
+        const fileName = `exam-tickets-${courseName?.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+    };
+
+    const exportToWord = async () => {
+        if (!data?.tickets) return;
+
+        try {
+            // Create document sections
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        // Title
+                        new Paragraph({
+                            text: `Exam Tickets - ${courseName || 'Course'}`,
+                            heading: HeadingLevel.HEADING_1,
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 400 }
+                        }),
+                        
+                        // Summary Info
+                        new Paragraph({
+                            text: `Generated: ${new Date().toLocaleString()}`,
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 200 }
+                        }),
+                        new Paragraph({
+                            text: `Total Tickets: ${data.total_tickets || 0} | Available: ${data.available_tickets || 0} | Used: ${data.used_tickets || 0}`,
+                            alignment: AlignmentType.CENTER,
+                            spacing: { after: 400 }
+                        }),
+
+                        // Table
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                // Header Row
+                                new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ text: 'Ticket #', bold: true })] }),
+                                        new TableCell({ children: [new Paragraph({ text: 'Status', bold: true })] }),
+                                        new TableCell({ children: [new Paragraph({ text: 'Student Name', bold: true })] }),
+                                        new TableCell({ children: [new Paragraph({ text: 'Candidate No', bold: true })] }),
+                                        new TableCell({ children: [new Paragraph({ text: 'Department', bold: true })] }),
+                                        new TableCell({ children: [new Paragraph({ text: 'Assigned At', bold: true })] }),
+                                    ]
+                                }),
+                                // Data Rows
+                                ...data.tickets.map(ticket => new TableRow({
+                                    children: [
+                                        new TableCell({ children: [new Paragraph(ticket.ticket_no)] }),
+                                        new TableCell({ children: [new Paragraph(ticket.is_used ? 'Used' : 'Available')] }),
+                                        new TableCell({ children: [new Paragraph(ticket.student?.full_name || '-')] }),
+                                        new TableCell({ children: [new Paragraph(ticket.student?.candidate_no || '-')] }),
+                                        new TableCell({ children: [new Paragraph(ticket.student?.department || '-')] }),
+                                        new TableCell({ children: [new Paragraph(ticket.assigned_at ? new Date(ticket.assigned_at).toLocaleString() : '-')] }),
+                                    ]
+                                }))
+                            ]
+                        })
+                    ]
+                }]
+            });
+
+            // Generate and download
+            const blob = await Packer.toBlob(doc);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `exam-tickets-${courseName?.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.docx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error generating Word document:', error);
+            alert('Failed to generate Word document');
+        }
     };
 
     const copyAvailableTickets = () => {
@@ -212,13 +328,34 @@ const ViewTicketsModal = ({ examId, courseName, onClose }) => {
                                         Copy Available
                                     </button>
 
-                                    <button
-                                        onClick={exportToCSV}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                                    >
-                                        <FaDownload />
-                                        Export CSV
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={exportToExcel}
+                                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                                            title="Download as Excel file"
+                                        >
+                                            <FaFileExcel />
+                                            Excel
+                                        </button>
+
+                                        <button
+                                            onClick={exportToWord}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                            title="Download as Word document"
+                                        >
+                                            <FaFileWord />
+                                            Word
+                                        </button>
+
+                                        <button
+                                            onClick={exportToCSV}
+                                            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                            title="Download as CSV file"
+                                        >
+                                            <FaDownload />
+                                            CSV
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
