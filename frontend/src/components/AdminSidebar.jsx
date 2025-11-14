@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { path } from '../../utils/path';
 import { 
@@ -21,6 +21,7 @@ const AdminSidebar = ({ userId }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const location = useLocation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchCurrentUser();
@@ -37,6 +38,13 @@ const AdminSidebar = ({ userId }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleLogout = () => {
+        // Clear authentication token
+        localStorage.removeItem('token');
+        // Redirect to admin login page
+        navigate('/admin-login');
     };
 
     const isActiveRoute = (route) => {
@@ -207,12 +215,12 @@ const AdminSidebar = ({ userId }) => {
                 >
                     <FaCog className="mr-3" /> Settings
                 </Link>
-                <Link 
-                    to="/admin-login" 
-                    className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                <button 
+                    onClick={handleLogout}
+                    className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors w-full text-left"
                 >
                     <FaSignOutAlt className="mr-3" /> Logout
-                </Link>
+                </button>
             </div>
         </aside>
     );

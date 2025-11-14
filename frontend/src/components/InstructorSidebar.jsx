@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import { FaTachometerAlt, FaBook, FaQuestionCircle, FaSignOutAlt } from 'react-icons/fa';
 import logo from '../../public/assets/buk.png';
 
@@ -21,6 +21,14 @@ const SidebarNavLink = ({ to, icon, text }) => (
 
 const InstructorSidebar = () => {
     const { id: userId } = useParams();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        // Clear authentication token
+        localStorage.removeItem('token');
+        // Redirect to admin login page
+        navigate('/admin-login');
+    };
 
     const navLinks = [
         { to: `/instructor/${userId}`, icon: <FaTachometerAlt className="text-xl" />, text: 'Dashboard' },
@@ -41,7 +49,13 @@ const InstructorSidebar = () => {
             </nav>
 
             <div className="px-6 py-6 border-t border-gray-700 space-y-4">
-                <SidebarNavLink to="/admin-login" icon={<FaSignOutAlt className="text-xl" />} text="Logout" />
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-4 px-6 py-3 rounded-lg transition-colors duration-200 text-gray-300 hover:bg-gray-700 hover:text-white w-full"
+                >
+                    <FaSignOutAlt className="text-xl" />
+                    <span className="font-medium">Logout</span>
+                </button>
                 <SidebarNavLink to="/help" icon={<FaQuestionCircle className="text-xl" />} text="Help Center" />
             </div>
         </div>
