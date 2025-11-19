@@ -77,7 +77,7 @@ const NotCheckIn = () => {
                                                 <span className="text-yellow-800 font-bold text-sm">3</span>
                                             </div>
                                             <p className="text-yellow-700">
-                                                Wait for the invigilator to check you in and generate a ticket number
+                                                Present the ticket number you were issued before the exam so the invigilator can verify and check you in
                                             </p>
                                         </div>
                                         <div className="flex items-start">
@@ -121,8 +121,8 @@ const NotCheckIn = () => {
                                 <div className="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
                                     <h4 className="font-bold text-blue-800 mb-2 text-center">Ticket-Based Access System</h4>
                                     <p className="text-blue-700 text-sm text-center">
-                                        For security purposes, each student must be checked in by an authorized invigilator 
-                                        who will generate a unique ticket number. This ticket number is required to access your exam.
+                                        For security purposes, each student receives a ticket number in advance. Bring this ticket to the hall, 
+                                        and an authorized invigilator will verify it before you can access the exam.
                                     </p>
                                 </div>
 

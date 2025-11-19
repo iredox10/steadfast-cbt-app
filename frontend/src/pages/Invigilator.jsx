@@ -77,12 +77,21 @@ const Invigilator = () => {
             }, { headers });
 
             if (response.status === 200) {
-                const updatedStudent = response.data;
+                const updatedRecord = response.data?.student;
+                const checkinTime = response.data?.checkin_time || updatedRecord?.checkin_time || new Date().toISOString();
+                const ticketNumber = response.data?.ticket_no || updatedRecord?.ticket_no || student.ticket_no;
                 
                 setStudents(prevStudents => 
                     prevStudents.map(s => 
                         s.id === student.id 
-                            ? { ...s, is_checked_in: true, checkin_time: updatedStudent.checkin_time || new Date().toISOString() }
+                            ? { 
+                                ...s, 
+                                is_checked_in: true, 
+                                checkin_time: checkinTime,
+                                ticket_no: ticketNumber,
+                                ticket_assigned: true,
+                                ticket_used: true
+                            }
                             : s
                     )
                 );
@@ -392,9 +401,9 @@ const Invigilator = () => {
                         <div>
                             <h3 className="text-lg font-bold text-blue-900 mb-2">Your Role as Invigilator</h3>
                             <p className="text-blue-800">
-                                <strong>Physically verify each student's identity</strong> before checking them in. 
-                                Students with tickets can only access the exam <strong>after you check them in</strong>. 
-                                Your check-in approval is required for exam access.
+                                <strong>Physically verify each student's identity</strong> and confirm that the ticket number they present matches the one assigned in the system. 
+                                Students can only access the exam <strong>after you approve their check-in</strong>. 
+                                Your verification is the final step in activating their pre-issued ticket.
                             </p>
                         </div>
                     </div>

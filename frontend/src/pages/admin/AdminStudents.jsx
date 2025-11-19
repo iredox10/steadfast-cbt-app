@@ -213,59 +213,28 @@ const AdminStudents = () => {
         }
     };
 
-    const handleExtendTime = async (e) => {
-        e.preventDefault();
+    const handleViewTicket = async (student) => {
         setErrMsg("");
 
-        console.log('Active exam:', activeExam);
-        console.log('Selected student:', selectedStudent);
-
-        if (!extensionMinutes || parseInt(extensionMinutes) < 1) {
-            setErrMsg("Please enter a valid number of minutes");
-            return;
-        }
-
-            // Get the active exam first
-            const examRes = await axios.get(`${path}/get-current-exam`);
-            const currentExam = examRes.data;
-            setActiveExam(currentExam);
-
-            // Always use /students-by-level for consistency with dashboard
-            let studentsUrl = `${path}/students-by-level`;
-            // For super admins, add level filter if a specific level is selected
-            if (userRes.data.role === 'super_admin' && currentLevel) {
-                studentsUrl += `?level_id=${currentLevel}`;
-            }
-            const res = await axios.get(studentsUrl, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
-            setStudents(res.data);
-
-        // Confirm action
-        const confirmMessage = `Are you sure you want to regenerate a new ticket for ${student.full_name}?\n\nThis will:\n• Generate a new ticket number\n• Reset their login status\n• Allow them to log in again with the new ticket`;
-        
-        if (!window.confirm(confirmMessage)) {
-            return;
-        }
-
         try {
-            const res = await axios.post(`${path}/invigilator/regenerate-ticket`, {
+            const res = await axios.post(`${path}/invigilator/generate-ticket`, {
                 student_id: student.id
             });
 
-            console.log('Regenerate ticket response:', res.data);
-            
-            // Show success message with new ticket
-            alert(`New ticket generated successfully!\n\nStudent: ${student.full_name}\nNew Ticket: ${res.data.new_ticket}\n\nPlease provide this new ticket to the student so they can log in and continue their exam.`);
-            
-            // Refresh the student list to show updated ticket
-            await fetchStudents();
+            const ticketNumber = res.data?.ticket_no;
+
+            if (!ticketNumber) {
+                throw new Error('Ticket not found for this student.');
+            }
+
+            alert(`Ticket for ${student.full_name}: ${ticketNumber}\n\nPlease ask the student to keep this ticket safe. Invigilators only verify tickets during check-in.`);
         } catch (error) {
-            console.error('Regenerate ticket error:', error);
+            console.error('View ticket error:', error);
             setErrMsg(
                 error.response?.data?.error || 
                 error.response?.data?.message || 
-                "Failed to regenerate ticket"
+                error.message ||
+                "Unable to fetch ticket"
             );
         }
     };
@@ -477,7 +446,7 @@ const AdminStudents = () => {
                                             </span>
                                         ) : (
                                             <span className="px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-full italic">
-                                                Not generated
+                                                Not assigned yet
                                             </span>
                                         )}
                                     </td>
@@ -494,11 +463,11 @@ const AdminStudents = () => {
                                                     Extend Time
                                                 </button>
                                                 <button
-                                                    onClick={() => handleRegenerateTicket(student)}
+                                                    onClick={() => handleViewTicket(student)}
                                                     className="px-3 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 text-sm"
-                                                    title="Generate new ticket for student"
+                                                    title="View the ticket already assigned to this student"
                                                 >
-                                                    New Ticket
+                                                    View Ticket
                                                 </button>
                                             </div>
                                         )}

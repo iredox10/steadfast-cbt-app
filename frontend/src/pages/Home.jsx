@@ -63,12 +63,23 @@ const Home = () => {
             navigate(`/exam-instructions/${res.data.id}`);
             setLoading(false);
         } catch (err) {
+            console.log('Login error:', err.response); // Debug log
+            
             // Handle different error types
-            if (err.response?.status === 403 && err.response?.data?.error === 'check_in_required') {
-                // Student needs to check in with invigilator first
-                setErrMsg(err.response.data.message || 'Please see the invigilator to check in before starting your exam.');
-            } else if (err.response?.status === 400 && err.response?.data === 'user not checked in') {
+            if (err.response?.status === 403) {
+                // Check for check-in requirement
+                if (err.response?.data?.error === 'check_in_required' || !err.response?.data?.is_checked_in) {
+                    // Student needs to check in with invigilator first
+                    navigate("/not-check-in");
+                    setLoading(false);
+                    return;
+                }
+            }
+            
+            if (err.response?.status === 400 && err.response?.data === 'user not checked in') {
                 navigate("/not-check-in");
+                setLoading(false);
+                return;
             } else {
                 // Ensure error message is always a string
                 const errorMessage = typeof err.response?.data === 'string' 
@@ -197,10 +208,8 @@ const Home = () => {
                                                 Remember me
                                             </label>
                                         </div>
-                                        <div className="text-sm">
-                                            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                                                Forgot Ticket Number?
-                                            </a>
+                                        <div className="text-sm text-gray-600">
+                                            Lost your ticket? Contact the exam officer to have it re-issued before check-in.
                                         </div>
                                     </div>
 
@@ -237,8 +246,8 @@ const Home = () => {
                                                 Important Notice
                                             </h3>
                                             <p className="mt-1 text-sm text-blue-700">
-                                                You must be checked in by the invigilator before you can access your exam. 
-                                                Please see the invigilator to verify your identity and check in first.
+                                                Bring the ticket number you were assigned before exam day. An invigilator must verify your identity 
+                                                and confirm that ticket before you are allowed to continue to the exam system.
                                             </p>
                                         </div>
                                     </div>

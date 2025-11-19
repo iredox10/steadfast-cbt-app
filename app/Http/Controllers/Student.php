@@ -21,114 +21,126 @@ class Student extends Controller
      */
     public function login(Request $request)
     {
+        \Log::info('Student login attempt', [
+            'candidate_no' => $request->input('candidate_no'),
+            'ticket_no' => $request->input('ticket_no')
+        ]);
+
         $student = \App\Models\Student::where('candidate_no', $request->input('candidate_no'))->first();
         if (!$student) {
+            \Log::warning('Student not found', ['candidate_no' => $request->input('candidate_no')]);
             return response()->json('user not found', 404);
         }
         
+        \Log::info('Student found', [
+            'id' => $student->id,
+            'candidate_no' => $student->candidate_no,
+            'is_checked_in' => $student->is_checked_in,
+            'checkin_time' => $student->checkin_time
+        ]);
+
         // Check if student has been checked in by invigilator
-        if (!$student->is_checked_in) {
+        // Cast to boolean to handle tinyint properly
+        if (!$student->is_checked_in || $student->is_checked_in == 0) {
+            \Log::warning('Student not checked in - blocking login', [
+                'candidate_no' => $student->candidate_no,
+                'is_checked_in' => $student->is_checked_in
+            ]);
             return response()->json([
                 'error' => 'check_in_required',
-                'message' => 'Please see the invigilator to check in before starting your exam.'
+                'message' => 'Please see the invigilator to check in before starting your exam.',
+                'is_checked_in' => $student->is_checked_in
             ], 403);
         }
+        
+        \Log::info('Student is checked in - proceeding with login', ['candidate_no' => $student->candidate_no]);
         
         // Check if using ticket number or password
         $ticketNo = $request->input('ticket_no');
         $password = $request->input('password');
         
         if ($ticketNo) {
-            // NEW TICKET SYSTEM: Check if student already has an assigned ticket
-            $existingTicket = \App\Models\ExamTicket::where('assigned_to_student_id', $student->id)
-                ->where('is_used', true)
-                ->first();
+        // Find the ticket record
+        $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)->first();
+
+        if (!$ticketRecord) {
+            return response()->json('Invalid ticket number.', 404);
+        }
+
+        // Check if ticket is already assigned to SOMEONE ELSE
+        if ($ticketRecord->assigned_to_student_id && $ticketRecord->assigned_to_student_id != $student->id) {
+            return response()->json('This ticket has already been used by another student.', 403);
+        }
+
+        // If ticket is unassigned, assign it to THIS student now
+        if (!$ticketRecord->assigned_to_student_id) {
+            $ticketRecord->assigned_to_student_id = $student->id;
+            $ticketRecord->assigned_at = now();
+            $ticketRecord->save();
             
-            if ($existingTicket) {
-                // Student is re-logging in with their previously assigned ticket
-                if ($existingTicket->ticket_no !== $ticketNo) {
-                    return response()->json('This ticket number does not match your assigned ticket. Please use your original ticket number.', 403);
-                }
-                
-                // Find or create candidate record for this student
-                $candidate = \App\Models\Candidate::firstOrCreate(
-                    [
-                        'student_id' => $student->id,
-                        'exam_id' => $existingTicket->exam_id,
-                    ],
-                    [
-                        'full_name' => $student->full_name,
-                        'programme' => $student->programme,
-                        'department' => $student->department,
-                        'password' => $student->password,
-                        'is_logged_on' => 0,
-                        'is_checkout' => 0,
-                        'checkin_time' => $existingTicket->assigned_at,
-                        'checkout_time' => null,
-                        'ticket_no' => $ticketNo,
-                        'status' => 'active',
-                    ]
-                );
-                
-                // Update student checkin time
-                if (!$student->checkin_time) {
-                    $student->checkin_time = $existingTicket->assigned_at;
-                    $student->save();
-                }
-                
-                $student->refresh();
-                return response()->json($student);
+            \Log::info('Ticket assigned to student', [
+                'ticket_no' => $ticketNo,
+                'student_id' => $student->id
+            ]);
+        }
+
+        $examForTicket = Exam::find($ticketRecord->exam_id);
+
+            if (!$examForTicket || $examForTicket->activated !== 'yes') {
+                return response()->json('This ticket is not linked to an active exam.', 404);
             }
-            
-            // First-time login: Find an available ticket from the pool
-            $activeExam = Exam::where('activated', 'yes')->first();
-            if (!$activeExam) {
-                return response()->json('No active exam found', 404);
-            }
-            
-            // Check if the provided ticket exists and is available
-            $examTicket = \App\Models\ExamTicket::where('exam_id', $activeExam->id)
-                ->where('ticket_no', $ticketNo)
-                ->where('is_used', false)
-                ->first();
-            
-            if (!$examTicket) {
-                return response()->json('Invalid or already used ticket number', 404);
-            }
-            
-            // Check if student is enrolled in the exam's course
+
+            // Confirm student is enrolled in the course linked to the ticket's exam
             $isEnrolled = \App\Models\StudentCourse::where('student_id', $student->id)
-                ->where('course_id', $activeExam->course_id)
+                ->where('course_id', $examForTicket->course_id)
                 ->exists();
-            
+
             if (!$isEnrolled) {
                 return response()->json('You are not enrolled in this exam\'s course', 403);
             }
-            
-            // Assign ticket to student
-            $examTicket->assignToStudent($student->id);
-            
-            // Create candidate record
-            $candidate = \App\Models\Candidate::create([
-                'student_id' => $student->id,
-                'exam_id' => $activeExam->id,
-                'full_name' => $student->full_name,
-                'programme' => $student->programme,
-                'department' => $student->department,
-                'password' => $student->password,
-                'is_logged_on' => 0,
-                'is_checkout' => 0,
-                'checkin_time' => now(),
-                'checkout_time' => null,
-                'ticket_no' => $ticketNo,
-                'status' => 'active',
-            ]);
-            
-            // Update student checkin time
-            $student->checkin_time = now();
-            $student->save();
+
+            // Ensure a candidate record exists for this student and exam
+            $candidate = \App\Models\Candidate::firstOrCreate(
+                [
+                    'student_id' => $student->id,
+                    'exam_id' => $examForTicket->id,
+                ],
+                [
+                    'full_name' => $student->full_name,
+                    'programme' => $student->programme,
+                    'department' => $student->department,
+                    'password' => $student->password,
+                    'is_logged_on' => 0,
+                    'is_checkout' => 0,
+                    'checkin_time' => $student->checkin_time ?? now(),
+                    'checkout_time' => null,
+                    'ticket_no' => $ticketNo,
+                    'status' => 'active',
+                ]
+            );
+
+            // Update candidate ticket if it differs (e.g. record created during check-in)
+            if ($candidate->ticket_no !== $ticketNo) {
+                $candidate->ticket_no = $ticketNo;
+                $candidate->save();
+            }
+
+            // Mark ticket as used the first time the student logs in
+            if (!$ticketRecord->is_used) {
+                $ticketRecord->is_used = true;
+                // Preserve existing assigned_at timestamp from activation
+                $ticketRecord->save();
+            }
+
+            // Ensure student check-in time is recorded once invigilator has checked them in
+            if (!$student->checkin_time && $student->is_checked_in) {
+                $student->checkin_time = $candidate->checkin_time ?? now();
+                $student->save();
+            }
+
             $student->refresh();
-            
+
+            \Log::info('Student login successful', ['candidate_no' => $student->candidate_no]);
             return response()->json($student);
             
         } else if ($password) {

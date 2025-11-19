@@ -570,51 +570,42 @@ class Admin extends Controller
             
             $exam->save();
 
-            // Generate ticket pool for enrolled students
-            $course = Course::find($exam->course_id);
-            $ticketsGenerated = 0;
+            // Generate tickets pool for enrolled students
+        $course = Course::find($exam->course_id);
+        $ticketsGenerated = 0;
+        
+        if ($course) {
+            // Count total enrolled students
+            $studentCount = $course->studentCourses()->count();
             
-            if ($course) {
-                $studentCourses = $course->studentCourses;
-                
-                // Count eligible students
-                $eligibleStudents = 0;
-                foreach ($studentCourses as $studentCourse) {
-                    $student = Student::find($studentCourse->student_id);
-                    
-                    if (!$student) {
-                        continue;
-                    }
-                    
-                    // Filter by level_id if exam has a level assigned (for level admins)
-                    if ($exam->level_id && $student->level_id != $exam->level_id) {
-                        continue;
-                    }
-                    
-                    $eligibleStudents++;
-                }
-                
-                // Generate exact number of tickets matching eligible students
-                for ($i = 0; $i < $eligibleStudents; $i++) {
+            // Count existing tickets for this exam
+            $existingTicketCount = ExamTicket::where('exam_id', $exam->id)->count();
+            
+            // Calculate how many new tickets are needed
+            $ticketsNeeded = $studentCount - $existingTicketCount;
+            
+            if ($ticketsNeeded > 0) {
+                for ($i = 0; $i < $ticketsNeeded; $i++) {
                     $ticket_no = ExamTicket::generateUniqueTicketNumber($exam->id);
                     
                     ExamTicket::create([
                         'exam_id' => $exam->id,
                         'ticket_no' => $ticket_no,
                         'is_used' => false,
-                        'assigned_to_student_id' => null,
+                        'assigned_to_student_id' => null, // Explicitly unassigned
                         'assigned_at' => null,
                     ]);
                     
                     $ticketsGenerated++;
                 }
             }
+        }
 
-            return response()->json([
-                'exam' => $exam,
-                'tickets_generated' => $ticketsGenerated,
-                'message' => "Exam activated and {$ticketsGenerated} tickets generated in the ticket pool. Students will be assigned tickets upon login."
-            ]);
+        return response()->json([
+            'exam' => $exam,
+            'tickets_generated' => $ticketsGenerated,
+            'message' => "Exam activated. {$ticketsGenerated} new tickets added to the pool. Total tickets available: " . ($existingTicketCount + $ticketsGenerated)
+        ]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
