@@ -36,6 +36,12 @@ const StudentEnrollment = () => {
     const [levels, setLevels] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
 
+    // Pagination State
+    const [pageAvailable, setPageAvailable] = useState(1);
+    const [itemsPerAvailablePage] = useState(10);
+    const [pageEnrolled, setPageEnrolled] = useState(1);
+    const [itemsPerEnrolledPage] = useState(10);
+
     useEffect(() => {
         fetchCurrentUser();
         fetchData();
@@ -212,6 +218,19 @@ const StudentEnrollment = () => {
         student.department?.toLowerCase().includes(searchUnenrolled.toLowerCase())
     );
 
+    // Pagination Logic
+    const totalAvailablePages = Math.ceil(filteredUnenrolledStudents.length / itemsPerAvailablePage);
+    const paginatedAvailableStudents = filteredUnenrolledStudents.slice(
+        (pageAvailable - 1) * itemsPerAvailablePage,
+        pageAvailable * itemsPerAvailablePage
+    );
+
+    const totalEnrolledPages = Math.ceil(filteredEnrolledStudents.length / itemsPerEnrolledPage);
+    const paginatedEnrolledStudents = filteredEnrolledStudents.slice(
+        (pageEnrolled - 1) * itemsPerEnrolledPage,
+        pageEnrolled * itemsPerEnrolledPage
+    );
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -227,9 +246,8 @@ const StudentEnrollment = () => {
         <div className="min-h-screen bg-gray-50">
             {/* Success/Error Message */}
             {message && (
-                <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 ${
-                    message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-                } text-white`}>
+                <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                    } text-white`}>
                     {message.type === 'success' ? <FaCheckCircle /> : <FaExclamationCircle />}
                     <span>{message.text}</span>
                 </div>
@@ -391,27 +409,26 @@ const StudentEnrollment = () => {
                         </div>
 
                         <div className="overflow-y-auto max-h-[600px]">
-                            {filteredUnenrolledStudents.length === 0 ? (
+                            {paginatedAvailableStudents.length === 0 ? (
                                 <div className="p-8 text-center text-gray-500">
                                     <FaUsers className="mx-auto text-4xl mb-3 opacity-50" />
                                     <p>No available students found</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {filteredUnenrolledStudents.map(student => (
+                                    {paginatedAvailableStudents.map(student => (
                                         <div
                                             key={student.id}
                                             onClick={() => handleSelectStudent(student.id)}
-                                            className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                                                selectedStudents.includes(student.id) ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                                            }`}
+                                            className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedStudents.includes(student.id) ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                                                }`}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedStudents.includes(student.id)}
-                                                        onChange={() => {}}
+                                                        onChange={() => { }}
                                                         className="w-5 h-5 text-blue-500 rounded focus:ring-blue-500"
                                                     />
                                                     {student.image ? (
@@ -437,6 +454,28 @@ const StudentEnrollment = () => {
                                 </div>
                             )}
                         </div>
+                        {/* Available Students Pagination */}
+                        {totalAvailablePages > 1 && (
+                            <div className="p-4 border-t border-gray-100 flex justify-between items-center">
+                                <button
+                                    onClick={() => setPageAvailable(p => Math.max(1, p - 1))}
+                                    disabled={pageAvailable === 1}
+                                    className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-gray-600">
+                                    Page {pageAvailable} of {totalAvailablePages}
+                                </span>
+                                <button
+                                    onClick={() => setPageAvailable(p => Math.min(totalAvailablePages, p + 1))}
+                                    disabled={pageAvailable === totalAvailablePages}
+                                    className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Enrolled Students */}
@@ -461,14 +500,14 @@ const StudentEnrollment = () => {
                         </div>
 
                         <div className="overflow-y-auto max-h-[600px]">
-                            {filteredEnrolledStudents.length === 0 ? (
+                            {paginatedEnrolledStudents.length === 0 ? (
                                 <div className="p-8 text-center text-gray-500">
                                     <FaCheckCircle className="mx-auto text-4xl mb-3 opacity-50" />
                                     <p>No enrolled students found</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-100">
-                                    {filteredEnrolledStudents.map(student => (
+                                    {paginatedEnrolledStudents.map(student => (
                                         <div key={student.id} className="p-4 hover:bg-gray-50 transition-colors">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
@@ -502,6 +541,28 @@ const StudentEnrollment = () => {
                                 </div>
                             )}
                         </div>
+                        {/* Enrolled Students Pagination */}
+                        {totalEnrolledPages > 1 && (
+                            <div className="p-4 border-t border-gray-100 flex justify-between items-center">
+                                <button
+                                    onClick={() => setPageEnrolled(p => Math.max(1, p - 1))}
+                                    disabled={pageEnrolled === 1}
+                                    className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-gray-600">
+                                    Page {pageEnrolled} of {totalEnrolledPages}
+                                </span>
+                                <button
+                                    onClick={() => setPageEnrolled(p => Math.min(totalEnrolledPages, p + 1))}
+                                    disabled={pageEnrolled === totalEnrolledPages}
+                                    className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

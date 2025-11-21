@@ -119,10 +119,13 @@ class InvigilatorController extends Controller
                 ->where('assigned_to_student_id', $student->id)
                 ->first();
 
-            // With dynamic ticket assignment, a student might NOT have a ticket yet.
-            // That is okay. They will claim one upon login.
-            // We only need to ensure they are checked in.
-            $ticketNo = $ticket ? $ticket->ticket_no : null;
+            if (!$ticket) {
+                \Log::error('No ticket found for student', [
+                    'student_id' => $student->id,
+                    'exam_id' => $active_exam->id
+                ]);
+                return response()->json(['error' => 'No ticket assigned to this student yet. Contact the administrator.'], 404);
+            }
 
             // Find or create candidate record
             $candidate = Candidate::where('student_id', $student->id)
@@ -149,7 +152,7 @@ class InvigilatorController extends Controller
                     'is_checked_in' => false,
                     'checkin_time' => null,
                     'checkout_time' => null,
-                    'ticket_no' => $ticketNo,
+                    'ticket_no' => $ticket->ticket_no,
                     'status' => 'pending',
                 ]);
 
@@ -162,7 +165,7 @@ class InvigilatorController extends Controller
             $candidate->update([
                 'is_checked_in' => true,
                 'checkin_time' => now(),
-                'ticket_no' => $ticketNo,
+                'ticket_no' => $ticket->ticket_no,
             ]);
 
             \Log::info('Candidate updated with check-in status');
@@ -173,7 +176,7 @@ class InvigilatorController extends Controller
             ]);
 
             // include ticket number in student object for response consumers
-            $student->ticket_no = $ticketNo;
+            $student->ticket_no = $ticket->ticket_no;
 
             \Log::info('Student record updated with check-in status');
 
@@ -182,7 +185,7 @@ class InvigilatorController extends Controller
                 'student' => $student,
                 'checkin_time' => $candidate->checkin_time,
                 'is_checked_in' => true,
-                'ticket_no' => $ticketNo
+                'ticket_no' => $ticket->ticket_no
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Validation error', ['errors' => $e->errors()]);

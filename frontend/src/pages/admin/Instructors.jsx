@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
 import { path } from '../../../utils/path';
-import { 
-    FaPlus, 
-    FaEdit, 
-    FaTrash, 
+import {
+    FaPlus,
+    FaEdit,
+    FaTrash,
     FaTimes,
     FaUserPlus,
     FaChalkboardTeacher,
@@ -19,7 +19,7 @@ import * as XLSX from 'xlsx';
 const Instructors = () => {
     const { userId } = useParams();
     const [instructors, setInstructors] = useState([]);
-    const [academicSessions, setAcademicSessions] = useState([]);
+    const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
@@ -36,6 +36,10 @@ const Instructors = () => {
     });
     const [errMsg, setErrMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
     useEffect(() => {
         fetchData();
@@ -61,10 +65,10 @@ const Instructors = () => {
             setLoading(true);
             const token = localStorage.getItem('token');
             const headers = { Authorization: `Bearer ${token}` };
-            
-            // Fetch academic sessions
-            const sessionsRes = await axios.get(`${path}/get-acd-sessions`);
-            setAcademicSessions(sessionsRes.data);
+
+            // Fetch departments
+            const departmentsRes = await axios.get(`${path}/departments`, { headers });
+            setDepartments(departmentsRes.data);
 
             // Fetch instructors
             const instructorsRes = await axios.get(`${path}/get-users`, { headers });
@@ -83,7 +87,7 @@ const Instructors = () => {
         setLoading(true);
         setErrMsg('');
         setSuccessMsg('');
-        
+
         try {
             const token = localStorage.getItem('token');
             const instructorData = { ...newInstructor };
@@ -97,9 +101,9 @@ const Instructors = () => {
             console.log('Creating instructor with data:', instructorData); // Debug log
 
             const response = await axios.post(`${path}/add-user`, instructorData, {
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`
                 }
             });
 
@@ -138,17 +142,17 @@ const Instructors = () => {
         setIsUploading(true);
         setErrMsg("");
         setSuccessMsg("");
-        
+
         const formData = new FormData();
         formData.append("excel_file", file);
-        
+
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`${path}/upload-instructors-excel`, formData, { 
-                headers: { 
+            await axios.post(`${path}/upload-instructors-excel`, formData, {
+                headers: {
                     "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${token}`
-                } 
+                }
             });
             setSuccessMsg('Instructors imported successfully!');
             setShowImportModal(false);
@@ -190,7 +194,7 @@ const Instructors = () => {
         // Add data validation for Role column (column D, starting from row 2)
         // Role options: lecturer, invigilator
         if (!ws['!dataValidation']) ws['!dataValidation'] = [];
-        
+
         // Add dropdown validation for Role column (D2:D1000)
         ws['!dataValidation'].push({
             type: 'list',
@@ -217,17 +221,17 @@ const Instructors = () => {
     const handleStatusChange = async (instructorId, newStatus) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${path}/update-instructor-status/${instructorId}`, 
+            await axios.put(`${path}/update-instructor-status/${instructorId}`,
                 { status: newStatus },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            
+
             // Update local state - map 'inactive' to 'not_active' for consistency with database
             const dbStatus = newStatus === 'inactive' ? 'not_active' : newStatus;
-            setInstructors(instructors.map(inst => 
+            setInstructors(instructors.map(inst =>
                 inst.id === instructorId ? { ...inst, status: dbStatus } : inst
             ));
-            
+
             setSuccessMsg('Status updated successfully!');
             setTimeout(() => setSuccessMsg(''), 3000);
         } catch (error) {
@@ -249,6 +253,14 @@ const Instructors = () => {
                 return role;
         }
     };
+
+    // Pagination logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentInstructors = instructors.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(instructors.length / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     if (loading) {
         return (
@@ -288,108 +300,152 @@ const Instructors = () => {
                     </div>
                 </header>
 
-            {/* Messages */}
-            {errMsg && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {errMsg}
-                </div>
-            )}
-            {successMsg && (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    {successMsg}
-                </div>
-            )}
+                {/* Messages */}
+                {errMsg && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        {errMsg}
+                    </div>
+                )}
+                {successMsg && (
+                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                        {successMsg}
+                    </div>
+                )}
 
-            {/* Instructors List */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                        <FaChalkboardTeacher className="mr-2" />
-                        Instructors ({instructors.length})
-                    </h2>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="min-w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                {currentUser?.role === 'level_admin' && (
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {instructors.map(instructor => (
-                                <tr key={instructor.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <FaChalkboardTeacher className="text-blue-500 mr-3" />
-                                            <span className="font-medium text-gray-900">{instructor.full_name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">{instructor.email}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            {getRoleDisplay(instructor.role)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        {instructor.level?.title || 'All Departments'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <select
-                                            value={instructor.status === 'not_active' ? 'inactive' : instructor.status}
-                                            onChange={(e) => handleStatusChange(instructor.id, e.target.value)}
-                                            className={`px-3 py-1 text-xs font-semibold rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 ${
-                                                instructor.status === 'active' 
-                                                    ? 'bg-green-100 text-green-800 focus:ring-green-500' 
-                                                    : 'bg-red-100 text-red-800 focus:ring-red-500'
-                                            }`}
-                                        >
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                                        {new Date(instructor.created_at).toLocaleDateString()}
-                                    </td>
+                {/* Instructors List */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                            <FaChalkboardTeacher className="mr-2" />
+                            Instructors ({instructors.length})
+                        </h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                     {currentUser?.role === 'level_admin' && (
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {instructor.role === 'lecturer' ? (
-                                                <Link
-                                                    to={`/assign-courses/${instructor.id}`}
-                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                                                >
-                                                    <FaUserPlus className="mr-1" />
-                                                    Assign Courses
-                                                </Link>
-                                            ) : (
-                                                <span className="text-gray-400 text-xs">Not applicable</span>
-                                            )}
-                                        </td>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     )}
                                 </tr>
-                            ))}
-                            {instructors.length === 0 && (
-                                <tr>
-                                    <td colSpan={currentUser?.role === 'level_admin' ? "7" : "6"} className="px-6 py-8 text-center text-gray-500">
-                                        <FaUsers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                        <p>No instructors found</p>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {currentInstructors.map(instructor => (
+                                    <tr key={instructor.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <FaChalkboardTeacher className="text-blue-500 mr-3" />
+                                                <span className="font-medium text-gray-900">{instructor.full_name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">{instructor.email}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                {getRoleDisplay(instructor.role)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                                            {instructor.level?.title || 'All Departments'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <select
+                                                value={instructor.status === 'not_active' ? 'inactive' : instructor.status}
+                                                onChange={(e) => handleStatusChange(instructor.id, e.target.value)}
+                                                className={`px-3 py-1 text-xs font-semibold rounded-full border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 ${instructor.status === 'active'
+                                                        ? 'bg-green-100 text-green-800 focus:ring-green-500'
+                                                        : 'bg-red-100 text-red-800 focus:ring-red-500'
+                                                    }`}
+                                            >
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                                            {new Date(instructor.created_at).toLocaleDateString()}
+                                        </td>
                                         {currentUser?.role === 'level_admin' && (
-                                            <p className="text-sm mt-2">Add instructors to your department</p>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {instructor.role === 'lecturer' ? (
+                                                    <Link
+                                                        to={`/assign-courses/${instructor.id}`}
+                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                                                    >
+                                                        <FaUserPlus className="mr-1" />
+                                                        Assign Courses
+                                                    </Link>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">Not applicable</span>
+                                                )}
+                                            </td>
                                         )}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                    </tr>
+                                ))}
+                                {instructors.length === 0 && (
+                                    <tr>
+                                        <td colSpan={currentUser?.role === 'level_admin' ? "7" : "6"} className="px-6 py-8 text-center text-gray-500">
+                                            <FaUsers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                            <p>No instructors found</p>
+                                            {currentUser?.role === 'level_admin' && (
+                                                <p className="text-sm mt-2">Add instructors to your department</p>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {instructors.length > 0 && (
+                        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, instructors.length)}</span> of <span className="font-medium">{instructors.length}</span> results
+                            </div>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => paginate(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        }`}
+                                >
+                                    Previous
+                                </button>
+
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => paginate(i + 1)}
+                                        className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === i + 1
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                            }`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+
+                                <button
+                                    onClick={() => paginate(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === totalPages
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        }`}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>
             </main>
 
             {/* Create Instructor Modal */}
@@ -399,14 +455,14 @@ const Instructors = () => {
                         <div className="mt-3">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-medium text-gray-900">Add New Instructor</h3>
-                                <button 
+                                <button
                                     onClick={() => setShowCreateModal(false)}
                                     className="text-gray-400 hover:text-gray-600"
                                 >
                                     <FaTimes />
                                 </button>
                             </div>
-                            
+
                             {/* Show department info for level admins */}
                             {currentUser?.role === 'level_admin' && currentUser?.level && (
                                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
@@ -414,90 +470,90 @@ const Instructors = () => {
                                     <p className="text-blue-700"><strong>Department:</strong> {currentUser.level.title}</p>
                                 </div>
                             )}
-                            
+
                             <form onSubmit={handleCreateInstructor} className="space-y-4">
                                 {errMsg && (
                                     <div className="text-red-600 text-sm">
                                         {errMsg}
                                     </div>
                                 )}
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Full Name</label>
                                     <input
                                         type="text"
                                         value={newInstructor.full_name}
-                                        onChange={(e) => setNewInstructor({...newInstructor, full_name: e.target.value})}
+                                        onChange={(e) => setNewInstructor({ ...newInstructor, full_name: e.target.value })}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Email</label>
                                     <input
                                         type="email"
                                         value={newInstructor.email}
-                                        onChange={(e) => setNewInstructor({...newInstructor, email: e.target.value})}
+                                        onChange={(e) => setNewInstructor({ ...newInstructor, email: e.target.value })}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Password</label>
                                     <input
                                         type="password"
                                         value={newInstructor.password}
-                                        onChange={(e) => setNewInstructor({...newInstructor, password: e.target.value})}
+                                        onChange={(e) => setNewInstructor({ ...newInstructor, password: e.target.value })}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Role</label>
                                     <select
                                         value={newInstructor.role}
-                                        onChange={(e) => setNewInstructor({...newInstructor, role: e.target.value})}
+                                        onChange={(e) => setNewInstructor({ ...newInstructor, role: e.target.value })}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value="lecturer">Lecturer</option>
                                         <option value="invigilator">Invigilator</option>
                                     </select>
                                 </div>
-                                
+
                                 {/* Only show department selection for super admins */}
                                 {currentUser?.role !== 'level_admin' && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700">Department</label>
                                         <select
                                             value={newInstructor.level_id}
-                                            onChange={(e) => setNewInstructor({...newInstructor, level_id: e.target.value})}
+                                            onChange={(e) => setNewInstructor({ ...newInstructor, level_id: e.target.value })}
                                             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         >
                                             <option value="">Select Department</option>
-                                            {academicSessions.map((session) => (
-                                                <option key={session.id} value={session.id}>
-                                                    {session.title}
+                                            {departments.map((department) => (
+                                                <option key={department.id} value={department.id}>
+                                                    {department.title}
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
                                 )}
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Status</label>
                                     <select
                                         value={newInstructor.status}
-                                        onChange={(e) => setNewInstructor({...newInstructor, status: e.target.value})}
+                                        onChange={(e) => setNewInstructor({ ...newInstructor, status: e.target.value })}
                                         className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value="active">Active</option>
                                         <option value="inactive">Inactive</option>
                                     </select>
                                 </div>
-                                
+
                                 <div className="mt-6 flex justify-end space-x-3">
                                     <button
                                         type="button"
@@ -530,7 +586,7 @@ const Instructors = () => {
                         </div>
                         <form onSubmit={handleImportInstructors} className="space-y-4">
                             {errMsg && <p className="text-red-500">{errMsg}</p>}
-                            
+
                             {/* Download Template Button */}
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <p className="text-sm text-gray-700 mb-3">
@@ -548,29 +604,29 @@ const Instructors = () => {
 
                             {/* File Upload */}
                             <div className="p-4 border-2 border-dashed rounded-lg text-center">
-                                <input 
-                                    type="file" 
-                                    onChange={e => setFile(e.target.files[0])} 
-                                    accept=".xlsx, .xls" 
-                                    className="hidden" 
-                                    id="instructor-file-upload" 
+                                <input
+                                    type="file"
+                                    onChange={e => setFile(e.target.files[0])}
+                                    accept=".xlsx, .xls"
+                                    className="hidden"
+                                    id="instructor-file-upload"
                                 />
                                 <label htmlFor="instructor-file-upload" className="cursor-pointer text-blue-500">
                                     {file ? file.name : "Choose an Excel file"}
                                 </label>
                             </div>
-                            
+
                             <div className="flex justify-end gap-4 pt-4">
-                                <button 
-                                    type="button" 
-                                    onClick={() => setShowImportModal(false)} 
+                                <button
+                                    type="button"
+                                    onClick={() => setShowImportModal(false)}
                                     className="px-4 py-2 bg-gray-200 rounded-lg"
                                 >
                                     Cancel
                                 </button>
-                                <button 
-                                    type="submit" 
-                                    disabled={isUploading} 
+                                <button
+                                    type="submit"
+                                    disabled={isUploading}
                                     className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300"
                                 >
                                     {isUploading ? "Uploading..." : "Import"}

@@ -60,31 +60,16 @@ class Student extends Controller
         $password = $request->input('password');
         
         if ($ticketNo) {
-        // Find the ticket record
-        $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)->first();
+            // Tickets are pre-assigned. Validate that the provided ticket belongs to this student
+            $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)
+                ->where('assigned_to_student_id', $student->id)
+                ->first();
 
-        if (!$ticketRecord) {
-            return response()->json('Invalid ticket number.', 404);
-        }
+            if (!$ticketRecord) {
+                return response()->json('This ticket number is not assigned to you. Please contact the invigilator.', 403);
+            }
 
-        // Check if ticket is already assigned to SOMEONE ELSE
-        if ($ticketRecord->assigned_to_student_id && $ticketRecord->assigned_to_student_id != $student->id) {
-            return response()->json('This ticket has already been used by another student.', 403);
-        }
-
-        // If ticket is unassigned, assign it to THIS student now
-        if (!$ticketRecord->assigned_to_student_id) {
-            $ticketRecord->assigned_to_student_id = $student->id;
-            $ticketRecord->assigned_at = now();
-            $ticketRecord->save();
-            
-            \Log::info('Ticket assigned to student', [
-                'ticket_no' => $ticketNo,
-                'student_id' => $student->id
-            ]);
-        }
-
-        $examForTicket = Exam::find($ticketRecord->exam_id);
+            $examForTicket = Exam::find($ticketRecord->exam_id);
 
             if (!$examForTicket || $examForTicket->activated !== 'yes') {
                 return response()->json('This ticket is not linked to an active exam.', 404);

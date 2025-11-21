@@ -67,16 +67,16 @@ const AdminStudents = () => {
 
             if (!currentExam || !currentExam.course_id) {
                 console.log('No active exam or course_id found');
-                
+
                 // If no active exam, get students based on user level
                 // Use the same endpoint as dashboard for consistency
                 let studentsUrl = `${path}/students-by-level`;
-                
+
                 // For super admins, add level filter if a specific level is selected
                 if (userRes.data.role === 'super_admin' && currentLevel) {
                     studentsUrl += `?level_id=${currentLevel}`;
                 }
-                
+
                 console.log('Fetching students from URL:', studentsUrl);
                 const res = await axios.get(studentsUrl, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -87,7 +87,7 @@ const AdminStudents = () => {
             }
 
             console.log('Fetching students for course:', currentExam.course_id);
-            
+
             // For level admins, always use level-based filtering regardless of active exam
             // This ensures they see all their students, not just those enrolled in the active course
             if (userRes.data.role === 'level_admin') {
@@ -102,17 +102,17 @@ const AdminStudents = () => {
                 })));
                 return;
             }
-            
+
             // For super admins, get students for the active exam's course, filtered by level
             let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
-            
+
             // For super admins, add level filter if a specific level is selected
             if (userRes.data.role === 'super_admin' && currentLevel) {
                 studentsUrl += `?level_id=${currentLevel}`;
             }
-            
+
             console.log('Fetching course students from URL:', studentsUrl);
-            
+
             const res = await axios.get(studentsUrl, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
@@ -144,7 +144,7 @@ const AdminStudents = () => {
 
     const handleAddStudent = async (e) => {
         e.preventDefault();
-        
+
         // Basic validation for required fields
         if (!newStudent.full_name || !newStudent.candidate_no) {
             setErrMsg("Full name and candidate number are required.");
@@ -190,22 +190,22 @@ const AdminStudents = () => {
             }
 
             await axios.post(`${path}/register-student/${userId}`, formData, {
-                headers: { 
+                headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            
+
             console.log('Student added successfully, refreshing list...');
             setShowAddModal(false);
             setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
             setImagePreview(null);
-            
+
             // Wait a bit for the database to update, then refresh
             setTimeout(() => {
                 fetchStudents();
             }, 500);
-            
+
         } catch (err) {
             console.error("Error adding student:", err);
             console.error("Error response:", err.response?.data);
@@ -231,8 +231,8 @@ const AdminStudents = () => {
         } catch (error) {
             console.error('View ticket error:', error);
             setErrMsg(
-                error.response?.data?.error || 
-                error.response?.data?.message || 
+                error.response?.data?.error ||
+                error.response?.data?.message ||
                 error.message ||
                 "Unable to fetch ticket"
             );
@@ -359,124 +359,121 @@ const AdminStudents = () => {
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full"
                         />
                     </div>
-                    <table className="min-w-full">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate No.</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
-                                {currentUser?.role === 'super_admin' && (
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
-                                )}
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Extension</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {loading ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                                            <p className="text-gray-600 text-lg">Loading students...</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : paginatedStudents.length === 0 ? (
-                                <tr>
-                                    <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center justify-center text-gray-500">
-                                            <FaUsers className="text-6xl mb-4 text-gray-300" />
-                                            <h3 className="text-xl font-semibold mb-2">No Students Found</h3>
-                                            <p className="text-gray-400 mb-4">
-                                                {searchTerm 
-                                                    ? `No students match "${searchTerm}"`
-                                                    : currentUser?.role === 'level_admin'
-                                                        ? `No students in your department yet`
-                                                        : selectedLevel
-                                                            ? `No students in the selected department`
-                                                            : `No students registered yet`
-                                                }
-                                            </p>
-                                            <button
-                                                onClick={() => setShowAddModal(true)}
-                                                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                                            >
-                                                <FaPlus className="mr-2" /> Register First Student
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : paginatedStudents.map(student => (
-                                <tr key={student.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {student.image ? (
-                                            <img 
-                                                src={`${path.replace('/api', '')}/${student.image}`} 
-                                                alt={student.full_name}
-                                                className="w-10 h-10 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                <FaUsers className="text-gray-400" />
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{student.full_name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{student.candidate_no}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{student.department}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">{student.programme}</td>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate No.</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programme</th>
                                     {currentUser?.role === 'super_admin' && (
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                                                {student.level?.title || 'Not assigned'}
-                                            </span>
-                                        </td>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                                     )}
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {student.ticket_no ? (
-                                            <span className="px-3 py-1 text-sm font-mono bg-green-100 text-green-800 rounded-full border border-green-300">
-                                                {student.ticket_no}
-                                            </span>
-                                        ) : (
-                                            <span className="px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-full italic">
-                                                Not assigned yet
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        {activeExam && (
-                                            <div className="flex space-x-2">
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Extension</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                                                <p className="text-gray-600 text-lg">Loading students...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : paginatedStudents.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center text-gray-500">
+                                                <FaUsers className="text-6xl mb-4 text-gray-300" />
+                                                <h3 className="text-xl font-semibold mb-2">No Students Found</h3>
+                                                <p className="text-gray-400 mb-4">
+                                                    {searchTerm
+                                                        ? `No students match "${searchTerm}"`
+                                                        : currentUser?.role === 'level_admin'
+                                                            ? `No students in your department yet`
+                                                            : selectedLevel
+                                                                ? `No students in the selected department`
+                                                                : `No students registered yet`
+                                                    }
+                                                </p>
                                                 <button
-                                                    onClick={() => {
-                                                        setSelectedStudent(student);
-                                                        setShowExtendTimeModal(true);
-                                                    }}
-                                                    className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
+                                                    onClick={() => setShowAddModal(true)}
+                                                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
                                                 >
-                                                    Extend Time
-                                                </button>
-                                                <button
-                                                    onClick={() => handleViewTicket(student)}
-                                                    className="px-3 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 text-sm"
-                                                    title="View the ticket already assigned to this student"
-                                                >
-                                                    View Ticket
+                                                    <FaPlus className="mr-2" /> Register First Student
                                                 </button>
                                             </div>
+                                        </td>
+                                    </tr>
+                                ) : paginatedStudents.map(student => (
+                                    <tr key={student.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {student.image ? (
+                                                <img
+                                                    src={`${path.replace('/api', '')}/${student.image}`}
+                                                    alt={student.full_name}
+                                                    className="w-10 h-10 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                    <FaUsers className="text-gray-400" />
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.full_name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.candidate_no}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.department}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{student.programme}</td>
+                                        {currentUser?.role === 'super_admin' && (
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                                    {student.level?.title || 'Not assigned'}
+                                                </span>
+                                            </td>
                                         )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {student.ticket_no ? (
+                                                <span className="px-3 py-1 text-sm font-mono bg-green-100 text-green-800 rounded-full border border-green-300">
+                                                    {student.ticket_no}
+                                                </span>
+                                            ) : (
+                                                <span className="px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-full italic">
+                                                    Not assigned yet
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {activeExam && (
+                                                <div className="flex space-x-2">
+                                                    {student.ticket_no && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedStudent(student);
+                                                                setShowExtendTimeModal(true);
+                                                            }}
+                                                            className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
+                                                        >
+                                                            Extend Time
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
                     {/* Error Message */}
                     {errMsg && !loading && (
                         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -493,14 +490,34 @@ const AdminStudents = () => {
                                 <button
                                     onClick={() => setCurrentPage(currentPage - 1)}
                                     disabled={currentPage === 1}
-                                    className={`px-4 py-2 rounded-lg ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === 1
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        }`}
                                 >
                                     Previous
                                 </button>
+
+                                {[...Array(totalPages)].map((_, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setCurrentPage(i + 1)}
+                                        className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === i + 1
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                            }`}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                ))}
+
                                 <button
                                     onClick={() => setCurrentPage(currentPage + 1)}
-                                    disabled={currentPage * studentsPerPage >= filteredStudents.length}
-                                    className={`px-4 py-2 rounded-lg ${currentPage * studentsPerPage >= filteredStudents.length ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                                    disabled={currentPage === totalPages}
+                                    className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === totalPages
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        }`}
                                 >
                                     Next
                                 </button>
@@ -520,7 +537,7 @@ const AdminStudents = () => {
                         </div>
                         <form onSubmit={handleAddStudent} className="space-y-4">
                             {errMsg && <p className="text-red-500">{errMsg}</p>}
-                            
+
                             {/* Show department info for level admins */}
                             {currentUser?.role === 'level_admin' && currentUser?.level && (
                                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -529,30 +546,30 @@ const AdminStudents = () => {
                                     <p className="text-blue-700"><strong>Programme:</strong> {currentUser.level.title}</p>
                                 </div>
                             )}
-                            
-                            <input 
-                                type="text" 
-                                placeholder="Full Name" 
-                                value={newStudent.full_name} 
-                                onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })} 
-                                className="w-full px-4 py-2 border rounded-lg" 
+
+                            <input
+                                type="text"
+                                placeholder="Full Name"
+                                value={newStudent.full_name}
+                                onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })}
+                                className="w-full px-4 py-2 border rounded-lg"
                                 required
                             />
-                            <input 
-                                type="text" 
-                                placeholder="Candidate Number" 
-                                value={newStudent.candidate_no} 
-                                onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })} 
-                                className="w-full px-4 py-2 border rounded-lg" 
+                            <input
+                                type="text"
+                                placeholder="Candidate Number"
+                                value={newStudent.candidate_no}
+                                onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })}
+                                className="w-full px-4 py-2 border rounded-lg"
                                 required
                             />
-                            
+
                             {/* Image Upload */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Student Photo (Optional)
                                 </label>
-                                <input 
+                                <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
                                     onChange={(e) => {
@@ -567,7 +584,7 @@ const AdminStudents = () => {
                                             reader.readAsDataURL(file);
                                         }
                                     }}
-                                    className="w-full px-4 py-2 border rounded-lg" 
+                                    className="w-full px-4 py-2 border rounded-lg"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                     Supported formats: JPEG, PNG, JPG, GIF, WEBP (max 2MB)
@@ -578,29 +595,29 @@ const AdminStudents = () => {
                                     </div>
                                 )}
                             </div>
-                            
+
                             {/* Only show department and programme fields for super admins */}
                             {currentUser?.role !== 'level_admin' && (
                                 <>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Department" 
-                                        value={newStudent.department} 
-                                        onChange={e => setNewStudent({ ...newStudent, department: e.target.value })} 
-                                        className="w-full px-4 py-2 border rounded-lg" 
+                                    <input
+                                        type="text"
+                                        placeholder="Department"
+                                        value={newStudent.department}
+                                        onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
+                                        className="w-full px-4 py-2 border rounded-lg"
                                         required
                                     />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Programme" 
-                                        value={newStudent.programme} 
-                                        onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })} 
-                                        className="w-full px-4 py-2 border rounded-lg" 
+                                    <input
+                                        type="text"
+                                        placeholder="Programme"
+                                        value={newStudent.programme}
+                                        onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })}
+                                        className="w-full px-4 py-2 border rounded-lg"
                                         required
                                     />
                                 </>
                             )}
-                            
+
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Register</button>
@@ -678,7 +695,7 @@ const AdminStudents = () => {
                         </div>
                         <form onSubmit={handleImportStudents} className="space-y-4">
                             {errMsg && <p className="text-red-500">{errMsg}</p>}
-                            
+
                             {/* Download Template Button */}
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <p className="text-sm text-gray-700 mb-3">
@@ -701,7 +718,7 @@ const AdminStudents = () => {
                                     {file ? file.name : "Choose an Excel file"}
                                 </label>
                             </div>
-                            
+
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" disabled={isUploading} className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300">
