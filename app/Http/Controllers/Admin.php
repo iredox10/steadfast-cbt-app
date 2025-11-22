@@ -96,6 +96,60 @@ class Admin extends Controller
     }
 
     /**
+     * Get system settings
+     */
+    public function get_system_settings()
+    {
+        try {
+            $settings = [
+                'student_see_result' => SystemConfig::get('student_see_result', false),
+                // Add more settings here as needed
+            ];
+            return response()->json($settings);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update system settings
+     */
+    public function update_system_setting(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if ($user->role !== 'super_admin') {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $validate = $request->validate([
+                'key' => 'required|string',
+                'value' => 'required'
+            ]);
+
+            $key = $validate['key'];
+            $value = $validate['value'];
+            $type = 'string';
+            $description = null;
+
+            // Define types and descriptions for known settings
+            switch ($key) {
+                case 'student_see_result':
+                    $type = 'boolean';
+                    $description = 'Whether students can see their result immediately after finishing the exam';
+                    break;
+                // Add more cases here
+            }
+
+            SystemConfig::set($key, $value, $type, $description);
+
+            return response()->json(['message' => 'Setting updated successfully']);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
@@ -1433,13 +1487,12 @@ class Admin extends Controller
             $validate = $request->validate([
                 'full_name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
-                'password' => 'required|min:6',
             ]);
 
             $user = new User();
             $user->full_name = $validate['full_name'];
             $user->email = $validate['email'];
-            $user->password = bcrypt($validate['password']);
+            $user->password = bcrypt('password'); // Default password
             $user->role = 'super_admin';
             $user->status = 'active';
             $user->level_id = null; // Super admin is not tied to any level
@@ -1469,14 +1522,13 @@ class Admin extends Controller
             $validate = $request->validate([
                 'full_name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
-                'password' => 'required|min:6',
                 'level_id' => 'required|exists:acd_sessions,id'
             ]);
 
             $user = new User();
             $user->full_name = $validate['full_name'];
             $user->email = $validate['email'];
-            $user->password = bcrypt($validate['password']);
+            $user->password = bcrypt('password'); // Default password
             $user->role = 'level_admin';
             $user->status = 'active';
             $user->level_id = $validate['level_id'];
@@ -1498,8 +1550,110 @@ class Admin extends Controller
     }
 
     /**
-     * Get filtered students based on admin level
+     * Reset admin password
      */
+    public function resetAdminPassword($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            $user->password = bcrypt('password');
+            $user->save();
+
+            return response()->json([
+                'message' => 'Password reset successfully to "password"'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to reset password',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download sample import file for admins
+     */
+    public function downloadSampleImportFile()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="sample_admins_import.csv"',
+        ];
+
+        $columns = ['Full Name', 'Email', 'Role', 'Level ID (Optional)'];
+        $sampleData = [
+            ['John Doe', 'john@example.com', 'level_admin', '1'],
+            ['Jane Smith', 'jane@example.com', 'super_admin', ''],
+        ];
+
+        $callback = function () use ($columns, $sampleData) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($sampleData as $row) {
+                fputcsv($file, $row);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import admins from Excel
+     */
+    public function importAdmins(Request $request)
+    {
+        try {
+            $request->validate([
+                'file' => 'required|mimes:xlsx,xls,csv',
+            ]);
+
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\AdminsImport, $request->file('file'));
+
+            return response()->json([
+                'message' => 'Admins imported successfully'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to import admins',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Change current user password
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'current_password' => 'required',
+                'new_password' => 'required|min:6|confirmed',
+            ]);
+
+            $user = $request->user();
+
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'error' => 'Invalid current password'
+                ], 400);
+            }
+
+            $user->password = bcrypt($request->new_password);
+            $user->save();
+
+            return response()->json([
+                'message' => 'Password changed successfully'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to change password',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
     public function getStudentsByLevel(Request $request)
     {
         try {
@@ -1651,15 +1805,26 @@ class Admin extends Controller
     }
 
     /**
-     * Get all admin users
+     * Get all admin users with search and pagination
      */
     public function getAdmins(Request $request)
     {
         try {
-            $admins = User::whereIn('role', ['super_admin', 'level_admin', 'admin'])
-                         ->with('level')
-                         ->orderBy('created_at', 'desc')
-                         ->get();
+            $query = User::whereIn('role', ['super_admin', 'level_admin', 'admin'])
+                         ->with('level');
+
+            // Search functionality
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('full_name', 'LIKE', "%{$search}%")
+                      ->orWhere('email', 'LIKE', "%{$search}%");
+                });
+            }
+
+            // Pagination
+            $perPage = $request->input('per_page', 10);
+            $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
             return response()->json($admins);
         } catch (Exception $e) {

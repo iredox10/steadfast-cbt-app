@@ -177,6 +177,9 @@ Route::post('/create-level-admin', [Admin::class, 'createLevelAdmin'])->middlewa
 Route::get('/get-admins', [Admin::class, 'getAdmins'])->middleware(['auth:sanctum']);
 Route::put('/update-admin/{adminId}', [Admin::class, 'updateAdmin'])->middleware(['auth:sanctum']);
 Route::delete('/delete-admin/{adminId}', [Admin::class, 'deleteAdmin'])->middleware(['auth:sanctum']);
+Route::post('/reset-admin-password/{adminId}', [Admin::class, 'resetAdminPassword'])->middleware(['auth:sanctum']);
+Route::post('/import-admins', [Admin::class, 'importAdmins'])->middleware(['auth:sanctum']);
+Route::get('/download-sample-admins-import', [Admin::class, 'downloadSampleImportFile'])->middleware(['auth:sanctum']);
 
 // Level-based filtering routes
 Route::get('/students-by-level', [Admin::class, 'getStudentsByLevel'])->middleware(['auth:sanctum']);
@@ -221,6 +224,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/add-course-to-session', [Admin::class, 'addCourseToActiveSession']);
     Route::post('/assign-course-to-lecturer', [Admin::class, 'assignCourseToLecturer']);
     Route::get('/get-semesters/{session_id}', [Admin::class, 'getSessionSemesters']);
+    
+    // System Settings (Super Admin)
+    Route::get('/system-settings', [Admin::class, 'get_system_settings']);
+    Route::post('/system-settings', [Admin::class, 'update_system_setting']);
+    Route::post('/change-password', [Admin::class, 'changePassword']);
 });
 Route::get('/debug-semesters/{sessionId}', function($sessionId) { 
     $user = request()->user(); 

@@ -425,13 +425,25 @@ class Student extends Controller
             ]);
 
             // 7. Return success response
-            return response()->json([
+            $response = [
                 'message' => 'Exam submitted successfully',
-                'answered_questions' => $answers,
-                'correct_answers' => $correct_answers_count,
-                'total_score' => $total_score,
-                'score_record' => $score_record
-            ], 200);
+            ];
+
+            // Check if students are allowed to see results
+            $seeResult = \App\Models\SystemConfig::get('student_see_result', false);
+            
+            if ($seeResult) {
+                $response['answered_questions'] = $answers;
+                $response['correct_answers'] = $correct_answers_count;
+                $response['total_score'] = $total_score;
+                $response['score_record'] = $score_record;
+                $response['show_result'] = true;
+            } else {
+                $response['show_result'] = false;
+                $response['message'] = 'Exam submitted successfully. Your results will be released later.';
+            }
+
+            return response()->json($response, 200);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Exam Submission Error', [
                 'student_id' => $student_id,

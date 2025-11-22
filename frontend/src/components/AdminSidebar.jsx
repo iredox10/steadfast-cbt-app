@@ -209,12 +209,14 @@ const AdminSidebar = ({ userId }) => {
 
             {/* Bottom Actions */}
             <div className="mt-auto pt-6 border-t border-gray-200">
-                <Link 
-                    to="#" 
-                    className="flex items-center p-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors mb-2"
-                >
-                    <FaCog className="mr-3" /> Settings
-                </Link>
+                {currentUser?.role === 'super_admin' && (
+                    <Link 
+                        to={`/admin-settings/${userId}`}
+                        className={getLinkClass('admin-settings')}
+                    >
+                        <FaCog className="mr-3" /> Settings
+                    </Link>
+                )}
                 <button 
                     onClick={handleLogout}
                     className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors w-full text-left"
