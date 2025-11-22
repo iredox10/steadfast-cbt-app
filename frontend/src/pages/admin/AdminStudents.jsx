@@ -213,6 +213,30 @@ const AdminStudents = () => {
         }
     };
 
+    const handleExtendTime = async (e) => {
+        e.preventDefault();
+        if (!selectedStudent || !extensionMinutes || !activeExam) return;
+
+        try {
+            await axios.post(`${path}/extend-time`, {
+                student_id: selectedStudent.id,
+                exam_id: activeExam.id,
+                extension_minutes: parseInt(extensionMinutes)
+            }, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+
+            setShowExtendTimeModal(false);
+            setSelectedStudent(null);
+            setExtensionMinutes("");
+            fetchStudents(); // Refresh list to show new extension
+            alert("Time extended successfully!");
+        } catch (err) {
+            console.error("Error extending time:", err);
+            setErrMsg(err.response?.data?.error || "Failed to extend time");
+        }
+    };
+
     const handleViewTicket = async (student) => {
         setErrMsg("");
 

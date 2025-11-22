@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { path } from '../../../utils/path';
 import AdminSidebar from '../../components/AdminSidebar';
-import { FaBuilding, FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { FaBuilding, FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaPhone, FaEnvelope, FaSearch } from 'react-icons/fa';
 
 const DepartmentManagement = () => {
     const [departments, setDepartments] = useState([]);
@@ -19,6 +19,11 @@ const DepartmentManagement = () => {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [formLoading, setFormLoading] = useState(false);
+    
+    // Pagination and Search State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
 
     useEffect(() => {
         fetchDepartments();
@@ -143,6 +148,21 @@ const DepartmentManagement = () => {
         setError('');
         setMessage('');
     };
+
+    // Filter departments based on search term
+    const filteredDepartments = departments.filter(dept => 
+        dept.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dept.head_of_department && dept.head_of_department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (dept.description && dept.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    // Pagination Logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentDepartments = filteredDepartments.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     if (loading) {
         return (
@@ -311,125 +331,194 @@ const DepartmentManagement = () => {
 
                     {/* Departments List */}
                     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                            <h2 className="text-lg font-semibold text-gray-900">All Departments ({departments.length})</h2>
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-wrap gap-4">
+                            <h2 className="text-lg font-semibold text-gray-900">All Departments ({filteredDepartments.length})</h2>
+                            
+                            {/* Search Bar */}
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <FaSearch className="text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Search departments..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setCurrentPage(1); // Reset to first page on search
+                                    }}
+                                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64"
+                                />
+                            </div>
                         </div>
                         
-                        {departments.length === 0 ? (
+                        {filteredDepartments.length === 0 ? (
                             <div className="text-center py-12">
                                 <FaBuilding className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">No departments</h3>
-                                <p className="mt-1 text-sm text-gray-500">Get started by creating your first department.</p>
-                                <div className="mt-6">
-                                    <button
-                                        onClick={() => setShowAddForm(true)}
-                                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
-                                    >
-                                        <FaPlus className="-ml-1 mr-2 h-5 w-5" />
-                                        Add Department
-                                    </button>
-                                </div>
+                                <h3 className="mt-2 text-sm font-medium text-gray-900">No departments found</h3>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {searchTerm ? `No matches for "${searchTerm}"` : "Get started by creating your first department."}
+                                </p>
+                                {!searchTerm && (
+                                    <div className="mt-6">
+                                        <button
+                                            onClick={() => setShowAddForm(true)}
+                                            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+                                        >
+                                            <FaPlus className="-ml-1 mr-2 h-5 w-5" />
+                                            Add Department
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Department
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Head of Department
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Contact Information
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {departments.map((department) => (
-                                            <tr key={department.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center">
-                                                        <FaBuilding className="text-orange-500 mr-3" />
-                                                        <div>
-                                                            <div className="text-sm font-medium text-gray-900">
-                                                                {department.title}
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Department
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Head of Department
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Contact Information
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {currentDepartments.map((department) => (
+                                                <tr key={department.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            <FaBuilding className="text-orange-500 mr-3" />
+                                                            <div>
+                                                                <div className="text-sm font-medium text-gray-900">
+                                                                    {department.title}
+                                                                </div>
+                                                                {department.description && (
+                                                                    <div className="text-sm text-gray-500 max-w-xs truncate">
+                                                                        {department.description}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            {department.description && (
-                                                                <div className="text-sm text-gray-500 max-w-xs truncate">
-                                                                    {department.description}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {department.head_of_department || (
+                                                            <span className="text-gray-400 italic">Not assigned</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <div className="space-y-1">
+                                                            {department.contact_email && (
+                                                                <div className="flex items-center">
+                                                                    <FaEnvelope className="w-4 h-4 mr-2 text-gray-400" />
+                                                                    {department.contact_email}
                                                                 </div>
                                                             )}
+                                                            {department.contact_phone && (
+                                                                <div className="flex items-center">
+                                                                    <FaPhone className="w-4 h-4 mr-2 text-gray-400" />
+                                                                    {department.contact_phone}
+                                                                </div>
+                                                            )}
+                                                            {!department.contact_email && !department.contact_phone && (
+                                                                <span className="text-gray-400 italic">No contact info</span>
+                                                            )}
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {department.head_of_department || (
-                                                        <span className="text-gray-400 italic">Not assigned</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <div className="space-y-1">
-                                                        {department.contact_email && (
-                                                            <div className="flex items-center">
-                                                                <FaEnvelope className="w-4 h-4 mr-2 text-gray-400" />
-                                                                {department.contact_email}
-                                                            </div>
-                                                        )}
-                                                        {department.contact_phone && (
-                                                            <div className="flex items-center">
-                                                                <FaPhone className="w-4 h-4 mr-2 text-gray-400" />
-                                                                {department.contact_phone}
-                                                            </div>
-                                                        )}
-                                                        {!department.contact_email && !department.contact_phone && (
-                                                            <span className="text-gray-400 italic">No contact info</span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <button
-                                                        onClick={() => handleToggleStatus(department.id)}
-                                                        className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
-                                                            department.status === 'active' 
-                                                                ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                                                                : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                                        }`}
-                                                    >
-                                                        {department.status === 'active' ? <FaToggleOn className="mr-1" /> : <FaToggleOff className="mr-1" />}
-                                                        {department.status === 'active' ? 'Active' : 'Inactive'}
-                                                    </button>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <div className="flex space-x-2">
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
                                                         <button
-                                                            onClick={() => handleEdit(department)}
-                                                            className="text-blue-600 hover:text-blue-900 transition-colors flex items-center"
+                                                            onClick={() => handleToggleStatus(department.id)}
+                                                            className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
+                                                                department.status === 'active' 
+                                                                    ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                                            }`}
                                                         >
-                                                            <FaEdit className="mr-1" />
-                                                            Edit
+                                                            {department.status === 'active' ? <FaToggleOn className="mr-1" /> : <FaToggleOff className="mr-1" />}
+                                                            {department.status === 'active' ? 'Active' : 'Inactive'}
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleDelete(department.id)}
-                                                            className="text-red-600 hover:text-red-900 transition-colors flex items-center"
-                                                        >
-                                                            <FaTrash className="mr-1" />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                        <div className="flex space-x-2">
+                                                            <button
+                                                                onClick={() => handleEdit(department)}
+                                                                className="text-blue-600 hover:text-blue-900 transition-colors flex items-center"
+                                                            >
+                                                                <FaEdit className="mr-1" />
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(department.id)}
+                                                                className="text-red-600 hover:text-red-900 transition-colors flex items-center"
+                                                            >
+                                                                <FaTrash className="mr-1" />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Pagination Controls */}
+                                {filteredDepartments.length > itemsPerPage && (
+                                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                                        <div className="text-sm text-gray-500">
+                                            Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, filteredDepartments.length)}</span> of <span className="font-medium">{filteredDepartments.length}</span> results
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => paginate(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                                    currentPage === 1
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                                }`}
+                                            >
+                                                Previous
+                                            </button>
+                                            {[...Array(totalPages)].map((_, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => paginate(i + 1)}
+                                                    className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                                        currentPage === i + 1
+                                                            ? 'bg-orange-600 text-white'
+                                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                                    }`}
+                                                >
+                                                    {i + 1}
+                                                </button>
+                                            ))}
+                                            <button
+                                                onClick={() => paginate(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                                    currentPage === totalPages
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                                }`}
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
