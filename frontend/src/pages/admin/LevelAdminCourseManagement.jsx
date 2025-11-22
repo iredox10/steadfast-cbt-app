@@ -12,12 +12,14 @@ const LevelAdminCourseManagement = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    
+
     // Form states
     const [showAddCourseModal, setShowAddCourseModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importFile, setImportFile] = useState(null);
     const [selectedCourse, setSelectedCourse] = useState(null);
-    
+
     const [courseForm, setCourseForm] = useState({
         code: '',
         title: '',
@@ -76,7 +78,7 @@ const LevelAdminCourseManagement = () => {
             await axios.post(`${path}/add-course-to-session`, courseForm, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             setSuccess('Course added successfully!');
             setShowAddCourseModal(false);
             setCourseForm({ code: '', title: '', credit_unit: '', semester_id: '' });
@@ -96,13 +98,63 @@ const LevelAdminCourseManagement = () => {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             setSuccess('Course assigned to lecturer successfully!');
             setShowAssignModal(false);
             setAssignForm({ lecturer_id: '' });
             setSelectedCourse(null);
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to assign course');
+        }
+    };
+
+    const handleImportCourses = async (e) => {
+        e.preventDefault();
+        if (!importFile) {
+            setError('Please select a file to import');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', importFile);
+        formData.append('session_id', activeSession?.id);
+
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${path}/import-courses`, formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            setSuccess('Courses imported successfully!');
+            setShowImportModal(false);
+            setImportFile(null);
+            fetchActiveSessionData();
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to import courses');
+        }
+    };
+
+    const handleDownloadSample = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${path}/download-sample-course-import`, {
+                headers: { Authorization: `Bearer ${token}` },
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'sample_courses_import.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('Error downloading sample file:', error);
+            setError('Failed to download sample file');
         }
     };
 
@@ -186,13 +238,22 @@ const LevelAdminCourseManagement = () => {
                                     <h2 className="text-xl font-semibold text-gray-900">Session Courses</h2>
                                     <p className="text-gray-600 mt-1">Courses in {activeSession.title}</p>
                                 </div>
-                                <button
-                                    onClick={() => setShowAddCourseModal(true)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                                >
-                                    <FaPlus />
-                                    Add Course
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setShowImportModal(true)}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    >
+                                        <FaPlus />
+                                        Import Courses
+                                    </button>
+                                    <button
+                                        onClick={() => setShowAddCourseModal(true)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    >
+                                        <FaPlus />
+                                        Add Course
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div className="p-6">
@@ -257,7 +318,7 @@ const LevelAdminCourseManagement = () => {
                                     <FaTimes />
                                 </button>
                             </div>
-                            
+
                             <form onSubmit={handleAddCourse} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -266,12 +327,12 @@ const LevelAdminCourseManagement = () => {
                                     <input
                                         type="text"
                                         value={courseForm.code}
-                                        onChange={(e) => setCourseForm({...courseForm, code: e.target.value})}
+                                        onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Course Title
@@ -279,12 +340,12 @@ const LevelAdminCourseManagement = () => {
                                     <input
                                         type="text"
                                         value={courseForm.title}
-                                        onChange={(e) => setCourseForm({...courseForm, title: e.target.value})}
+                                        onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Credit Units
@@ -294,19 +355,19 @@ const LevelAdminCourseManagement = () => {
                                         min="1"
                                         max="10"
                                         value={courseForm.credit_unit}
-                                        onChange={(e) => setCourseForm({...courseForm, credit_unit: e.target.value})}
+                                        onChange={(e) => setCourseForm({ ...courseForm, credit_unit: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                                         required
                                     />
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Semester
                                     </label>
                                     <select
                                         value={courseForm.semester_id}
-                                        onChange={(e) => setCourseForm({...courseForm, semester_id: e.target.value})}
+                                        onChange={(e) => setCourseForm({ ...courseForm, semester_id: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                                         required
                                     >
@@ -318,7 +379,7 @@ const LevelAdminCourseManagement = () => {
                                         ))}
                                     </select>
                                 </div>
-                                
+
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         type="button"
@@ -352,12 +413,12 @@ const LevelAdminCourseManagement = () => {
                                     <FaTimes />
                                 </button>
                             </div>
-                            
+
                             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                                 <h4 className="font-medium text-gray-900">{selectedCourse.title}</h4>
                                 <p className="text-sm text-gray-600">{selectedCourse.code}</p>
                             </div>
-                            
+
                             <form onSubmit={handleAssignCourse} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -365,7 +426,7 @@ const LevelAdminCourseManagement = () => {
                                     </label>
                                     <select
                                         value={assignForm.lecturer_id}
-                                        onChange={(e) => setAssignForm({...assignForm, lecturer_id: e.target.value})}
+                                        onChange={(e) => setAssignForm({ ...assignForm, lecturer_id: e.target.value })}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
                                         required
                                     >
@@ -377,7 +438,7 @@ const LevelAdminCourseManagement = () => {
                                         ))}
                                     </select>
                                 </div>
-                                
+
                                 <div className="flex gap-3 pt-4">
                                     <button
                                         type="button"
@@ -391,6 +452,65 @@ const LevelAdminCourseManagement = () => {
                                         className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
                                     >
                                         Assign Course
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Import Courses Modal */}
+                {showImportModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                        <div className="bg-white rounded-xl max-w-md w-full p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-semibold text-gray-900">Import Courses</h3>
+                                <button
+                                    onClick={() => setShowImportModal(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-gray-500 mb-4">
+                                Upload an Excel or CSV file with columns: Code, Title, Credit Unit, Semester.
+                                <button
+                                    onClick={handleDownloadSample}
+                                    className="text-blue-600 hover:text-blue-800 ml-2 underline"
+                                    type="button"
+                                >
+                                    Download Sample File
+                                </button>
+                            </p>
+
+                            <form onSubmit={handleImportCourses} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Select File
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept=".xlsx,.xls,.csv"
+                                        onChange={(e) => setImportFile(e.target.files[0])}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowImportModal(false)}
+                                        className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                                    >
+                                        Import
                                     </button>
                                 </div>
                             </form>

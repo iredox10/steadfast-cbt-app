@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Imports\StudentsImport;
+use App\Imports\CoursesImport;
 use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
 use App\Models\Acd_session;
 use App\Models\Candidate;
@@ -503,7 +504,7 @@ class Admin extends Controller
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            $query = Exam::where('submission_status', 'submitted');
+            $query = Exam::query();
 
             // If user is level_admin, filter by their lecturers' exams
             if ($user->role === 'level_admin') {
@@ -1673,7 +1674,7 @@ class Admin extends Controller
                 $studentsQuery->where('level_id', $levelFilter);
             }
 
-            $students = $studentsQuery->orderBy('checkin_time')->get();
+            $students = $studentsQuery->orderBy('created_at', 'desc')->get();
 
             // Get the active exam to fetch ticket numbers
             $activeExam = Exam::where('activated', 'yes')->first();
@@ -2306,6 +2307,41 @@ class Admin extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function importCourses(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv',
+            'session_id' => 'required|exists:acd_sessions,id'
+        ]);
+
+        try {
+            Excel::import(new CoursesImport($request->session_id), $request->file('file'));
+            return response()->json(['message' => 'Courses imported successfully']);
+        } catch (\Exception $e) {
+            Log::error('Course Import Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to import courses: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function downloadSampleCourseImport()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="sample_courses_import.csv"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Code', 'Title', 'Credit Unit', 'Semester']);
+            fputcsv($file, ['CSC101', 'Introduction to Computer Science', '3', 'First Semester']);
+            fputcsv($file, ['MTH101', 'General Mathematics I', '3', 'First Semester']);
+            fputcsv($file, ['PHY101', 'General Physics I', '2', 'First Semester']);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
 

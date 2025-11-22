@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { path } from '../../utils/path';
-import { 
-    FaCalendarAlt, 
-    FaUsers, 
-    FaBook, 
-    FaChalkboardTeacher, 
-    FaCog, 
-    FaSignOutAlt, 
-    FaListAlt, 
-    FaUserShield, 
+import {
+    FaCalendarAlt,
+    FaUsers,
+    FaBook,
+    FaChalkboardTeacher,
+    FaCog,
+    FaSignOutAlt,
+    FaListAlt,
+    FaUserShield,
     FaCrown,
     FaGraduationCap,
     FaEye,
@@ -52,11 +52,10 @@ const AdminSidebar = ({ userId }) => {
     };
 
     const getLinkClass = (route) => {
-        return `flex items-center p-3 rounded-lg transition-colors ${
-            isActiveRoute(route) 
-                ? 'bg-blue-500 text-white' 
+        return `flex items-center p-3 rounded-lg transition-colors ${isActiveRoute(route)
+                ? 'bg-blue-500 text-white'
                 : 'text-gray-600 hover:bg-gray-100'
-        }`;
+            }`;
     };
 
     const getRoleIcon = () => {
@@ -115,8 +114,8 @@ const AdminSidebar = ({ userId }) => {
             {/* Navigation */}
             <nav className="space-y-2 flex-1">
                 {/* Dashboard */}
-                <Link 
-                    to={`/admin-dashboard/${userId}`} 
+                <Link
+                    to={`/admin-dashboard/${userId}`}
                     className={getLinkClass('admin-dashboard')}
                 >
                     <FaListAlt className="mr-3" /> Dashboard
@@ -124,50 +123,50 @@ const AdminSidebar = ({ userId }) => {
 
                 {/* Academic Sessions - Super Admin and Level Admin (but different views) */}
                 {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
-                    <Link 
-                        to="/admin-sessions" 
+                    <Link
+                        to="/admin-sessions"
                         className={getLinkClass('admin-sessions')}
                     >
-                        <FaCalendarAlt className="mr-3" /> 
+                        <FaCalendarAlt className="mr-3" />
                         {currentUser?.role === 'super_admin' ? 'Academic Sessions' : 'Active Session'}
                     </Link>
                 )}
 
                 {/* Students */}
-                <Link 
-                    to={`/admin-students/${userId}`} 
+                <Link
+                    to={`/admin-students/${userId}`}
                     className={getLinkClass('admin-students')}
                 >
                     <FaUsers className="mr-3" /> Students
                 </Link>
 
                 {/* Instructors */}
-                <Link 
-                    to={`/admin-instructors/${userId}`} 
+                <Link
+                    to={`/admin-instructors/${userId}`}
                     className={getLinkClass('admin-instructors')}
                 >
                     <FaChalkboardTeacher className="mr-3" /> Instructors
                 </Link>
 
                 {/* Exams */}
-                <Link 
-                    to={`/admin-exam/${userId}`} 
+                <Link
+                    to={`/admin-exam/${userId}`}
                     className={getLinkClass('admin-exam')}
                 >
                     <FaBook className="mr-3" /> Exams
                 </Link>
 
                 {/* Tickets */}
-                <Link 
-                    to={`/admin-tickets/${userId}`} 
+                <Link
+                    to={`/admin-tickets/${userId}`}
                     className={getLinkClass('admin-tickets')}
                 >
                     <FaTicketAlt className="mr-3" /> Tickets
                 </Link>
 
                 {/* Exam Archives */}
-                <Link 
-                    to="/exam-archives" 
+                <Link
+                    to="/exam-archives"
                     className={getLinkClass('exam-archives')}
                 >
                     <FaEye className="mr-3" /> Exam Archives
@@ -175,8 +174,8 @@ const AdminSidebar = ({ userId }) => {
 
                 {/* Global Session Management - Super Admin only */}
                 {currentUser?.role === 'super_admin' && (
-                    <Link 
-                        to="/global-session-management" 
+                    <Link
+                        to="/global-session-management"
                         className={getLinkClass('global-session-management')}
                     >
                         <FaCrown className="mr-3" /> Global Session
@@ -185,8 +184,8 @@ const AdminSidebar = ({ userId }) => {
 
                 {/* Admin Management - Super Admin only */}
                 {currentUser?.role === 'super_admin' && (
-                    <Link 
-                        to="/admin-management" 
+                    <Link
+                        to="/admin-management"
                         className={getLinkClass('admin-management')}
                     >
                         <FaUserShield className="mr-3" /> Admin Management
@@ -195,8 +194,8 @@ const AdminSidebar = ({ userId }) => {
 
                 {/* Department Management - Super Admin only */}
                 {currentUser?.role === 'super_admin' && (
-                    <Link 
-                        to="/department-management" 
+                    <Link
+                        to="/department-management"
                         className={getLinkClass('department-management')}
                     >
                         <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -209,15 +208,15 @@ const AdminSidebar = ({ userId }) => {
 
             {/* Bottom Actions */}
             <div className="mt-auto pt-6 border-t border-gray-200">
-                {currentUser?.role === 'super_admin' && (
-                    <Link 
+                {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                    <Link
                         to={`/admin-settings/${userId}`}
                         className={getLinkClass('admin-settings')}
                     >
                         <FaCog className="mr-3" /> Settings
                     </Link>
                 )}
-                <button 
+                <button
                     onClick={handleLogout}
                     className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors w-full text-left"
                 >

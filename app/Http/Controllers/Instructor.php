@@ -55,8 +55,8 @@ class Instructor extends Controller
         \Log::info('Instructor store called with data:', $request->all());
         
         $validate = request()->validate([
-            'email' => 'required | email | string | max:255',
-            'password' => 'required| string | max:255',
+            'email' => 'required | email | string | max:255 | unique:users,email',
+            'password' => 'nullable| string | max:255',
             'full_name' => 'required| string | max:255',
             'role' => 'required| string | max:255',
             'status' => 'required| string | max:255',
@@ -65,7 +65,7 @@ class Instructor extends Controller
         
         \Log::info('Validation passed, data:', $validate);
         
-        $validate['password'] = Hash::make($validate['password']);
+        $validate['password'] = Hash::make($validate['password'] ?? 'password');
         
         // For level admins, automatically assign their level_id
         $currentUser = $request->user();
@@ -112,11 +112,40 @@ class Instructor extends Controller
             'role' => 'required | string | max:255',
             'status' => 'required | string | max:255',
         ]);
-        //
-        // $user = User::findOrFail($id);
-        // user->email = $validate['email']
+        try {
+            $user = User::findOrFail($id);
+            
+            // Check if email is being changed and if it's unique
+            if ($validate['email'] !== $user->email) {
+                $request->validate([
+                    'email' => 'unique:users,email'
+                ]);
+            }
 
-        return response()->json($validate);
+            $user->update($validate);
+
+            return response()->json([
+                'message' => 'User updated successfully',
+                'user' => $user
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function resetUserPassword($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            $user->password = Hash::make('password');
+            $user->save();
+
+            return response()->json([
+                'message' => 'Password reset successfully'
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**

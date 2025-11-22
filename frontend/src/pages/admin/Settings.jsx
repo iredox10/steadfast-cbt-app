@@ -126,56 +126,58 @@ const Settings = () => {
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* System Configuration */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-semibold text-gray-900">System Configuration</h3>
-                        </div>
-
-                        <div className="p-6 space-y-6">
-                            {/* Student Result Toggle */}
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                <div>
-                                    <h4 className="font-medium text-gray-900">Show Exam Results</h4>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Allow students to see their score immediately after submission.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => handleToggle('student_see_result')}
-                                    disabled={saving}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.student_see_result ? 'bg-blue-600' : 'bg-gray-200'
-                                        }`}
-                                >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.student_see_result ? 'translate-x-6' : 'translate-x-1'
-                                            }`}
-                                    />
-                                </button>
+                    {/* System Configuration - Super Admin Only */}
+                    {settings.role === 'super_admin' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+                            <div className="p-6 border-b border-gray-100">
+                                <h3 className="text-lg font-semibold text-gray-900">System Configuration</h3>
                             </div>
 
-                            {/* Student Registration Toggle */}
-                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                <div>
-                                    <h4 className="font-medium text-gray-900">Student Registration</h4>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Enable or disable new student registrations.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => handleToggle('student_registration_enabled')}
-                                    disabled={saving}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.student_registration_enabled ? 'bg-blue-600' : 'bg-gray-200'
-                                        }`}
-                                >
-                                    <span
-                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.student_registration_enabled ? 'translate-x-6' : 'translate-x-1'
+                            <div className="p-6 space-y-6">
+                                {/* Student Result Toggle */}
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div>
+                                        <h4 className="font-medium text-gray-900">Show Exam Results</h4>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Allow students to see their score immediately after submission.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleToggle('student_see_result')}
+                                        disabled={saving}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.student_see_result ? 'bg-blue-600' : 'bg-gray-200'
                                             }`}
-                                    />
-                                </button>
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.student_see_result ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Student Registration Toggle */}
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div>
+                                        <h4 className="font-medium text-gray-900">Student Registration</h4>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Enable or disable new student registrations.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleToggle('student_registration_enabled')}
+                                        disabled={saving}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.student_registration_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                                            }`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.student_registration_enabled ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                        />
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Account Settings (Password Change) */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">

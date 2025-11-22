@@ -73,6 +73,7 @@ Route::get('/get-users', [Instructor::class, 'index'])->middleware(['auth:sanctu
 Route::post('/add-user', [Instructor::class, 'store'])->middleware(['auth:sanctum']);
 
 Route::patch('/update-user/{id}',[Instructor::class, 'update']);
+Route::post('/reset-user-password/{id}', [Instructor::class, 'resetUserPassword']);
 
 // Protected instructor and lecturer routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -224,6 +225,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/add-course-to-session', [Admin::class, 'addCourseToActiveSession']);
     Route::post('/assign-course-to-lecturer', [Admin::class, 'assignCourseToLecturer']);
     Route::get('/get-semesters/{session_id}', [Admin::class, 'getSessionSemesters']);
+    Route::post('/import-courses', [Admin::class, 'importCourses']);
+    Route::get('/download-sample-course-import', [Admin::class, 'downloadSampleCourseImport']);
     
     // System Settings (Super Admin)
     Route::get('/system-settings', [Admin::class, 'get_system_settings']);
