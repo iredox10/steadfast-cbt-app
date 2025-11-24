@@ -37,6 +37,9 @@ import LevelAdminCourseManagement from "./pages/admin/LevelAdminCourseManagement
 import StudentEnrollment from "./pages/admin/StudentEnrollment";
 import Tickets from "./pages/admin/Tickets";
 import Settings from "./pages/admin/Settings";
+import InstructorDashboard from "./pages/instructor/Dashboard";
+import CourseResults from "./pages/instructor/CourseResults";
+import NotFound from "./pages/NotFound";
 
 function App() {
     return (
@@ -52,6 +55,8 @@ function App() {
                     <Route path="/logged-student" element={<LoggedStudent />} />
 
                     <Route path="/instructor/:id" element={<Instructor />} />
+                    <Route path="/instructor/dashboard/:id" element={<InstructorDashboard />} />
+                    <Route path="/course-results/:userId/:courseId" element={<CourseResults />} />
                     <Route
                         path="/exams/:userId/:courseId"
                         element={<Exams />}
@@ -126,6 +131,9 @@ function App() {
                     <Route path="/student-enrollment/:courseId" element={<StudentEnrollment />} />
                     <Route path="/admin-tickets/:id" element={<Tickets />} />
                     <Route path="/admin-settings/:userId" element={<Settings />} />
+                    
+                    {/* 404 - Catch all unmatched routes */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </Router>
         </div>

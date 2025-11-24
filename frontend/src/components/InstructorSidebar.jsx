@@ -56,7 +56,6 @@ const InstructorSidebar = () => {
                     <FaSignOutAlt className="text-xl" />
                     <span className="font-medium">Logout</span>
                 </button>
-                <SidebarNavLink to="/help" icon={<FaQuestionCircle className="text-xl" />} text="Help Center" />
             </div>
         </div>
     );

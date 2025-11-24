@@ -218,7 +218,7 @@ const AdminSidebar = ({ userId }) => {
                 )}
                 <button
                     onClick={handleLogout}
-                    className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors w-full text-left"
+                    className="flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors w-full text-left mt-2"
                 >
                     <FaSignOutAlt className="mr-3" /> Logout
                 </button>

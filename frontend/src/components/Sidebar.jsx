@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import logo from '../../public/assets/buk.png';
-import { FaSignOutAlt, FaQuestionCircle } from 'react-icons/fa';
+import { FaSignOutAlt } from 'react-icons/fa';
 
 const Sidebar = ({ children }) => {
     return (
@@ -16,11 +16,11 @@ const Sidebar = ({ children }) => {
                 </div>
 
                 <div className="p-6 border-t border-gray-200">
-                    <Link to="" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
-                        <FaQuestionCircle />
-                        <span>Help Center</span>
-                    </Link>
-                    <Link to="/" className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200 mt-2">
+                    <Link 
+                        to="/admin-login" 
+                        onClick={() => localStorage.removeItem('token')}
+                        className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                    >
                         <FaSignOutAlt />
                         <span>Log out</span>
                     </Link>

@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import { useEffect, useState } from "react";
 import { path } from "../../../utils/path";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaTachometerAlt, FaBook } from "react-icons/fa";
 import axios from "axios";
 
 const CourseQuestions = () => {
@@ -178,18 +178,18 @@ const CourseQuestions = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to={`/exams/${userId}/${courseId}`}
+                    to={`/instructor/dashboard/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-file-alt"></i>
-                    <span>Exams</span>
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
                 </Link>
                 <Link
                     to={`/instructor/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-book"></i>
-                    <span>All Courses</span>
+                    <FaBook />
+                    <span>Courses</span>
                 </Link>
             </Sidebar>
             

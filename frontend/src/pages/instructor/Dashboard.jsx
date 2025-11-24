@@ -1,53 +1,115 @@
 import React from "react";
 import { Link, useParams } from "react-router-dom";
-import { FaBook, FaQuestionCircle, FaUsers, FaFileAlt, FaChartBar } from "react-icons/fa";
+import { FaBook, FaQuestionCircle, FaUsers, FaFileAlt, FaChartBar, FaTachometerAlt } from "react-icons/fa";
 import useFetch from "../../hooks/useFetch";
 import Sidebar from "../../components/Sidebar";
+import axios from "axios";
+import { path } from "../../../utils/path";
 
 const Dashboard = () => {
     const { id } = useParams();
     
     const { data: user, loading: userLoading } = useFetch(`/get-user/${id}`);
     const { data: courses } = useFetch(`/get-lecturer-courses/${id}`);
+    const [stats, setStats] = React.useState({
+        totalCourses: 0,
+        activeExams: 0,
+        totalQuestions: 0,
+        totalStudents: 0,
+        loading: true
+    });
 
-    // Mock stats data
-    const stats = [
-        { title: "Total Courses", value: courses?.length || 0, icon: <FaBook />, color: "bg-blue-100 text-blue-500" },
-        { title: "Total Questions", value: "124", icon: <FaQuestionCircle />, color: "bg-green-100 text-green-500" },
-        { title: "Active Exams", value: "8", icon: <FaFileAlt />, color: "bg-yellow-100 text-yellow-500" },
-        { title: "Total Students", value: "245", icon: <FaUsers />, color: "bg-purple-100 text-purple-500" },
+    React.useEffect(() => {
+        if (courses && courses.length > 0) {
+            fetchInstructorStats();
+        } else if (courses) {
+            setStats({
+                totalCourses: 0,
+                activeExams: 0,
+                totalQuestions: 0,
+                totalStudents: 0,
+                loading: false
+            });
+        }
+    }, [courses, id]);
+
+    const fetchInstructorStats = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const headers = { Authorization: `Bearer ${token}` };
+
+            let totalActiveExams = 0;
+            let totalQuestions = 0;
+            let totalStudents = 0;
+
+            for (const course of courses) {
+                try {
+                    const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
+                    const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
+                    
+                    const activeExams = exams.filter(exam => 
+                        exam.submission_status === 'submitted' || exam.is_active
+                    );
+                    totalActiveExams += activeExams.length;
+
+                    for (const exam of exams) {
+                        try {
+                            const questionsRes = await axios.get(`${path}/get-questions/${exam.id}`, { headers });
+                            const questions = Array.isArray(questionsRes.data) ? questionsRes.data : [];
+                            totalQuestions += questions.length;
+                        } catch (err) {
+                            console.log(`Failed to fetch questions for exam ${exam.id}`);
+                        }
+                    }
+
+                    try {
+                        const studentsRes = await axios.get(`${path}/get-students/${id}/${course.course_id}`, { headers });
+                        const students = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+                        totalStudents += students.length;
+                    } catch (err) {
+                        console.log(`Failed to fetch students for course ${course.course_id}`);
+                    }
+                } catch (err) {
+                    console.log(`Failed to fetch data for course ${course.course_id}`);
+                }
+            }
+
+            setStats({
+                totalCourses: courses.length,
+                activeExams: totalActiveExams,
+                totalQuestions: totalQuestions,
+                totalStudents: totalStudents,
+                loading: false
+            });
+        } catch (error) {
+            console.error("Error fetching instructor stats:", error);
+            setStats(prev => ({ ...prev, loading: false }));
+        }
+    };
+
+    const statsDisplay = [
+        { title: "Total Courses", value: stats.totalCourses, icon: <FaBook />, color: "bg-blue-100 text-blue-500" },
+        { title: "Total Questions", value: stats.totalQuestions, icon: <FaQuestionCircle />, color: "bg-green-100 text-green-500" },
+        { title: "Active Exams", value: stats.activeExams, icon: <FaFileAlt />, color: "bg-yellow-100 text-yellow-500" },
+        { title: "Total Students", value: stats.totalStudents, icon: <FaUsers />, color: "bg-purple-100 text-purple-500" },
     ];
 
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to="#"
+                    to={`/instructor/dashboard/${id}`}
                     className="flex items-center gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg transition-colors duration-200"
+                >
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
+                </Link>
+                <Link
+                    to={`/instructor/${id}`}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
                     <FaBook />
                     <span>Courses</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaQuestionCircle />
-                    <span>Questions</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaUsers />
-                    <span>Students</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaFileAlt />
-                    <span>Exams</span>
                 </Link>
             </Sidebar>
             
@@ -74,107 +136,23 @@ const Dashboard = () => {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {stats.map((stat, index) => (
+                    {statsDisplay.map((stat, index) => (
                         <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
                             <div className={`p-4 rounded-full ${stat.color}`}>
                                 {stat.icon}
                             </div>
                             <div>
                                 <p className="text-gray-500 text-sm">{stat.title}</p>
-                                <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+                                <h3 className="text-2xl font-bold text-gray-900">
+                                    {stats.loading ? (
+                                        <span className="text-gray-400">...</span>
+                                    ) : (
+                                        stat.value
+                                    )}
+                                </h3>
                             </div>
                         </div>
                     ))}
-                </div>
-
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Link to="#" className="p-5 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 border border-blue-100">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="p-3 bg-blue-500 text-white rounded-lg">
-                                        <FaBook />
-                                    </div>
-                                    <h3 className="font-semibold text-gray-900">Add New Course</h3>
-                                </div>
-                                <p className="text-sm text-gray-600">Create a new course and set up exams</p>
-                            </Link>
-                            
-                            <Link to="#" className="p-5 bg-green-50 hover:bg-green-100 rounded-lg transition-colors duration-200 border border-green-100">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="p-3 bg-green-500 text-white rounded-lg">
-                                        <FaQuestionCircle />
-                                    </div>
-                                    <h3 className="font-semibold text-gray-900">Create Question</h3>
-                                </div>
-                                <p className="text-sm text-gray-600">Add a new question to your bank</p>
-                            </Link>
-                            
-                            <Link to="#" className="p-5 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors duration-200 border border-yellow-100">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="p-3 bg-yellow-500 text-white rounded-lg">
-                                        <FaFileAlt />
-                                    </div>
-                                    <h3 className="font-semibold text-gray-900">Create Exam</h3>
-                                </div>
-                                <p className="text-sm text-gray-600">Set up a new examination</p>
-                            </Link>
-                            
-                            <Link to="#" className="p-5 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors duration-200 border border-purple-100">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="p-3 bg-purple-500 text-white rounded-lg">
-                                        <FaChartBar />
-                                    </div>
-                                    <h3 className="font-semibold text-gray-900">View Reports</h3>
-                                </div>
-                                <p className="text-sm text-gray-600">Check exam results and analytics</p>
-                            </Link>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-                        
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-blue-100 text-blue-500 rounded-full mt-1">
-                                    <FaBook className="text-sm" />
-                                </div>
-                                <div>
-                                    <h3 className="font-medium text-gray-900">New Course Added</h3>
-                                    <p className="text-sm text-gray-600">Computer Science 101</p>
-                                    <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-green-100 text-green-500 rounded-full mt-1">
-                                    <FaQuestionCircle className="text-sm" />
-                                </div>
-                                <div>
-                                    <h3 className="font-medium text-gray-900">15 Questions Added</h3>
-                                    <p className="text-sm text-gray-600">Database Systems</p>
-                                    <p className="text-xs text-gray-500 mt-1">Yesterday</p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-yellow-100 text-yellow-500 rounded-full mt-1">
-                                    <FaFileAlt className="text-sm" />
-                                </div>
-                                <div>
-                                    <h3 className="font-medium text-gray-900">Exam Scheduled</h3>
-                                    <p className="text-sm text-gray-600">Midterm Exam - Mathematics</p>
-                                    <p className="text-xs text-gray-500 mt-1">2 days ago</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Courses Overview */}
@@ -188,7 +166,11 @@ const Dashboard = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {courses && courses.slice(0, 3).map((course) => (
-                            <div key={course.course_id} className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                            <Link 
+                                key={course.course_id} 
+                                to={`/exams/${id}/${course.course_id}`}
+                                className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer block"
+                            >
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                         <FaBook className="text-blue-500" />
@@ -199,10 +181,10 @@ const Dashboard = () => {
                                     </div>
                                 </div>
                                 <div className="flex justify-between text-sm text-gray-500">
-                                    <span>12 Questions</span>
-                                    <span>Active</span>
+                                    <span>Click to view</span>
+                                    <span className="text-blue-500">→</span>
                                 </div>
-                            </div>
+                            </Link>
                         ))}
                     </div>
                 </div>

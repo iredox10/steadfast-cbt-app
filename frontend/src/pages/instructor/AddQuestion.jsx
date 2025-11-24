@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
-import { FaPlus, FaTimes, FaBook, FaSave, FaArrowLeft } from "react-icons/fa";
+import { FaPlus, FaTimes, FaBook, FaSave, FaArrowLeft, FaTachometerAlt } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -211,18 +211,18 @@ const AddQuestion = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to={`/exam-questions/${userId}/${courseId}/${examId}`}
+                    to={`/instructor/dashboard/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <FaArrowLeft />
-                    <span>Back to Questions</span>
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/exams/${userId}/${courseId}`}
+                    to={`/instructor/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
                     <FaBook />
-                    <span>Exams</span>
+                    <span>Courses</span>
                 </Link>
             </Sidebar>
             

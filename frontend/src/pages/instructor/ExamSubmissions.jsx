@@ -4,7 +4,7 @@ import useFetch from "../../hooks/useFetch";
 import { path } from "../../../utils/path";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
-import { FaSearch, FaFileCsv, FaFileExcel, FaFilePdf, FaInfoCircle, FaSync } from "react-icons/fa";
+import { FaSearch, FaFileCsv, FaFileExcel, FaFilePdf, FaInfoCircle, FaSync, FaTachometerAlt, FaBook } from "react-icons/fa";
 
 const ExamSubmissions = () => {
     const { userId, courseId } = useParams();
@@ -72,18 +72,32 @@ const ExamSubmissions = () => {
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                     <Link
-                        to={`/exams/${userId}/${courseId}`}
+                        to={`/instructor/dashboard/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-file-alt"></i>
-                        <span>Exams</span>
+                        <FaTachometerAlt />
+                        <span>Dashboard</span>
                     </Link>
                     <Link
                         to={`/instructor/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-book"></i>
+                        <FaBook />
                         <span>Courses</span>
+                    </Link>
+                    <Link
+                        to={`/instructor-student/${userId}/${courseId}`}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                        <i className="fas fa-users"></i>
+                        <span>Students</span>
+                    </Link>
+                    <Link
+                        to={`/course-results/${userId}/${courseId}`}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                        <i className="fas fa-chart-bar"></i>
+                        <span>Results</span>
                     </Link>
                 </Sidebar>
                 <div className="flex-1 flex items-center justify-center">
@@ -102,18 +116,32 @@ const ExamSubmissions = () => {
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                     <Link
-                        to={`/exams/${userId}/${courseId}`}
+                        to={`/instructor/dashboard/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-file-alt"></i>
-                        <span>Exams</span>
+                        <FaTachometerAlt />
+                        <span>Dashboard</span>
                     </Link>
                     <Link
                         to={`/instructor/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-book"></i>
+                        <FaBook />
                         <span>Courses</span>
+                    </Link>
+                    <Link
+                        to={`/instructor-student/${userId}/${courseId}`}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                        <i className="fas fa-users"></i>
+                        <span>Students</span>
+                    </Link>
+                    <Link
+                        to={`/course-results/${userId}/${courseId}`}
+                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                        <i className="fas fa-chart-bar"></i>
+                        <span>Results</span>
                     </Link>
                 </Sidebar>
                 <div className="flex-1 flex items-center justify-center">
@@ -137,25 +165,32 @@ const ExamSubmissions = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to={`/exams/${userId}/${courseId}`}
+                    to={`/instructor/dashboard/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-file-alt"></i>
-                    <span>Exams</span>
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
                 </Link>
                 <Link
                     to={`/instructor/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-book"></i>
+                    <FaBook />
                     <span>Courses</span>
                 </Link>
                 <Link
-                    to={`/question-bank/${userId}/${courseId}`}
+                    to={`/instructor-student/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-question-circle"></i>
-                    <span>Question Bank</span>
+                    <i className="fas fa-users"></i>
+                    <span>Students</span>
+                </Link>
+                <Link
+                    to={`/course-results/${userId}/${courseId}`}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                    <i className="fas fa-chart-bar"></i>
+                    <span>Results</span>
                 </Link>
             </Sidebar>
             

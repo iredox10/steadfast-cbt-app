@@ -2,11 +2,12 @@ import React, { useState, useMemo } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
-import { FaSearch, FaFilePdf, FaFileExcel } from "react-icons/fa";
+import { FaSearch, FaFilePdf, FaFileExcel, FaTachometerAlt, FaBook, FaUsers, FaChartBar } from "react-icons/fa";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { format } from "date-fns";
+import { path } from "../../../utils/path";
 
 const InstructorStudents = () => {
     const { userId, courseId } = useParams();
@@ -82,14 +83,13 @@ const InstructorStudents = () => {
 
         autoTable(doc, {
             startY: 30,
-            head: [['S/N', 'Full Name', 'Candidate No.', 'Programme', 'Department', 'Score']],
+            head: [['S/N', 'Full Name', 'Candidate No.', 'Programme', 'Department']],
             body: filteredStudents.map((student, index) => [
                 index + 1,
                 student.full_name,
                 student.candidate_no,
                 student.programme,
-                student.department,
-                student.score
+                student.department
             ]),
         });
 
@@ -103,8 +103,7 @@ const InstructorStudents = () => {
                 'Full Name': student.full_name,
                 'Candidate No.': student.candidate_no,
                 'Programme': student.programme,
-                'Department': student.department,
-                'Score': student.score
+                'Department': student.department
             }))
         );
         const workbook = XLSX.utils.book_new();
@@ -118,17 +117,17 @@ const InstructorStudents = () => {
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                     <Link
-                        to={`/exams/${userId}/${courseId}`}
+                        to={`/instructor/dashboard/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-file-alt"></i>
-                        <span>Exams</span>
+                        <FaTachometerAlt />
+                        <span>Dashboard</span>
                     </Link>
                     <Link
                         to={`/instructor/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-book"></i>
+                        <FaBook />
                         <span>Courses</span>
                     </Link>
                 </Sidebar>
@@ -148,17 +147,17 @@ const InstructorStudents = () => {
             <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                     <Link
-                        to={`/exams/${userId}/${courseId}`}
+                        to={`/instructor/dashboard/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-file-alt"></i>
-                        <span>Exams</span>
+                        <FaTachometerAlt />
+                        <span>Dashboard</span>
                     </Link>
                     <Link
                         to={`/instructor/${userId}`}
                         className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                        <i className="fas fa-book"></i>
+                        <FaBook />
                         <span>Courses</span>
                     </Link>
                 </Sidebar>
@@ -183,25 +182,32 @@ const InstructorStudents = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to={`/exams/${userId}/${courseId}`}
+                    to={`/instructor/dashboard/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-file-alt"></i>
-                    <span>Exams</span>
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
                 </Link>
                 <Link
                     to={`/instructor/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-book"></i>
+                    <FaBook />
                     <span>Courses</span>
                 </Link>
                 <Link
-                    to={`/question-bank/${userId}/${courseId}`}
+                    to={`/instructor-student/${userId}/${courseId}`}
+                    className="flex items-center gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg transition-colors duration-200"
+                >
+                    <FaUsers />
+                    <span>Students</span>
+                </Link>
+                <Link
+                    to={`/course-results/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-question-circle"></i>
-                    <span>Question Bank</span>
+                    <FaChartBar />
+                    <span>Results</span>
                 </Link>
             </Sidebar>
             
@@ -246,7 +252,6 @@ const InstructorStudents = () => {
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Candidate Number</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Programme</th>
                                     <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
-                                    <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Score</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -279,16 +284,11 @@ const InstructorStudents = () => {
                                             <td className="py-4 px-6 text-sm text-gray-600">
                                                 {student.department || "N/A"}
                                             </td>
-                                            <td className="py-4 px-6">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    {student.score}
-                                                </span>
-                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" className="text-center py-8">
+                                        <td colSpan="6" className="text-center py-8">
                                             <i className="fas fa-users text-gray-300 text-3xl mb-3"></i>
                                             <p className="text-gray-500">No students found</p>
                                             <p className="text-gray-400 text-sm mt-1">There are no students enrolled in this course</p>

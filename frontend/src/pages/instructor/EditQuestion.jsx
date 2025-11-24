@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
-import { FaPlus, FaTimes, FaSave, FaArrowLeft, FaCheck, FaInfoCircle, FaEdit } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaArrowLeft, FaCheck, FaInfoCircle, FaEdit, FaTachometerAlt, FaBook } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -235,18 +235,18 @@ const EditQuestion = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to={`/exam-questions/${userId}/${examId}`}
+                    to={`/instructor/dashboard/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-arrow-left"></i>
-                    <span>Back to Questions</span>
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/exams/${userId}/${examId}`}
+                    to={`/instructor/${userId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-file-alt"></i>
-                    <span>Exams</span>
+                    <FaBook />
+                    <span>Courses</span>
                 </Link>
             </Sidebar>
             

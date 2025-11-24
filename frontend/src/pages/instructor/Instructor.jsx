@@ -9,17 +9,25 @@ import {
     FaUsers,
     FaQuestionCircle,
     FaFileAlt,
-    FaChartBar
+    FaChartBar,
+    FaTachometerAlt
 } from "react-icons/fa";
 
 const Instructor = () => {
     const { id } = useParams();
     const [courses, setCourses] = useState([]);
+    const [coursesWithStats, setCoursesWithStats] = useState([]);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [userLoading, setUserLoading] = useState(true);
     const [err, setErr] = useState(null);
     const [userErr, setUserErr] = useState(null);
+    const [stats, setStats] = useState({
+        totalCourses: 0,
+        activeExams: 0,
+        totalQuestions: 0,
+        totalStudents: 0
+    });
 
     useEffect(() => {
         const fetchInstructorData = async () => {
@@ -42,6 +50,13 @@ const Instructor = () => {
                 // Ensure courses is always an array
                 const coursesData = Array.isArray(coursesRes.data) ? coursesRes.data : [];
                 setCourses(coursesData);
+
+                // Fetch statistics for assigned courses
+                await fetchInstructorStats(coursesData, headers);
+                
+                // Fetch individual course stats
+                await fetchCourseStats(coursesData, headers);
+                
                 setLoading(false);
 
             } catch (error) {
@@ -62,44 +77,135 @@ const Instructor = () => {
         }
     }, [id]);
 
-    // Stats based on actual data
-    const stats = [
-        { title: "Your Courses", value: courses ? courses.length : 0, icon: <FaBook />, color: "bg-blue-100 text-blue-500" },
-        { title: "Active Exams", value: "0", icon: <FaFileAlt />, color: "bg-yellow-100 text-yellow-500" },
-        { title: "Total Questions", value: "0", icon: <FaQuestionCircle />, color: "bg-green-100 text-green-500" },
-        { title: "Students", value: "0", icon: <FaUsers />, color: "bg-purple-100 text-purple-500" },
+    const fetchInstructorStats = async (coursesData, headers) => {
+        try {
+            let totalActiveExams = 0;
+            let totalQuestions = 0;
+            let totalStudents = 0;
+
+            // Fetch stats for each assigned course
+            for (const course of coursesData) {
+                try {
+                    // Fetch exams for this course
+                    const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
+                    const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
+                    
+                    // Count active exams (submitted/activated exams)
+                    const activeExams = exams.filter(exam => 
+                        exam.submission_status === 'submitted' || exam.is_active
+                    );
+                    totalActiveExams += activeExams.length;
+
+                    // Count total questions across all exams
+                    for (const exam of exams) {
+                        try {
+                            const questionsRes = await axios.get(`${path}/get-questions/${exam.id}`, { headers });
+                            const questions = Array.isArray(questionsRes.data) ? questionsRes.data : [];
+                            totalQuestions += questions.length;
+                        } catch (err) {
+                            console.log(`Failed to fetch questions for exam ${exam.id}`);
+                        }
+                    }
+
+                    // Fetch students enrolled in this course
+                    try {
+                        const studentsRes = await axios.get(`${path}/get-students/${id}/${course.course_id}`, { headers });
+                        const students = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+                        totalStudents += students.length;
+                    } catch (err) {
+                        console.log(`Failed to fetch students for course ${course.course_id}`);
+                    }
+                } catch (err) {
+                    console.log(`Failed to fetch data for course ${course.course_id}`);
+                }
+            }
+
+            setStats({
+                totalCourses: coursesData.length,
+                activeExams: totalActiveExams,
+                totalQuestions: totalQuestions,
+                totalStudents: totalStudents
+            });
+        } catch (error) {
+            console.error("Error fetching instructor stats:", error);
+        }
+    };
+
+    const fetchCourseStats = async (coursesData, headers) => {
+        try {
+            const coursesWithStatsData = await Promise.all(
+                coursesData.map(async (course) => {
+                    try {
+                        // Fetch exams for this course
+                        const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
+                        const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
+                        
+                        // Check for active exams
+                        const hasActiveExam = exams.some(exam => 
+                            exam.submission_status === 'submitted' || exam.is_active
+                        );
+
+                        // Count total questions
+                        let totalQuestions = 0;
+                        for (const exam of exams) {
+                            try {
+                                const questionsRes = await axios.get(`${path}/get-questions/${exam.id}`, { headers });
+                                const questions = Array.isArray(questionsRes.data) ? questionsRes.data : [];
+                                totalQuestions += questions.length;
+                            } catch (err) {
+                                console.log(`Failed to fetch questions for exam ${exam.id}`);
+                            }
+                        }
+
+                        return {
+                            ...course,
+                            examCount: exams.length,
+                            questionCount: totalQuestions,
+                            hasActiveExam: hasActiveExam
+                        };
+                    } catch (err) {
+                        console.log(`Failed to fetch stats for course ${course.course_id}`);
+                        return {
+                            ...course,
+                            examCount: 0,
+                            questionCount: 0,
+                            hasActiveExam: false
+                        };
+                    }
+                })
+            );
+            
+            setCoursesWithStats(coursesWithStatsData);
+        } catch (error) {
+            console.error("Error fetching course stats:", error);
+            setCoursesWithStats(coursesData);
+        }
+    };
+
+    // Stats display array
+    const statsDisplay = [
+        { title: "Your Courses", value: stats.totalCourses, icon: <FaBook />, color: "bg-blue-100 text-blue-500" },
+        { title: "Active Exams", value: stats.activeExams, icon: <FaFileAlt />, color: "bg-yellow-100 text-yellow-500" },
+        { title: "Total Questions", value: stats.totalQuestions, icon: <FaQuestionCircle />, color: "bg-green-100 text-green-500" },
+        { title: "Students", value: stats.totalStudents, icon: <FaUsers />, color: "bg-purple-100 text-purple-500" },
     ];
 
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
                 <Link
-                    to="#"
+                    to={`/instructor/dashboard/${id}`}
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
+                </Link>
+                <Link
+                    to={`/instructor/${id}`}
                     className="flex items-center gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg transition-colors duration-200"
                 >
                     <FaBook />
                     <span>Courses</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaQuestionCircle />
-                    <span>Questions</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaUsers />
-                    <span>Students</span>
-                </Link>
-                <Link
-                    to="#"
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaFileAlt />
-                    <span>Exams</span>
                 </Link>
             </Sidebar>
             
@@ -126,14 +232,20 @@ const Instructor = () => {
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {stats.map((stat, index) => (
+                    {statsDisplay.map((stat, index) => (
                         <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
                             <div className={`p-4 rounded-full ${stat.color}`}>
                                 {stat.icon}
                             </div>
                             <div>
                                 <p className="text-gray-500 text-sm">{stat.title}</p>
-                                <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+                                <h3 className="text-2xl font-bold text-gray-900">
+                                    {loading ? (
+                                        <span className="text-gray-400">...</span>
+                                    ) : (
+                                        stat.value
+                                    )}
+                                </h3>
                             </div>
                         </div>
                     ))}
@@ -174,13 +286,23 @@ const Instructor = () => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {courses && courses.map((course) => (
+                            {(coursesWithStats.length > 0 ? coursesWithStats : courses).map((course) => (
                                 <Link
                                     key={course.course_id}
                                     to={`/exams/${id}/${course.course_id}`}
                                     className="group block"
                                 >
-                                    <div className="bg-white rounded-xl p-6 hover:bg-gradient-to-br from-blue-50 to-white transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-lg">
+                                    <div className="bg-white rounded-xl p-6 hover:bg-gradient-to-br from-blue-50 to-white transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-lg relative">
+                                        {/* Active Exam Indicator */}
+                                        {course.hasActiveExam && (
+                                            <div className="absolute top-4 right-4">
+                                                <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                                    Active
+                                                </span>
+                                            </div>
+                                        )}
+                                        
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
@@ -195,13 +317,34 @@ const Instructor = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="bg-gray-50 group-hover:bg-blue-100 p-2 rounded-full transition-colors duration-200">
-                                                <i className="fas fa-chevron-right text-gray-400 group-hover:text-blue-600"></i>
-                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-sm text-gray-500">
-                                            <span>0 Questions</span>
-                                            <span>0 Exams</span>
+                                        <div className="flex justify-between text-sm mb-3">
+                                            <span className="text-gray-600 flex items-center gap-1">
+                                                <FaQuestionCircle className="text-green-500" />
+                                                {course.questionCount || 0} Questions
+                                            </span>
+                                            <span className="text-gray-600 flex items-center gap-1">
+                                                <FaFileAlt className="text-yellow-500" />
+                                                {course.examCount || 0} Exams
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                                            <Link
+                                                to={`/instructor-student/${id}/${course.course_id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-medium text-center"
+                                            >
+                                                <FaUsers className="inline mr-1" />
+                                                Students
+                                            </Link>
+                                            <Link
+                                                to={`/course-results/${id}/${course.course_id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex-1 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-xs font-medium text-center"
+                                            >
+                                                <FaChartBar className="inline mr-1" />
+                                                Results
+                                            </Link>
                                         </div>
                                     </div>
                                 </Link>
