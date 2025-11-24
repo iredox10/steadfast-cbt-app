@@ -48,7 +48,7 @@ const Dashboard = () => {
                     const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
                     
                     const activeExams = exams.filter(exam => 
-                        exam.submission_status === 'submitted' || exam.is_active
+                        exam.activated === 'yes'
                     );
                     totalActiveExams += activeExams.length;
 

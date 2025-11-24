@@ -90,9 +90,9 @@ const Instructor = () => {
                     const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
                     const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
                     
-                    // Count active exams (submitted/activated exams)
+                    // Count active exams (activated = 'yes')
                     const activeExams = exams.filter(exam => 
-                        exam.submission_status === 'submitted' || exam.is_active
+                        exam.activated === 'yes'
                     );
                     totalActiveExams += activeExams.length;
 
@@ -140,9 +140,9 @@ const Instructor = () => {
                         const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
                         const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
                         
-                        // Check for active exams
+                        // Check for active exams (activated = 'yes')
                         const hasActiveExam = exams.some(exam => 
-                            exam.submission_status === 'submitted' || exam.is_active
+                            exam.activated === 'yes'
                         );
 
                         // Count total questions

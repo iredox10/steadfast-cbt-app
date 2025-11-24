@@ -46,11 +46,11 @@ const CourseResults = () => {
             setLoading(true);
             const headers = getAuthHeaders();
             const res = await axios.get(`${path}/get-exams/${userId}/${courseId}`, { headers });
-            // Filter only terminated/submitted exams
-            const terminatedExams = res.data.filter(exam => 
-                exam.submission_status === 'submitted' || exam.is_terminated
+            // Filter only activated exams (where students have submitted)
+            const activatedExams = res.data.filter(exam => 
+                exam.activated === 'yes'
             );
-            setExams(terminatedExams);
+            setExams(activatedExams);
         } catch (err) {
             console.error("Error fetching exams:", err);
             setError("Failed to load exams");
@@ -229,8 +229,8 @@ const CourseResults = () => {
                     ) : exams.length === 0 ? (
                         <div className="text-center py-8">
                             <FaFileAlt className="text-gray-300 text-5xl mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Exams</h3>
-                            <p className="text-gray-600">There are no terminated or submitted exams for this course yet.</p>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Exams</h3>
+                            <p className="text-gray-600">There are no activated exams for this course yet.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -247,10 +247,8 @@ const CourseResults = () => {
                                     <h3 className="font-semibold text-gray-900 mb-1">{exam.exam_type}</h3>
                                     <p className="text-sm text-gray-600">Duration: {exam.exam_duration} mins</p>
                                     <p className="text-sm text-gray-600">Max Score: {exam.max_score}</p>
-                                    <span className={`inline-block mt-2 px-2 py-1 rounded text-xs ${
-                                        exam.is_terminated ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                                    }`}>
-                                        {exam.is_terminated ? 'Terminated' : 'Completed'}
+                                    <span className="inline-block mt-2 px-2 py-1 rounded text-xs bg-green-100 text-green-700">
+                                        Active
                                     </span>
                                 </button>
                             ))}
