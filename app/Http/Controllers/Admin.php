@@ -625,18 +625,15 @@ class Admin extends Controller
             
             $exam->save();
 
-            // Generate and assign tickets directly to enrolled students
+            // Generate tickets (NOT assigned to students yet)
             $course = Course::find($exam->course_id);
             $ticketsGenerated = 0;
             
             if ($course) {
                 $studentCourses = $course->studentCourses;
 
-                // Remove any leftover unassigned tickets from previous activations
-                ExamTicket::where('exam_id', $exam->id)
-                    ->whereNull('assigned_to_student_id')
-                    ->delete();
-                
+                // Count eligible students
+                $eligibleStudentCount = 0;
                 foreach ($studentCourses as $studentCourse) {
                     $student = Student::find($studentCourse->student_id);
                     
@@ -648,34 +645,43 @@ class Admin extends Controller
                     if ($exam->level_id && $student->level_id != $exam->level_id) {
                         continue;
                     }
-
-                    // Skip students who already have a ticket for this exam
-                    $existingTicket = ExamTicket::where('exam_id', $exam->id)
-                        ->where('assigned_to_student_id', $student->id)
-                        ->first();
-
-                    if ($existingTicket) {
-                        continue;
-                    }
                     
-                    $ticket_no = ExamTicket::generateUniqueTicketNumber($exam->id);
-                    
-                    ExamTicket::create([
-                        'exam_id' => $exam->id,
-                        'ticket_no' => $ticket_no,
-                        'is_used' => false,
-                        'assigned_to_student_id' => $student->id,
-                        'assigned_at' => now(),
-                    ]);
-                    
-                    $ticketsGenerated++;
+                    $eligibleStudentCount++;
                 }
+                
+                // Check how many unassigned tickets already exist for this exam
+                $existingTicketCount = ExamTicket::where('exam_id', $exam->id)
+                    ->whereNull('assigned_to_student_id')
+                    ->where('is_used', false)
+                    ->count();
+                
+                // Generate additional tickets if needed
+                $ticketsToGenerate = $eligibleStudentCount - $existingTicketCount;
+                
+                if ($ticketsToGenerate > 0) {
+                    for ($i = 0; $i < $ticketsToGenerate; $i++) {
+                        $ticket_no = ExamTicket::generateUniqueTicketNumber($exam->id);
+                        
+                        ExamTicket::create([
+                            'exam_id' => $exam->id,
+                            'ticket_no' => $ticket_no,
+                            'is_used' => false,
+                            'assigned_to_student_id' => null, // NOT assigned yet
+                            'assigned_at' => null,
+                        ]);
+                        
+                        $ticketsGenerated++;
+                    }
+                }
+                
+                $totalAvailableTickets = $existingTicketCount + $ticketsGenerated;
             }
 
             return response()->json([
                 'exam' => $exam,
                 'tickets_generated' => $ticketsGenerated,
-                'message' => "Exam activated and {$ticketsGenerated} tickets issued directly to enrolled students. Provide each student with their ticket before check-in."
+                'total_available_tickets' => $totalAvailableTickets ?? 0,
+                'message' => "Exam activated. {$ticketsGenerated} new tickets generated. Total available tickets: " . ($totalAvailableTickets ?? 0) . ". Tickets will be assigned when students login."
             ]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

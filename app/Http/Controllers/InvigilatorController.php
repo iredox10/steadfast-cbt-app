@@ -14,55 +14,12 @@ class InvigilatorController extends Controller
 {
     public function generate_ticket(Request $request)
     {
-        $validate = $request->validate([
-            'student_id' => 'required|numeric',
-        ]);
-
-        try {
-            $student = Student::findOrFail($validate['student_id']);
-            $active_exam = Exam::where('activated', 'yes')->first();
-
-            if (!$active_exam) {
-                return response()->json(['error' => 'No active exam found'], 404);
-            }
-
-            $ticket = ExamTicket::where('exam_id', $active_exam->id)
-                ->where('assigned_to_student_id', $student->id)
-                ->first();
-
-            if (!$ticket) {
-                return response()->json(['error' => 'No ticket assigned to this student. Contact the administrator.'], 404);
-            }
-
-            // Ensure a candidate record exists but never allow invigilators to generate new tickets
-            $candidate = Candidate::updateOrCreate(
-                [
-                    'student_id' => $student->id,
-                    'exam_id' => $active_exam->id,
-                ],
-                [
-                    'full_name' => $student->full_name,
-                    'programme' => $student->programme,
-                    'department' => $student->department,
-                    'password' => $student->password,
-                    'is_logged_on' => 0,
-                    'is_checkout' => 0,
-                    'checkin_time' => now(),
-                    'checkout_time' => '',
-                    'ticket_no' => $ticket->ticket_no,
-                    'status' => 'pending',
-                ]
-            );
-
-            if ($candidate->ticket_no !== $ticket->ticket_no) {
-                $candidate->ticket_no = $ticket->ticket_no;
-                $candidate->save();
-            }
-
-            return response()->json($candidate, 200);
-        } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        // This method is deprecated - tickets are now assigned during student login
+        // Keeping for backwards compatibility but returning appropriate message
+        return response()->json([
+            'error' => 'Ticket generation is no longer available. Tickets are automatically assigned when students login.',
+            'message' => 'Students should use the check-in process and then login with any available ticket number.'
+        ], 400);
     }
 
     public function regenerate_ticket(Request $request)
@@ -114,20 +71,20 @@ class InvigilatorController extends Controller
                 return response()->json(['error' => 'Student is not enrolled in this course'], 404);
             }
 
-            // Ensure the student already has a pre-assigned ticket for this exam
-            $ticket = ExamTicket::where('exam_id', $active_exam->id)
-                ->where('assigned_to_student_id', $student->id)
-                ->first();
+            // Check if there are available tickets for this exam
+            $availableTicketsCount = ExamTicket::where('exam_id', $active_exam->id)
+                ->whereNull('assigned_to_student_id')
+                ->where('is_used', false)
+                ->count();
 
-            if (!$ticket) {
-                \Log::error('No ticket found for student', [
-                    'student_id' => $student->id,
+            if ($availableTicketsCount === 0) {
+                \Log::error('No available tickets for exam', [
                     'exam_id' => $active_exam->id
                 ]);
-                return response()->json(['error' => 'No ticket assigned to this student yet. Contact the administrator.'], 404);
+                return response()->json(['error' => 'No available tickets for this exam. Contact the administrator.'], 404);
             }
 
-            // Find or create candidate record
+            // Find or create candidate record (without ticket assignment)
             $candidate = Candidate::where('student_id', $student->id)
                 ->where('exam_id', $active_exam->id)
                 ->first();
@@ -138,7 +95,7 @@ class InvigilatorController extends Controller
                     'exam_id' => $active_exam->id
                 ]);
 
-                // Create candidate record for this student
+                // Create candidate record for this student (ticket will be assigned during login)
                 $candidate = Candidate::create([
                     'student_id' => $student->id,
                     'exam_id' => $active_exam->id,
@@ -152,7 +109,7 @@ class InvigilatorController extends Controller
                     'is_checked_in' => false,
                     'checkin_time' => null,
                     'checkout_time' => null,
-                    'ticket_no' => $ticket->ticket_no,
+                    'ticket_no' => null, // No ticket assigned yet
                     'status' => 'pending',
                 ]);
 
@@ -165,27 +122,23 @@ class InvigilatorController extends Controller
             $candidate->update([
                 'is_checked_in' => true,
                 'checkin_time' => now(),
-                'ticket_no' => $ticket->ticket_no,
             ]);
 
             \Log::info('Candidate updated with check-in status');
 
-            // Also update student record if needed
+            // Also update student record
             $student->update([
                 'is_checked_in' => true,
             ]);
 
-            // include ticket number in student object for response consumers
-            $student->ticket_no = $ticket->ticket_no;
-
             \Log::info('Student record updated with check-in status');
 
             return response()->json([
-                'message' => 'Student checked in successfully',
+                'message' => 'Student checked in successfully. Student can now login with any available ticket.',
                 'student' => $student,
                 'checkin_time' => $candidate->checkin_time,
                 'is_checked_in' => true,
-                'ticket_no' => $ticket->ticket_no
+                'available_tickets' => $availableTicketsCount
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Validation error', ['errors' => $e->errors()]);

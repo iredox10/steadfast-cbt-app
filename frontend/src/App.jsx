@@ -39,6 +39,7 @@ import Tickets from "./pages/admin/Tickets";
 import Settings from "./pages/admin/Settings";
 import InstructorDashboard from "./pages/instructor/Dashboard";
 import CourseResults from "./pages/instructor/CourseResults";
+import ExamResultsDetail from "./pages/instructor/ExamResultsDetail";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
                     <Route path="/instructor/:id" element={<Instructor />} />
                     <Route path="/instructor/dashboard/:id" element={<InstructorDashboard />} />
                     <Route path="/course-results/:userId/:courseId" element={<CourseResults />} />
+                    <Route path="/exam-results-detail/:userId/:courseId/:examId" element={<ExamResultsDetail />} />
                     <Route
                         path="/exams/:userId/:courseId"
                         element={<Exams />}
@@ -122,6 +124,7 @@ function App() {
 
                     <Route path="/exam-archives" element={<ExamArchives />} />
                     <Route path="/exam-archives/:archiveId" element={<ExamArchiveDetail />} />
+                    <Route path="/exam-archive-detail/:userId/:archiveId" element={<ExamArchiveDetail />} />
 
                     <Route path="/admin-management" element={<AdminManagement />} />
                     <Route path="/admin-dashboard/:userId" element={<SuperAdminDashboard />} />

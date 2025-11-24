@@ -60,15 +60,19 @@ class Student extends Controller
         $password = $request->input('password');
         
         if ($ticketNo) {
-            // Tickets are pre-assigned. Validate that the provided ticket belongs to this student
-            $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)
-                ->where('assigned_to_student_id', $student->id)
-                ->first();
+            // NEW FLOW: Find the ticket and assign it to this student if not already assigned
+            $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)->first();
 
             if (!$ticketRecord) {
-                return response()->json('This ticket number is not assigned to you. Please contact the invigilator.', 403);
+                return response()->json('Invalid ticket number. Please check your ticket and try again.', 404);
             }
 
+            // Check if ticket is already used by another student
+            if ($ticketRecord->is_used && $ticketRecord->assigned_to_student_id != $student->id) {
+                return response()->json('This ticket has already been used by another student.', 403);
+            }
+
+            // Get the exam for this ticket
             $examForTicket = Exam::find($ticketRecord->exam_id);
 
             if (!$examForTicket || $examForTicket->activated !== 'yes') {
@@ -82,6 +86,26 @@ class Student extends Controller
 
             if (!$isEnrolled) {
                 return response()->json('You are not enrolled in this exam\'s course', 403);
+            }
+
+            // ASSIGN ticket to this student on first login
+            if (!$ticketRecord->assigned_to_student_id) {
+                $ticketRecord->assigned_to_student_id = $student->id;
+                $ticketRecord->assigned_at = now();
+                $ticketRecord->is_used = true;
+                $ticketRecord->save();
+                
+                \Log::info('Ticket assigned to student', [
+                    'ticket_no' => $ticketNo,
+                    'student_id' => $student->id,
+                    'exam_id' => $examForTicket->id
+                ]);
+            } else if ($ticketRecord->assigned_to_student_id == $student->id) {
+                // Ticket already assigned to this student, just mark as used
+                if (!$ticketRecord->is_used) {
+                    $ticketRecord->is_used = true;
+                    $ticketRecord->save();
+                }
             }
 
             // Ensure a candidate record exists for this student and exam
@@ -104,20 +128,13 @@ class Student extends Controller
                 ]
             );
 
-            // Update candidate ticket if it differs (e.g. record created during check-in)
+            // Update candidate ticket if it differs
             if ($candidate->ticket_no !== $ticketNo) {
                 $candidate->ticket_no = $ticketNo;
                 $candidate->save();
             }
 
-            // Mark ticket as used the first time the student logs in
-            if (!$ticketRecord->is_used) {
-                $ticketRecord->is_used = true;
-                // Preserve existing assigned_at timestamp from activation
-                $ticketRecord->save();
-            }
-
-            // Ensure student check-in time is recorded once invigilator has checked them in
+            // Ensure student check-in time is recorded
             if (!$student->checkin_time && $student->is_checked_in) {
                 $student->checkin_time = $candidate->checkin_time ?? now();
                 $student->save();
