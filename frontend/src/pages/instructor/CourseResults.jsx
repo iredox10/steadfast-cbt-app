@@ -46,11 +46,12 @@ const CourseResults = () => {
             setLoading(true);
             const headers = getAuthHeaders();
             const res = await axios.get(`${path}/get-exams/${userId}/${courseId}`, { headers });
-            // Filter only activated exams (where students have submitted)
-            const activatedExams = res.data.filter(exam => 
-                exam.activated === 'yes'
+            // Filter only terminated exams (exams that have finished_time)
+            const terminatedExams = res.data.filter(exam => 
+                exam.finished_time !== null && exam.finished_time !== undefined
             );
-            setExams(activatedExams);
+            console.log("Terminated exams:", terminatedExams);
+            setExams(terminatedExams);
         } catch (err) {
             console.error("Error fetching exams:", err);
             setError("Failed to load exams");
@@ -63,14 +64,43 @@ const CourseResults = () => {
         try {
             setResultsLoading(true);
             const headers = getAuthHeaders();
-            const res = await axios.get(`${path}/get-students-score/${courseId}`, { headers });
             
-            // Filter results for the selected exam
-            const examResults = res.data.filter(result => result.exam_id === examId);
-            setResults(examResults);
+            // Fetch exam archive or create a similar structure
+            // We'll fetch all necessary data and combine it
+            
+            // 1. Get the exam details
+            const examRes = await axios.get(`${path}/get-exam-by-id/${examId}`, { headers });
+            const exam = examRes.data;
+            
+            // 2. Get all questions for this exam
+            const questionsRes = await axios.get(`${path}/get-questions/${examId}`, { headers });
+            const totalQuestions = questionsRes.data.length;
+            
+            // 3. Get course scores for students in this course
+            const scoresRes = await axios.get(`${path}/get-students-score/${courseId}`, { headers });
+            const courseScores = scoresRes.data;
+            
+            // 4. Filter to only students who have scores (submitted)
+            const resultsWithScores = courseScores.map(scoreData => {
+                return {
+                    student_id: scoreData.student_id,
+                    full_name: scoreData.student?.full_name || 'N/A',
+                    candidate_no: scoreData.student?.candidate_no || 'N/A',
+                    department: scoreData.student?.department || 'N/A',
+                    programme: scoreData.student?.programme || 'N/A',
+                    score: scoreData.score || 0,
+                    submitted_at: scoreData.updated_at,
+                    total_questions: totalQuestions,
+                    has_submitted: true
+                };
+            });
+            
+            console.log("Exam results:", resultsWithScores);
+            setResults(resultsWithScores);
         } catch (err) {
             console.error("Error fetching results:", err);
             setError("Failed to load exam results");
+            setResults([]);
         } finally {
             setResultsLoading(false);
         }
@@ -84,8 +114,8 @@ const CourseResults = () => {
     const filteredResults = results.filter(result => {
         const searchLower = searchTerm.toLowerCase();
         return (
-            result.student_name?.toLowerCase().includes(searchLower) ||
-            result.candidate_number?.toLowerCase().includes(searchLower)
+            result.full_name?.toLowerCase().includes(searchLower) ||
+            result.candidate_no?.toLowerCase().includes(searchLower)
         );
     });
 
@@ -117,14 +147,20 @@ const CourseResults = () => {
         doc.text(`Average: ${stats.average} | Highest: ${stats.highest} | Lowest: ${stats.lowest}`, 14, 45);
         doc.text(`Passed: ${stats.passed} | Failed: ${stats.failed}`, 14, 51);
 
-        const tableData = filteredResults.map((result, index) => [
-            index + 1,
-            result.student_name || 'N/A',
-            result.candidate_number || 'N/A',
-            result.score || '0',
-            `${result.percentage || '0'}%`,
-            result.submission_date ? format(new Date(result.submission_date), 'dd/MM/yyyy HH:mm') : 'N/A'
-        ]);
+        const tableData = filteredResults.map((result, index) => {
+            const percentage = selectedExam.max_score > 0 
+                ? ((result.score / selectedExam.max_score) * 100).toFixed(2)
+                : '0';
+            
+            return [
+                index + 1,
+                result.full_name || 'N/A',
+                result.candidate_no || 'N/A',
+                result.score || '0',
+                `${percentage}%`,
+                result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
+            ];
+        });
 
         autoTable(doc, {
             startY: 58,
@@ -151,14 +187,20 @@ const CourseResults = () => {
             ['Failed:', stats.failed],
             [],
             ['#', 'Student Name', 'Candidate Number', 'Score', 'Percentage', 'Submitted'],
-            ...filteredResults.map((result, index) => [
-                index + 1,
-                result.student_name || 'N/A',
-                result.candidate_number || 'N/A',
-                result.score || '0',
-                `${result.percentage || '0'}%`,
-                result.submission_date ? format(new Date(result.submission_date), 'dd/MM/yyyy HH:mm') : 'N/A'
-            ])
+            ...filteredResults.map((result, index) => {
+                const percentage = selectedExam.max_score > 0 
+                    ? ((result.score / selectedExam.max_score) * 100).toFixed(2)
+                    : '0';
+                
+                return [
+                    index + 1,
+                    result.full_name || 'N/A',
+                    result.candidate_no || 'N/A',
+                    result.score || '0',
+                    `${percentage}%`,
+                    result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
+                ];
+            })
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -229,8 +271,8 @@ const CourseResults = () => {
                     ) : exams.length === 0 ? (
                         <div className="text-center py-8">
                             <FaFileAlt className="text-gray-300 text-5xl mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Exams</h3>
-                            <p className="text-gray-600">There are no activated exams for this course yet.</p>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Exams</h3>
+                            <p className="text-gray-600">There are no terminated exams for this course yet. Results will be available after exams are terminated.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -247,8 +289,8 @@ const CourseResults = () => {
                                     <h3 className="font-semibold text-gray-900 mb-1">{exam.exam_type}</h3>
                                     <p className="text-sm text-gray-600">Duration: {exam.exam_duration} mins</p>
                                     <p className="text-sm text-gray-600">Max Score: {exam.max_score}</p>
-                                    <span className="inline-block mt-2 px-2 py-1 rounded text-xs bg-green-100 text-green-700">
-                                        Active
+                                    <span className="inline-block mt-2 px-2 py-1 rounded text-xs bg-gray-100 text-gray-700">
+                                        Terminated
                                     </span>
                                 </button>
                             ))}
@@ -342,14 +384,16 @@ const CourseResults = () => {
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
                                             {filteredResults.map((result, index) => {
-                                                const percentage = parseFloat(result.percentage) || 0;
+                                                const percentage = selectedExam.max_score > 0 
+                                                    ? (result.score / selectedExam.max_score) * 100 
+                                                    : 0;
                                                 const passed = percentage >= 50;
                                                 
                                                 return (
                                                     <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
                                                         <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
-                                                        <td className="py-4 px-6 text-sm font-medium text-gray-900">{result.student_name || 'N/A'}</td>
-                                                        <td className="py-4 px-6 text-sm text-gray-600">{result.candidate_number || 'N/A'}</td>
+                                                        <td className="py-4 px-6 text-sm font-medium text-gray-900">{result.full_name || 'N/A'}</td>
+                                                        <td className="py-4 px-6 text-sm text-gray-600">{result.candidate_no || 'N/A'}</td>
                                                         <td className="py-4 px-6 text-sm font-semibold text-gray-900">
                                                             {result.score || '0'} / {selectedExam.max_score}
                                                         </td>
@@ -362,8 +406,8 @@ const CourseResults = () => {
                                                             </span>
                                                         </td>
                                                         <td className="py-4 px-6 text-sm text-gray-600">
-                                                            {result.submission_date 
-                                                                ? format(new Date(result.submission_date), 'dd/MM/yyyy HH:mm')
+                                                            {result.submitted_at 
+                                                                ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm')
                                                                 : 'N/A'
                                                             }
                                                         </td>
