@@ -375,14 +375,24 @@ const Instructors = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined Date</th>
                                     {currentUser?.role === 'level_admin' && (
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     )}
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {currentInstructors.map((instructor) => (
+                                {currentInstructors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={currentUser?.role === 'level_admin' ? 5 : 4} className="px-6 py-10 text-center text-gray-500">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <FaChalkboardTeacher className="text-4xl mb-3 text-gray-300" />
+                                                <p className="text-lg font-medium">No instructors found</p>
+                                                <p className="text-sm mt-1">Try adjusting your search or add a new instructor.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    currentInstructors.map((instructor) => (
                                     <tr key={instructor.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
@@ -412,9 +422,6 @@ const Instructors = () => {
                                                 <option value="inactive">Inactive</option>
                                             </select>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(instructor.created_at).toLocaleDateString()}
-                                        </td>
                                         {currentUser?.role === 'level_admin' && (
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex space-x-2">
@@ -424,7 +431,7 @@ const Instructors = () => {
                                                             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
                                                         >
                                                             <FaUserPlus className="mr-1" />
-                                                            Assign
+                                                            Assign Course
                                                         </Link>
                                                     )}
                                                     <button
@@ -451,8 +458,8 @@ const Instructors = () => {
                                             </td>
                                         )}
                                     </tr>
-                                ))}
-
+                                ))
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -521,14 +528,6 @@ const Instructors = () => {
                                         <FaTimes />
                                     </button>
                                 </div>
-
-                                {/* Show department info for level admins */}
-                                {currentUser?.role === 'level_admin' && currentUser?.level && (
-                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
-                                        <h4 className="font-semibold text-blue-800 mb-2">Instructor will be assigned to:</h4>
-                                        <p className="text-blue-700"><strong>Department:</strong> {currentUser.level.title}</p>
-                                    </div>
-                                )}
 
                                 <form onSubmit={handleCreateInstructor} className="space-y-4">
                                     {errMsg && (

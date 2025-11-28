@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaPlus, FaTimes, FaChevronRight } from "react-icons/fa";
+import { FaPlus, FaTimes, FaChevronRight, FaBook } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import AdminSidebar from "../../components/AdminSidebar";
 
@@ -104,7 +104,9 @@ const InstructorsCourses = () => {
                 </header>
 
                 {loading ? (
-                    <p>Loading courses...</p>
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+                    </div>
                 ) : (
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-center mb-4">
@@ -115,11 +117,6 @@ const InstructorsCourses = () => {
                                 {Array.isArray(assignedCourses) ? assignedCourses.length : 0} course(s) assigned
                             </span>
                         </div>
-                        {currentUser?.role === 'level_admin' && (
-                            <p className="text-sm text-blue-600 mb-4">
-                                Only courses you created are available for assignment
-                            </p>
-                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {Array.isArray(assignedCourses) && assignedCourses.map(course => (
                                 <div key={course.id} className="p-4 bg-gray-50 rounded-lg border">
@@ -178,11 +175,6 @@ const InstructorsCourses = () => {
                                     </option>
                                 ))}
                             </select>
-                            {currentUser?.role === 'level_admin' && (
-                                <p className="text-sm text-blue-600 mt-2">
-                                    Only courses you created are shown in this list
-                                </p>
-                            )}
                             {Array.isArray(allCourses) && allCourses.length === 0 && (
                                 <p className="text-sm text-yellow-600 mt-2">
                                     {currentUser?.role === 'level_admin' 

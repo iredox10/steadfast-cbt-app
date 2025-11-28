@@ -336,7 +336,7 @@ const AdminStudents = () => {
             <AdminSidebar userId={userId} />
 
             {/* Main Content */}
-            <main className="flex-1 p-8">
+            <main className="flex-1 p-8 min-w-0 overflow-hidden">
                 <header className="flex justify-between items-center mb-8">
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900">Manage Students</h2>
