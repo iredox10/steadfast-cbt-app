@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('system_config', function (Blueprint $table) {
-            $table->id();
-            $table->string('key')->unique();
-            $table->text('value')->nullable();
-            $table->string('type')->default('string'); // string, boolean, integer, json
-            $table->text('description')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('system_config')) {
+            Schema::create('system_config', function (Blueprint $table) {
+                $table->id();
+                $table->string('key')->unique();
+                $table->text('value')->nullable();
+                $table->string('type')->default('string'); // string, boolean, integer, json
+                $table->text('description')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**
