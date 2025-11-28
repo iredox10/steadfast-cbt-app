@@ -105,8 +105,8 @@ const AcdSession = () => {
     const generateYearOptions = () => {
         const currentYear = new Date().getFullYear();
         const years = [];
-        // Generate years from 10 years ago to 5 years in the future
-        for (let i = currentYear - 10; i <= currentYear + 5; i++) {
+        // Generate years from 10 years ago up to 2060
+        for (let i = currentYear - 10; i <= 2060; i++) {
             years.push(i);
         }
         return years;

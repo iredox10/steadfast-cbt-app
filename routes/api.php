@@ -219,7 +219,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Global Session Management (Super Admin)
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/set-global-session', [Admin::class, 'setGlobalActiveSession']);
+    Route::post('/set-global-session/{sessionId}', [Admin::class, 'setGlobalActiveSession']);
     Route::get('/get-global-session', [Admin::class, 'getGlobalActiveSession']);
     Route::get('/get-active-session-courses', [Admin::class, 'getActiveSessionCourses']);
     Route::post('/add-course-to-session', [Admin::class, 'addCourseToActiveSession']);

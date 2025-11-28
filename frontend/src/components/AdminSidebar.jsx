@@ -53,8 +53,8 @@ const AdminSidebar = ({ userId }) => {
 
     const getLinkClass = (route) => {
         return `flex items-center p-3 rounded-lg transition-colors ${isActiveRoute(route)
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+            ? 'bg-blue-500 text-white'
+            : 'text-gray-600 hover:bg-gray-100'
             }`;
     };
 
@@ -121,14 +121,14 @@ const AdminSidebar = ({ userId }) => {
                     <FaListAlt className="mr-3" /> Dashboard
                 </Link>
 
-                {/* Academic Sessions - Super Admin and Level Admin (but different views) */}
-                {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                {/* Academic Sessions - Level Admin only (Super Admin uses Global Session) */}
+                {currentUser?.role === 'level_admin' && (
                     <Link
                         to="/admin-sessions"
                         className={getLinkClass('admin-sessions')}
                     >
                         <FaCalendarAlt className="mr-3" />
-                        {currentUser?.role === 'super_admin' ? 'Academic Sessions' : 'Active Session'}
+                        Active Session
                     </Link>
                 )}
 

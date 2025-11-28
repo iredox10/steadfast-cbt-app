@@ -152,7 +152,7 @@ const AdminManagement = () => {
             // Fetch departments (filtered to exclude academic sessions)
             // Only fetch departments once
             if (departments.length === 0) {
-                const departmentsRes = await axios.get(`${path}/departments`, { headers });
+                const departmentsRes = await axios.get(`${path}/departments?status=active`, { headers });
                 setDepartments(departmentsRes.data);
             }
 

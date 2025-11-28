@@ -1926,8 +1926,8 @@ class Admin extends Controller
             SystemConfig::setGlobalActiveSession($sessionId);
 
             // Optionally deactivate other sessions if needed
-            Acd_session::where('id', '!=', $sessionId)->update(['status' => false]);
-            $session->update(['status' => true]);
+            Acd_session::where('id', '!=', $sessionId)->update(['status' => 'inactive']);
+            $session->update(['status' => 'active']);
 
             return response()->json([
                 'message' => 'Global active session set successfully',
