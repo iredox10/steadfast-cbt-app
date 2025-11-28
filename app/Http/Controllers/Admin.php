@@ -1891,7 +1891,7 @@ class Admin extends Controller
         try {
             $levelFilter = $this->getAdminLevelFilter($request);
 
-            $usersQuery = User::whereIn('role', ['lecturer', 'invigilator']);
+            $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator']);
 
             if ($levelFilter !== null) {
                 $usersQuery->where('level_id', $levelFilter);

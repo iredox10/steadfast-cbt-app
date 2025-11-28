@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaBook, FaPlus, FaUserTie, FaCalendarAlt, FaExclamationTriangle, FaCheckCircle, FaTimes, FaUsers } from 'react-icons/fa';
+import { FaBook, FaPlus, FaUserTie, FaCalendarAlt, FaChalkboardTeacher, FaCheckCircle, FaTimes, FaUsers, FaSearch } from 'react-icons/fa';
 import AdminSidebar from '../../components/AdminSidebar';
 import axios from 'axios';
 import { path } from '../../../utils/path';
@@ -13,6 +13,7 @@ const LevelAdminCourseManagement = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Form states
     const [showAddCourseModal, setShowAddCourseModal] = useState(false);
@@ -36,6 +37,11 @@ const LevelAdminCourseManagement = () => {
         fetchActiveSessionData();
         fetchLecturers();
     }, []);
+
+    const filteredCourses = Array.isArray(courses) ? courses.filter(course => 
+        (course.title || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+        (course.code || '').toLowerCase().includes((searchTerm || '').toLowerCase())
+    ) : [];
 
     const fetchActiveSessionData = async () => {
         try {
@@ -72,7 +78,8 @@ const LevelAdminCourseManagement = () => {
             const response = await axios.get(`${path}/users-by-level`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setLecturers(response.data.filter(user => user.role === 'lecturer'));
+            // Show only lecturers and instructors
+            setLecturers(response.data.filter(user => ['lecturer', 'instructor'].includes(user.role)));
         } catch (err) {
             console.error('Failed to fetch lecturers:', err);
         }
@@ -245,8 +252,19 @@ const LevelAdminCourseManagement = () => {
                                     <h2 className="text-xl font-semibold text-gray-900">Session Courses</h2>
                                     <p className="text-gray-600 mt-1">Courses in {activeSession.title}</p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search courses..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
                                         onClick={() => setShowImportModal(true)}
                                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                                     >
@@ -276,9 +294,13 @@ const LevelAdminCourseManagement = () => {
                                         Add First Course
                                     </button>
                                 </div>
+                            ) : filteredCourses.length === 0 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    <p className="text-lg">No courses found matching "{searchTerm}"</p>
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {courses.map((course) => (
+                                    {filteredCourses.map((course) => (
                                         <div key={course.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 flex flex-col h-full group">
                                             {/* Header: Code & Semester */}
                                             <div className="flex justify-between items-start mb-3">
@@ -325,7 +347,7 @@ const LevelAdminCourseManagement = () => {
                                                             }}
                                                             className="flex items-center justify-center w-full text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition-colors text-xs font-medium border border-amber-100 group-hover:border-amber-200"
                                                         >
-                                                            <FaExclamationTriangle className="mr-2" />
+                                                            <FaChalkboardTeacher className="mr-2" />
                                                             Assign Lecturer
                                                         </button>
                                                     )}
@@ -346,9 +368,10 @@ const LevelAdminCourseManagement = () => {
                             )}
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Add Course Modal */}
+            {/* Add Course Modal */}
                 {showAddCourseModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                         <div className="bg-white rounded-xl max-w-md w-full p-6">

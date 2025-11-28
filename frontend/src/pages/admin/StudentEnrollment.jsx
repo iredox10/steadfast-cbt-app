@@ -567,10 +567,10 @@ const StudentEnrollment = () => {
                         )}
                     </div>
                 </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-            
-            export default StudentEnrollment;
+            </div>
+        </div>
+        </div>
+    );
+};
+
+export default StudentEnrollment;

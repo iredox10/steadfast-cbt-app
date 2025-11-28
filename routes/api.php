@@ -72,7 +72,7 @@ Route::get('/get-users', [Instructor::class, 'index'])->middleware(['auth:sanctu
 
 Route::post('/add-user', [Instructor::class, 'store'])->middleware(['auth:sanctum']);
 
-Route::patch('/update-user/{id}',[Instructor::class, 'update']);
+Route::match(['put', 'patch'], '/update-user/{id}', [Instructor::class, 'update']);
 Route::post('/reset-user-password/{id}', [Instructor::class, 'resetUserPassword']);
 
 // Protected instructor and lecturer routes
