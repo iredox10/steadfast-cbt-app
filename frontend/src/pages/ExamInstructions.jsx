@@ -235,7 +235,65 @@ const ExamInstructions = () => {
                                                 Your exam will be automatically submitted when the timer reaches zero.
                                             </p>
                                         </li>
+
+                                        <li className="p-4 flex items-start">
+                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                                <span className="text-blue-600 text-xs">3</span>
+                                            </div>
+                                            <p className="text-gray-700">
+                                                Navigate between questions using the question numbers or Next/Previous buttons.
+                                            </p>
+                                        </li>
+
+                                        <li className="p-4 flex items-start">
+                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                                <span className="text-blue-600 text-xs">4</span>
+                                            </div>
+                                            <p className="text-gray-700">
+                                                Click "Submit Exam" when you have completed all questions.
+                                            </p>
+                                        </li>
                                     </ul>
+                                </div>
+                            </div>
+
+                            {/* Security Monitoring Warning */}
+                            <div className="mb-8">
+                                <h3 className="font-bold text-red-600 text-lg mb-4 flex items-center">
+                                    <FaExclamationTriangle className="mr-2" />
+                                    Exam Security & Monitoring
+                                </h3>
+                                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
+                                    <p className="text-red-800 font-medium mb-4">
+                                        This exam is monitored by advanced security systems. Please observe the following rules:
+                                    </p>
+                                    <ul className="space-y-3">
+                                        <li className="flex items-start text-red-700">
+                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
+                                            <span><strong>Fullscreen Mode Required:</strong> The exam will automatically enter fullscreen mode. Exiting fullscreen is considered a violation.</span>
+                                        </li>
+                                        <li className="flex items-start text-red-700">
+                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
+                                            <span><strong>No Tab Switching:</strong> Switching to other browser tabs or applications will be detected and logged.</span>
+                                        </li>
+                                        <li className="flex items-start text-red-700">
+                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
+                                            <span><strong>Copy/Paste Disabled:</strong> All copy, cut, and paste operations are blocked during the exam.</span>
+                                        </li>
+                                        <li className="flex items-start text-red-700">
+                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
+                                            <span><strong>Screenshots Prevented:</strong> Screenshot shortcuts and screen capture tools are disabled.</span>
+                                        </li>
+                                        <li className="flex items-start text-red-700">
+                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
+                                            <span><strong>Right-Click Disabled:</strong> Right-click context menus are disabled.</span>
+                                        </li>
+                                    </ul>
+                                    <div className="mt-4 p-4 bg-red-100 rounded-lg">
+                                        <p className="text-red-900 font-bold">
+                                            ⚠️ WARNING: Violating these rules will result in automatic warnings. After 3 violations, your exam will be automatically submitted.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 

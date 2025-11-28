@@ -13,6 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([
+            SuperAdminSeeder::class,
+        ]);
+
         // Create admin user
         User::create([
             'full_name' => 'Administrator',

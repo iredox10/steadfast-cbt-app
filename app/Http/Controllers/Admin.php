@@ -104,7 +104,15 @@ class Admin extends Controller
         try {
             $settings = [
                 'student_see_result' => SystemConfig::get('student_see_result', false),
-                // Add more settings here as needed
+                'student_registration_enabled' => SystemConfig::get('student_registration_enabled', true),
+                // Security settings
+                'enable_browser_lockdown' => SystemConfig::get('enable_browser_lockdown', true),
+                'enable_fullscreen' => SystemConfig::get('enable_fullscreen', true),
+                'enable_tab_switch_detection' => SystemConfig::get('enable_tab_switch_detection', true),
+                'enable_copy_paste_block' => SystemConfig::get('enable_copy_paste_block', true),
+                'enable_screenshot_block' => SystemConfig::get('enable_screenshot_block', true),
+                'enable_multiple_monitor_check' => SystemConfig::get('enable_multiple_monitor_check', true),
+                'max_violations' => SystemConfig::get('max_violations', 3),
             ];
             return response()->json($settings);
         } catch (Exception $e) {
@@ -138,6 +146,39 @@ class Admin extends Controller
                 case 'student_see_result':
                     $type = 'boolean';
                     $description = 'Whether students can see their result immediately after finishing the exam';
+                    break;
+                case 'student_registration_enabled':
+                    $type = 'boolean';
+                    $description = 'Whether new student registrations are enabled';
+                    break;
+                // Security settings
+                case 'enable_browser_lockdown':
+                    $type = 'boolean';
+                    $description = 'Master switch for exam browser lockdown features';
+                    break;
+                case 'enable_fullscreen':
+                    $type = 'boolean';
+                    $description = 'Force fullscreen mode during exams';
+                    break;
+                case 'enable_tab_switch_detection':
+                    $type = 'boolean';
+                    $description = 'Detect and log tab/window switching during exams';
+                    break;
+                case 'enable_copy_paste_block':
+                    $type = 'boolean';
+                    $description = 'Block copy, paste, and right-click context menu';
+                    break;
+                case 'enable_screenshot_block':
+                    $type = 'boolean';
+                    $description = 'Block screenshot shortcuts (PrintScreen, etc.)';
+                    break;
+                case 'enable_multiple_monitor_check':
+                    $type = 'boolean';
+                    $description = 'Detect and warn about multiple monitors';
+                    break;
+                case 'max_violations':
+                    $type = 'integer';
+                    $description = 'Maximum violations before auto-submit (1-10)';
                     break;
                 // Add more cases here
             }
@@ -2347,8 +2388,161 @@ class Admin extends Controller
             fclose($file);
         };
 
+        
+
         return response()->stream($callback, 200, $headers);
     }
+
+    /**
+     * Log a security violation during exam
+     */
+    public function logViolation(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'student_id' => 'required|exists:students,id',
+                'exam_id' => 'required|exists:exams,id',
+                'violation_type' => 'required|in:tab_switch,fullscreen_exit,copy_attempt,paste_attempt,screenshot_attempt,right_click,devtools_attempt,multiple_monitors_detected',
+                'details' => 'nullable|array'
+            ]);
+
+            $violation = \App\Models\ExamViolation::create([
+                'student_id' => $validated['student_id'],
+                'exam_id' => $validated['exam_id'],
+                'violation_type' => $validated['violation_type'],
+                'details' => $validated['details'] ?? null,
+                'violated_at' => now()
+            ]);
+
+            // Get current violation count for this student in this exam
+            $violationCount = \App\Models\ExamViolation::where('student_id', $validated['student_id'])
+                ->where('exam_id', $validated['exam_id'])
+                ->count();
+
+            // Get exam's max violations threshold
+            $exam = Exam::find($validated['exam_id']);
+            $maxViolations = $exam->max_violations ?? 3;
+
+            return response()->json([
+                'message' => 'Violation logged successfully',
+                'violation' => $violation,
+                'violation_count' => $violationCount,
+                'max_violations' => $maxViolations,
+                'should_auto_submit' => $violationCount >= $maxViolations
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Error logging violation: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get all violations for a specific exam
+     */
+    public function getExamViolations(Request $request, $examId)
+    {
+        try {
+            $violations = \App\Models\ExamViolation::where('exam_id', $examId)
+                ->with(['student', 'exam'])
+                ->orderBy('violated_at', 'desc')
+                ->get();
+
+            // Group by violation type for statistics
+            $stats = $violations->groupBy('violation_type')->map(function ($group) {
+                return $group->count();
+            });
+
+            return response()->json([
+                'violations' => $violations,
+                'statistics' => $stats,
+                'total_violations' => $violations->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get all violations for a specific student
+     */
+    public function getStudentViolations(Request $request, $studentId)
+    {
+        try {
+            $violations = \App\Models\ExamViolation::where('student_id', $studentId)
+                ->with(['student', 'exam'])
+                ->orderBy('violated_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'violations' => $violations,
+                'total_violations' => $violations->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update security settings for a specific exam
+     */
+    public function updateExamSecuritySettings(Request $request, $examId)
+    {
+        try {
+            $user = $request->user();
+            
+            // Only super admins and level admins can update security settings
+            if (!in_array($user->role, ['super_admin', 'admin', 'level_admin'])) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $validated = $request->validate([
+                'enable_browser_lockdown' => 'sometimes|boolean',
+                'enable_fullscreen' => 'sometimes|boolean',
+                'enable_copy_paste_block' => 'sometimes|boolean',
+                'enable_screenshot_block' => 'sometimes|boolean',
+                'enable_tab_switch_detection' => 'sometimes|boolean',
+                'enable_multiple_monitor_check' => 'sometimes|boolean',
+                'max_violations' => 'sometimes|integer|min:1|max:10'
+            ]);
+
+            $exam = Exam::findOrFail($examId);
+            
+            // Level admins can only update exams they have access to
+            if ($user->role === 'level_admin' && $exam->level_id !== $user->level_id) {
+                return response()->json(['error' => 'Unauthorized to modify this exam'], 403);
+            }
+
+            $exam->update($validated);
+
+            return response()->json([
+                'message' => 'Security settings updated successfully',
+                'exam' => $exam
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get security settings for a specific exam
+     */
+    public function getExamSecuritySettings($examId)
+    {
+        try {
+            $exam = Exam::findOrFail($examId);
+            
+            return response()->json([
+                'enable_browser_lockdown' => $exam->enable_browser_lockdown,
+                'enable_fullscreen' => $exam->enable_fullscreen,
+                'enable_copy_paste_block' => $exam->enable_copy_paste_block,
+                'enable_screenshot_block' => $exam->enable_screenshot_block,
+                'enable_tab_switch_detection' => $exam->enable_tab_switch_detection,
+                'enable_multiple_monitor_check' => $exam->enable_multiple_monitor_check,
+                'max_violations' => $exam->max_violations,
+                'enabled_features' => $exam->getEnabledSecurityFeatures()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }
-
-

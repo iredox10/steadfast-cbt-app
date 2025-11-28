@@ -8,7 +8,16 @@ import { useParams } from 'react-router-dom';
 const Settings = () => {
     const { userId } = useParams();
     const [settings, setSettings] = useState({
-        student_see_result: false
+        student_see_result: false,
+        student_registration_enabled: true,
+        // Security settings
+        enable_browser_lockdown: true,
+        enable_fullscreen: true,
+        enable_tab_switch_detection: true,
+        enable_copy_paste_block: true,
+        enable_screenshot_block: true,
+        enable_multiple_monitor_check: true,
+        max_violations: 3
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -27,14 +36,20 @@ const Settings = () => {
     const fetchSettings = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${path}/system-settings`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const headers = { Authorization: `Bearer ${token}` };
+
+            // Fetch both settings and user profile
+            const [settingsResponse, userResponse] = await Promise.all([
+                axios.get(`${path}/system-settings`, { headers }),
+                axios.get(`${path}/user`, { headers })
+            ]);
+
             // Ensure we have default values
             setSettings({
                 student_see_result: false,
                 student_registration_enabled: true,
-                ...response.data
+                ...settingsResponse.data,
+                role: userResponse.data.role // Add role from user profile
             });
         } catch (error) {
             console.error('Error fetching settings:', error);
@@ -43,8 +58,8 @@ const Settings = () => {
         }
     };
 
-    const handleToggle = async (key) => {
-        const newValue = !settings[key];
+    const handleToggle = async (key, value = null) => {
+        const newValue = value !== null ? value : !settings[key];
 
         // Optimistic update
         setSettings(prev => ({ ...prev, [key]: newValue }));
@@ -64,7 +79,7 @@ const Settings = () => {
         } catch (error) {
             console.error('Error updating setting:', error);
             // Revert on error
-            setSettings(prev => ({ ...prev, [key]: !newValue }));
+            setSettings(prev => ({ ...prev, [key]: value !== null ? !value : !newValue }));
             setMessage({ type: 'error', text: 'Failed to update setting' });
         } finally {
             setSaving(false);
@@ -174,6 +189,137 @@ const Settings = () => {
                                                 }`}
                                         />
                                     </button>
+                                </div>
+
+                                {/* Exam Security Settings */}
+                                <div className="mt-6 pt-6 border-t border-gray-200">
+                                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                                        <FaCog className="mr-2 text-gray-600" />
+                                        Exam Security (Browser Lockdown)
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mb-4">
+                                        Configure global defaults for exam security. These settings apply to all new exams.
+                                    </p>
+
+                                    {/* Master Toggle */}
+                                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 mb-3">
+                                        <div>
+                                            <h5 className="font-medium text-gray-900">Enable Browser Lockdown</h5>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                Master switch for all exam security features
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleToggle('enable_browser_lockdown')}
+                                            disabled={saving}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.enable_browser_lockdown ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.enable_browser_lockdown ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Individual Features */}
+                                    {settings.enable_browser_lockdown && (
+                                        <div className="space-y-2 ml-4 pl-4 border-l-2 border-blue-200">
+                                            {/* Fullscreen */}
+                                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                                <div className="flex-1">
+                                                    <h6 className="text-sm font-medium text-gray-900">Fullscreen Mode</h6>
+                                                    <p className="text-xs text-gray-500">Force fullscreen during exam</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleToggle('enable_fullscreen')}
+                                                    disabled={saving}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.enable_fullscreen ? 'bg-green-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${settings.enable_fullscreen ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {/* Tab Switch Detection */}
+                                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                                <div className="flex-1">
+                                                    <h6 className="text-sm font-medium text-gray-900">Tab Switch Detection</h6>
+                                                    <p className="text-xs text-gray-500">Detect window/tab changes</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleToggle('enable_tab_switch_detection')}
+                                                    disabled={saving}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.enable_tab_switch_detection ? 'bg-green-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${settings.enable_tab_switch_detection ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {/* Copy/Paste Block */}
+                                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                                <div className="flex-1">
+                                                    <h6 className="text-sm font-medium text-gray-900">Copy/Paste Block</h6>
+                                                    <p className="text-xs text-gray-500">Disable clipboard & right-click</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleToggle('enable_copy_paste_block')}
+                                                    disabled={saving}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.enable_copy_paste_block ? 'bg-green-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${settings.enable_copy_paste_block ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {/* Screenshot Block */}
+                                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                                <div className="flex-1">
+                                                    <h6 className="text-sm font-medium text-gray-900">Screenshot Prevention</h6>
+                                                    <p className="text-xs text-gray-500">Block PrintScreen shortcuts</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleToggle('enable_screenshot_block')}
+                                                    disabled={saving}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.enable_screenshot_block ? 'bg-green-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${settings.enable_screenshot_block ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {/* Monitor Detection */}
+                                            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                                <div className="flex-1">
+                                                    <h6 className="text-sm font-medium text-gray-900">Monitor Detection</h6>
+                                                    <p className="text-xs text-gray-500">Warn about multiple displays</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleToggle('enable_multiple_monitor_check')}
+                                                    disabled={saving}
+                                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${settings.enable_multiple_monitor_check ? 'bg-green-600' : 'bg-gray-300'}`}
+                                                >
+                                                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${settings.enable_multiple_monitor_check ? 'translate-x-5' : 'translate-x-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {/* Max Violations */}
+                                            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                                <label className="block text-sm font-medium text-gray-900 mb-1">
+                                                    Max Violations
+                                                </label>
+                                                <p className="text-xs text-gray-600 mb-2">
+                                                    Auto-submit after this many violations
+                                                </p>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="10"
+                                                    value={settings.max_violations || 3}
+                                                    onChange={(e) => {
+                                                        const value = parseInt(e.target.value);
+                                                        if (value >= 1 && value <= 10) {
+                                                            handleToggle('max_violations', value);
+                                                        }
+                                                    }}
+                                                    className="w-20 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

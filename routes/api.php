@@ -232,6 +232,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/system-settings', [Admin::class, 'get_system_settings']);
     Route::post('/system-settings', [Admin::class, 'update_system_setting']);
     Route::post('/change-password', [Admin::class, 'changePassword']);
+
+    // Exam Security & Violation Logging
+    Route::post('/log-violation', [Admin::class, 'logViolation']);
+    Route::get('/exam/{examId}/violations', [Admin::class, 'getExamViolations']);
+    Route::get('/student/{studentId}/violations', [Admin::class, 'getStudentViolations']);
+    Route::put('/exam/{examId}/security-settings', [Admin::class, 'updateExamSecuritySettings']);
+    Route::get('/exam/{examId}/security-settings', [Admin::class, 'getExamSecuritySettings']);
 });
 Route::get('/debug-semesters/{sessionId}', function($sessionId) { 
     $user = request()->user(); 
