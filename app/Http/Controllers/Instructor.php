@@ -211,6 +211,14 @@ class Instructor extends Controller
                 ->where('course_id', $course_id)
                 ->orderBy('created_at', 'desc')
                 ->get();
+            
+            // Add filled_questions_count to each exam
+            foreach ($exams as $exam) {
+                $exam->filled_questions_count = Question::where('exam_id', $exam->id)
+                    ->whereNotNull('question')
+                    ->count();
+            }
+            
             return response()->json($exams);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

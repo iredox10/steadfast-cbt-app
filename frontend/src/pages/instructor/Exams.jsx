@@ -466,8 +466,13 @@ const Exams = () => {
                                                 ) : (
                                                     <button
                                                         onClick={() => handleShowSubmitModel(exam.id)}
-                                                        className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                                                        disabled={loading}
+                                                        className={`text-sm font-medium ${
+                                                            exam.filled_questions_count < exam.no_of_questions 
+                                                                ? "text-gray-400 cursor-not-allowed" 
+                                                                : "text-blue-600 hover:text-blue-800"
+                                                        }`}
+                                                        disabled={loading || exam.filled_questions_count < exam.no_of_questions}
+                                                        title={exam.filled_questions_count < exam.no_of_questions ? `Complete all questions to submit (${exam.filled_questions_count}/${exam.no_of_questions} filled)` : "Submit Exam"}
                                                     >
                                                         Submit
                                                     </button>

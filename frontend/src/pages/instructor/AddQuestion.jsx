@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "../../quill.css";
-import { FaPlus, FaTimes, FaBook, FaSave, FaArrowLeft, FaTachometerAlt } from "react-icons/fa";
+import { FaPlus, FaTimes, FaBook, FaSave, FaArrowLeft, FaTachometerAlt, FaEdit, FaCheck } from "react-icons/fa";
 import Sidebar from "../../components/Sidebar";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -72,6 +72,10 @@ const AddQuestion = () => {
     const [questionBank, setQuestionBank] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(false);
+    
+    // Editing options state
+    const [editingOptionIndex, setEditingOptionIndex] = useState(null);
+    const [editingOptionContent, setEditingOptionContent] = useState("");
 
     // Handle changes for each editor
     const handleQuestionChange = (content) => {
@@ -109,6 +113,36 @@ const AddQuestion = () => {
     const removeOption = (i) => {
         const newValue = options.filter((option, index) => index !== i);
         setOptions(newValue);
+        
+        // If we were editing this option, cancel the edit
+        if (editingOptionIndex === i) {
+            setEditingOptionIndex(null);
+            setEditingOptionContent("");
+        }
+    };
+    
+    const startEditingOption = (index) => {
+        setEditingOptionIndex(index);
+        setEditingOptionContent(options[index]);
+    };
+
+    const saveEditedOption = () => {
+        if (editingOptionContent.trim() === "") {
+            setError("Option cannot be empty");
+            return;
+        }
+        
+        const newOptions = [...options];
+        newOptions[editingOptionIndex] = editingOptionContent;
+        setOptions(newOptions);
+        setEditingOptionIndex(null);
+        setEditingOptionContent("");
+        setError("");
+    };
+
+    const cancelEditingOption = () => {
+        setEditingOptionIndex(null);
+        setEditingOptionContent("");
     };
 
     const handleSubmit = async (e) => {
@@ -403,24 +437,71 @@ const AddQuestion = () => {
                                     {options && options.map((option, i) => (
                                         <div
                                             key={i}
-                                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                                            className="p-4 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
                                         >
-                                            <div
-                                                className="flex-1 mr-4 break-words overflow-auto max-h-32"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: option,
-                                                }}
-                                            />
-                                            <div className="flex items-center gap-2 flex-shrink-0">
-                                                <button
-                                                    onClick={() => removeOption(i)}
-                                                    disabled={loading}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                                    title="Remove option"
-                                                >
-                                                    <FaTimes />
-                                                </button>
-                                            </div>
+                                            {editingOptionIndex === i ? (
+                                                // Edit Mode
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-gray-900">
+                                                            Editing Option {i + 1}
+                                                        </span>
+                                                    </div>
+                                                    <div className="border border-gray-200 rounded-lg">
+                                                        <ReactQuill
+                                                            value={editingOptionContent}
+                                                            onChange={setEditingOptionContent}
+                                                            theme="snow"
+                                                            modules={modules}
+                                                            className="min-h-[100px]"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={saveEditedOption}
+                                                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-lg transition-colors"
+                                                        >
+                                                            <FaCheck />
+                                                            <span>Save</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelEditingOption}
+                                                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                                        >
+                                                            <FaTimes />
+                                                            <span>Cancel</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // View Mode
+                                                <div className="flex items-center justify-between">
+                                                    <div
+                                                        className="flex-1 mr-4 break-words overflow-auto max-h-32"
+                                                        dangerouslySetInnerHTML={{
+                                                            __html: option,
+                                                        }}
+                                                    />
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        <button
+                                                            onClick={() => startEditingOption(i)}
+                                                            disabled={loading || editingOptionIndex !== null}
+                                                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Edit option"
+                                                        >
+                                                            <FaEdit />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => removeOption(i)}
+                                                            disabled={loading || editingOptionIndex !== null}
+                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Remove option"
+                                                        >
+                                                            <FaTimes />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
