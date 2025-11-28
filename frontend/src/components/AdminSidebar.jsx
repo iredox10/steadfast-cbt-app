@@ -14,7 +14,8 @@ import {
     FaCrown,
     FaGraduationCap,
     FaEye,
-    FaTicketAlt
+    FaTicketAlt,
+    FaUserPlus
 } from 'react-icons/fa';
 
 const AdminSidebar = ({ userId }) => {
@@ -123,13 +124,22 @@ const AdminSidebar = ({ userId }) => {
 
                 {/* Academic Sessions - Level Admin only (Super Admin uses Global Session) */}
                 {currentUser?.role === 'level_admin' && (
-                    <Link
-                        to="/admin-sessions"
-                        className={getLinkClass('admin-sessions')}
-                    >
-                        <FaCalendarAlt className="mr-3" />
-                        Active Session
-                    </Link>
+                    <>
+                        <Link
+                            to="/admin-sessions"
+                            className={getLinkClass('admin-sessions')}
+                        >
+                            <FaCalendarAlt className="mr-3" />
+                            Active Session
+                        </Link>
+                        <Link
+                            to="/level-admin-courses"
+                            className={getLinkClass('level-admin-courses')}
+                        >
+                            <FaUserPlus className="mr-3" />
+                            Enroll Students
+                        </Link>
+                    </>
                 )}
 
                 {/* Students */}

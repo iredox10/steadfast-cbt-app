@@ -2099,30 +2099,45 @@ class Admin extends Controller
     }
 
     /**
-     * Get courses in active session for level admin
+     * Get courses in the global active session
      */
     public function getActiveSessionCourses(Request $request)
     {
         try {
-            $user = $request->user();
-
-            // Get global active session
             $activeSession = SystemConfig::getGlobalActiveSession();
+
             if (!$activeSession) {
-                return response()->json(['error' => 'No active session set'], 404);
+                return response()->json([
+                    'session' => null,
+                    'courses' => []
+                ]);
             }
 
-            // Get courses from active session
-            $coursesQuery = Course::whereHas('semester', function($query) use ($activeSession) {
-                $query->where('acd_session_id', $activeSession->id);
-            });
+            // Get all semesters in this session
+            $semesters = Semester::where('acd_session_id', $activeSession->id)->get();
+            $semesterIds = $semesters->pluck('id');
 
-            // If user is level admin, only show their own courses
-            if ($user->role === 'level_admin') {
-                $coursesQuery->where('created_by', $user->id);
+            // Get all courses in these semesters
+            // Filter by level admin if applicable (only show courses created by them)
+            $user = $request->user();
+            $query = Course::whereIn('semester_id', $semesterIds)->with('semester');
+            
+            if ($user && $user->role === 'level_admin') {
+                $query->where('created_by', $user->id);
             }
+            
+            $courses = $query->get();
 
-            $courses = $coursesQuery->with(['semester'])->get();
+            // Check assignments for each course
+            foreach ($courses as $course) {
+                $assignment = LecturerCourse::where('course_id', $course->id)->first();
+                if ($assignment) {
+                    $lecturer = User::find($assignment->user_id);
+                    $course->assigned_to = $lecturer ? $lecturer->full_name : null;
+                } else {
+                    $course->assigned_to = null;
+                }
+            }
 
             return response()->json([
                 'session' => $activeSession,

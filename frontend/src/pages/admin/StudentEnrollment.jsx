@@ -17,7 +17,7 @@ import {
     FaExclamationCircle,
     FaInfoCircle
 } from 'react-icons/fa';
-import Sidebar from '../../components/Sidebar';
+import Sidebar from '../../components/AdminSidebar';
 import Header from '../../components/Header';
 
 const StudentEnrollment = () => {
@@ -243,17 +243,19 @@ const StudentEnrollment = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Success/Error Message */}
-            {message && (
-                <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-                    } text-white`}>
-                    {message.type === 'success' ? <FaCheckCircle /> : <FaExclamationCircle />}
-                    <span>{message.text}</span>
-                </div>
-            )}
+        <div className="flex min-h-screen bg-gray-50">
+            <Sidebar />
+            <div className="flex-1">
+                {/* Success/Error Message */}
+                {message && (
+                    <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 ${message.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                        } text-white`}>
+                        {message.type === 'success' ? <FaCheckCircle /> : <FaExclamationCircle />}
+                        <span>{message.text}</span>
+                    </div>
+                )}
 
-            <div className="p-8">
+                <div className="p-8">
                 {/* Header */}
                 <div className="mb-8">
                     <button
@@ -565,9 +567,10 @@ const StudentEnrollment = () => {
                         )}
                     </div>
                 </div>
-            </div>
-        </div>
-    );
-};
-
-export default StudentEnrollment;
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+            
+            export default StudentEnrollment;

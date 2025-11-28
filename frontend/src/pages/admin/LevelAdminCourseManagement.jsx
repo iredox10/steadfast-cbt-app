@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaBook, FaPlus, FaUserTie, FaCalendarAlt, FaExclamationTriangle, FaCheckCircle, FaTimes } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaBook, FaPlus, FaUserTie, FaCalendarAlt, FaExclamationTriangle, FaCheckCircle, FaTimes, FaUsers } from 'react-icons/fa';
 import AdminSidebar from '../../components/AdminSidebar';
 import axios from 'axios';
 import { path } from '../../../utils/path';
@@ -51,6 +52,12 @@ const LevelAdminCourseManagement = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setSemesters(semesterResponse.data);
+                
+                // Find and set active semester
+                const activeSem = semesterResponse.data.find(s => s.status === 'active');
+                if (activeSem) {
+                    setCourseForm(prev => ({ ...prev, semester_id: activeSem.id }));
+                }
             }
         } catch (err) {
             setError(err.response?.data?.error || 'No active global session set');
@@ -272,30 +279,66 @@ const LevelAdminCourseManagement = () => {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {courses.map((course) => (
-                                        <div key={course.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className="flex-1">
-                                                    <h3 className="font-semibold text-gray-900 text-lg">{course.title}</h3>
-                                                    <p className="text-gray-600 text-sm mt-1">{course.code}</p>
-                                                    <p className="text-gray-500 text-sm">
-                                                        {course.credit_unit} Credit Unit{course.credit_unit > 1 ? 's' : ''}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs text-gray-500">
-                                                    {course.semester?.title || 'No Semester'}
+                                        <div key={course.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 flex flex-col h-full group">
+                                            {/* Header: Code & Semester */}
+                                            <div className="flex justify-between items-start mb-3">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-100 transition-colors">
+                                                    {course.code}
                                                 </span>
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedCourse(course);
-                                                        setShowAssignModal(true);
-                                                    }}
-                                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors flex items-center gap-1"
+                                                <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                    {course.semester?.semester || course.semester?.title || 'No Semester'}
+                                                </span>
+                                            </div>
+
+                                            {/* Title */}
+                                            <h3 className="font-bold text-gray-900 text-lg mb-2 leading-tight line-clamp-2 min-h-[3.5rem]" title={course.title}>
+                                                {course.title}
+                                            </h3>
+
+                                            {/* Metadata */}
+                                            <div className="mb-4">
+                                                <p className="text-sm text-gray-500">
+                                                    <span className="font-medium text-gray-700">{course.credit_unit}</span> Credit Unit{course.credit_unit > 1 ? 's' : ''}
+                                                </p>
+                                            </div>
+
+                                            {/* Spacer */}
+                                            <div className="flex-1"></div>
+
+                                            {/* Footer Actions */}
+                                            <div className="pt-4 border-t border-gray-100 mt-auto space-y-3">
+                                                {/* Assignment Status Row */}
+                                                <div className="text-sm">
+                                                    {course.assigned_to ? (
+                                                        <div className="flex items-center text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                                                            <FaUserTie className="mr-2 flex-shrink-0 text-green-600" />
+                                                            <div className="flex flex-col overflow-hidden">
+                                                                <span className="text-[10px] uppercase text-green-600 font-semibold tracking-wider">Assigned to</span>
+                                                                <span className="truncate font-medium text-xs">{course.assigned_to}</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedCourse(course);
+                                                                setShowAssignModal(true);
+                                                            }}
+                                                            className="flex items-center justify-center w-full text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition-colors text-xs font-medium border border-amber-100 group-hover:border-amber-200"
+                                                        >
+                                                            <FaExclamationTriangle className="mr-2" />
+                                                            Assign Lecturer
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Enroll Action */}
+                                                <Link
+                                                    to={`/student-enrollment/${course.id}`}
+                                                    className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors gap-2 shadow-sm hover:shadow"
                                                 >
-                                                    <FaUserTie className="text-xs" />
-                                                    Assign
-                                                </button>
+                                                    <FaUsers />
+                                                    <span>Enroll Students</span>
+                                                </Link>
                                             </div>
                                         </div>
                                     ))}
@@ -365,19 +408,11 @@ const LevelAdminCourseManagement = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Semester
                                     </label>
-                                    <select
-                                        value={courseForm.semester_id}
-                                        onChange={(e) => setCourseForm({ ...courseForm, semester_id: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                                        required
-                                    >
-                                        <option value="">Select Semester</option>
-                                        {semesters.map(semester => (
-                                            <option key={semester.id} value={semester.id}>
-                                                {semester.title}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
+                                        {semesters.find(s => s.id === courseForm.semester_id)?.title || 
+                                         semesters.find(s => s.id === courseForm.semester_id)?.semester || 
+                                         "No active semester found"}
+                                    </div>
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
