@@ -15,6 +15,7 @@ const Session = () => {
     const [showActivateModal, setShowActivateModal] = useState(false);
     const [selectedSemester, setSelectedSemester] = useState(null);
     const [newSemesterTitle, setNewSemesterTitle] = useState("");
+    const [isCustomSemester, setIsCustomSemester] = useState(false);
     const [errMsg, setErrMsg] = useState("");
 
     const fetchSessionAndSemesters = async () => {
@@ -34,21 +35,21 @@ const Session = () => {
 
             // Debug: Log the session ID being used
             console.log('Fetching semesters for session ID:', sessionId);
-            
+
             // Fetch semesters (filtered by user role on backend)
             const semestersRes = await axios.get(`${path}/get-semesters/${sessionId}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
-            
+
             // Debug: Log the response
             console.log('Semesters API Response:', semestersRes.data);
             console.log('Response type:', typeof semestersRes.data);
             console.log('Is array:', Array.isArray(semestersRes.data));
-            
+
             // Ensure semesters is always an array
             const semestersData = Array.isArray(semestersRes.data) ? semestersRes.data : [];
             setSemesters(semestersData);
-            
+
             console.log('Processed semesters:', semestersData);
         } catch (err) {
             console.error("Error fetching data:", err);
@@ -223,14 +224,41 @@ const Session = () => {
                         <form onSubmit={handleAddSemester}>
                             {errMsg && <p className="text-red-500 mb-4">{errMsg}</p>}
                             <label htmlFor="semesterTitle" className="block text-sm font-medium text-gray-700 mb-2">Semester</label>
-                            <input
-                                id="semesterTitle"
-                                type="text"
-                                value={newSemesterTitle}
-                                onChange={(e) => setNewSemesterTitle(e.target.value)}
-                                placeholder="e.g., First, Second, Summer"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                            />
+                            {isCustomSemester ? (
+                                <input
+                                    id="semesterTitle"
+                                    type="text"
+                                    value={newSemesterTitle}
+                                    onChange={(e) => setNewSemesterTitle(e.target.value)}
+                                    placeholder="e.g., Summer, Remedial"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                    autoFocus
+                                />
+                            ) : (
+                                <select
+                                    id="semesterTitle"
+                                    value={newSemesterTitle}
+                                    onChange={(e) => setNewSemesterTitle(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">Select Semester</option>
+                                    <option value="First">First Semester</option>
+                                    <option value="Second">Second Semester</option>
+                                    <option value="Third">Third Semester</option>
+                                    <option value="Fourth">Fourth Semester</option>
+                                </select>
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsCustomSemester(!isCustomSemester);
+                                    setNewSemesterTitle("");
+                                }}
+                                className="text-sm text-blue-600 hover:text-blue-800 mt-2 underline focus:outline-none"
+                            >
+                                {isCustomSemester ? "Select from list" : "Add another semester"}
+                            </button>
                             {currentUser?.role === 'level_admin' && (
                                 <p className="text-sm text-blue-600 mt-2">
                                     This semester will be created under your account and only visible to you.
