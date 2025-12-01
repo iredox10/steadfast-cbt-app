@@ -427,7 +427,7 @@ const Student = () => {
             localStorage.removeItem("examTimeRemaining");
             localStorage.removeItem("examLastTimestamp");
 
-            navigate(`/student-submission/${studentId}`);
+            navigate(`/student-submission/${studentId}`, { state: { submissionResult: res.data } });
         } catch (err) {
             console.log("Error submitting exam:", err);
             // Don't clear localStorage on error, so student can retry

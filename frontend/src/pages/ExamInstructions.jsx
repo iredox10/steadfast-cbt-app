@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import axios from "axios";
 import { path } from "../../utils/path";
-import { FaBook, FaClock, FaUser, FaGraduationCap, FaCheckCircle, FaInfoCircle, FaExclamationTriangle } from "react-icons/fa";
+import { FaBook, FaClock, FaUser, FaGraduationCap, FaCheckCircle, FaInfoCircle, FaExclamationTriangle, FaShieldAlt, FaArrowRight, FaTimes } from "react-icons/fa";
+import logo from "../../public/assets/buk.png"; // Import the logo
 
 const ExamInstructions = () => {
     const { studentId } = useParams();
     const navigate = useNavigate();
-    const { data: examData } = useFetch(`/get-student-exam`);
+    const { data: examData } = useFetch(`/get-student-exam/${studentId}`);
     const { data: student } = useFetch(`/get-student/${studentId}`);
 
     const [course, setCourse] = useState(null);
@@ -52,296 +53,157 @@ const ExamInstructions = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            {/* Header */}
-            <header className="bg-white shadow-sm">
-                <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
-                            <FaGraduationCap className="text-white" />
+        <div className="h-screen bg-gray-50 overflow-hidden flex flex-col md:flex-row font-sans">
+            {/* Left Panel - Visual & Key Info */}
+            <div className="w-full md:w-5/12 lg:w-1/3 bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 text-white p-8 flex flex-col justify-between relative overflow-hidden">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500 opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
+
+                {/* Header / Logo */}
+                <div className="relative z-10 flex items-center gap-3 mb-8">
+                    <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg">
+                        <img src={logo} alt="BUK KANO Logo" className="w-8 h-8 object-contain" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight">BUK KANO</h1>
+                        <p className="text-xs text-blue-200 uppercase tracking-wider">CBT Portal</p>
+                    </div>
+                </div>
+
+                {/* Course & Student Info Card */}
+                <div className="relative z-10 mb-auto">
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-xl">
+                        <div className="mb-6">
+                            <span className="inline-block px-3 py-1 rounded-full bg-blue-500/20 text-blue-200 text-xs font-semibold mb-3 border border-blue-500/30">
+                                Examination
+                            </span>
+                            <h2 className="text-2xl font-bold leading-tight mb-2">
+                                {course?.title || "Loading Course..."}
+                            </h2>
+                            <p className="text-blue-200 text-sm">{course?.code || "..."}</p>
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
-                            <p className="text-xs text-gray-600">Computer Based Test Portal</p>
+
+                        <div className="flex items-center gap-4 pt-6 border-t border-white/10">
+                            {student?.image ? (
+                                <img
+                                    src={`${path.replace('/api', '')}/${student.image}`}
+                                    alt={student.full_name}
+                                    className="w-10 h-10 rounded-full object-cover shadow-lg border border-white/20"
+                                />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-400 flex items-center justify-center text-sm font-bold shadow-lg">
+                                    {student?.full_name?.charAt(0) || "S"}
+                                </div>
+                            )}
+                            <div>
+                                <p className="font-medium text-sm">{student?.full_name || "Loading..."}</p>
+                                <p className="text-xs text-blue-200">{student?.candidate_no || "..."}</p>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Key Stats Grid */}
+                <div className="relative z-10 grid grid-cols-3 gap-4 mt-8">
+                    <div className="bg-black/20 rounded-xl p-4 backdrop-blur-sm text-center border border-white/5">
+                        <FaClock className="mx-auto mb-2 text-blue-300" />
+                        <p className="text-2xl font-bold">{durationInMinutes}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-gray-400">Minutes</p>
+                    </div>
+                    <div className="bg-black/20 rounded-xl p-4 backdrop-blur-sm text-center border border-white/5">
+                        <FaBook className="mx-auto mb-2 text-purple-300" />
+                        <p className="text-2xl font-bold">{examData?.questions?.length || 0}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-gray-400">Questions</p>
+                    </div>
+                    <div className="bg-black/20 rounded-xl p-4 backdrop-blur-sm text-center border border-white/5">
+                        <FaCheckCircle className="mx-auto mb-2 text-green-300" />
+                        <p className="text-2xl font-bold">{examData?.exam?.marks_per_question || 0}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-gray-400">Marks/Q</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Right Panel - Instructions & Action */}
+            <div className="flex-1 flex flex-col h-full relative bg-white">
+                {/* Top Bar */}
+                <div className="h-16 border-b border-gray-100 flex items-center justify-between px-8 flex-shrink-0">
+                    <h2 className="font-bold text-gray-800 flex items-center gap-2">
+                        <FaInfoCircle className="text-blue-600" />
+                        <span>Instructions</span>
+                    </h2>
                     <button
                         onClick={() => navigate(-1)}
-                        className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition flex items-center"
+                        className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2 transition-colors"
                     >
-                        <FaInfoCircle className="mr-2" />
-                        <span className="hidden sm:inline">Go Back</span>
+                        <FaTimes /> Cancel
                     </button>
                 </div>
-            </header>
 
-            <main className="container mx-auto px-4 py-8">
-                <div className="max-w-4xl mx-auto">
-                    {/* Page Header */}
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                            Exam Instructions
-                        </h1>
-                        <p className="text-gray-600">
-                            Please read all instructions carefully before proceeding
-                        </p>
-                    </div>
-
-                    {/* Main Card */}
-                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                        {/* Card Header */}
-                        <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6">
-                            <h2 className="text-2xl font-bold text-white flex items-center">
-                                <FaInfoCircle className="mr-3" />
-                                Important Exam Information
-                            </h2>
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                    <div className="max-w-3xl mx-auto space-y-8">
+                        {/* Specific Instructions */}
+                        <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full -mr-10 -mt-10 opacity-20"></div>
+                            <h3 className="font-bold text-blue-900 mb-3 relative z-10">Exam-Specific Rules</h3>
+                            <p className="text-blue-800 text-sm leading-relaxed whitespace-pre-line relative z-10">
+                                {examData?.exam?.instructions || "No specific instructions provided. Follow standard examination protocols."}
+                            </p>
                         </div>
 
-                        <div className="p-6">
-                            {/* Student Info */}
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-100">
-                                <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center">
-                                    <FaUser className="mr-2 text-blue-600" />
-                                    Student Information
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div className="flex items-center">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                            <span className="text-blue-600 font-bold text-sm">
-                                                {student?.full_name?.charAt(0) || 'S'}
-                                            </span>
+                        {/* General Rules Grid */}
+                        <div>
+                            <h3 className="font-bold text-gray-800 mb-4">Standard Protocols</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {[
+                                    { icon: FaClock, title: "Timed Exam", text: "Timer starts immediately. Auto-submits at zero.", color: "text-orange-500", bg: "bg-orange-50" },
+                                    { icon: FaShieldAlt, title: "Monitored", text: "Fullscreen enforced. Tab switching logged.", color: "text-red-500", bg: "bg-red-50" },
+                                    { icon: FaArrowRight, title: "Navigation", text: "Use buttons or keys to navigate questions.", color: "text-blue-500", bg: "bg-blue-50" },
+                                    { icon: FaCheckCircle, title: "Submission", text: "Review all answers before final submission.", color: "text-green-500", bg: "bg-green-50" }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="flex items-start p-4 rounded-xl border border-gray-100 hover:shadow-md transition-shadow bg-white">
+                                        <div className={`w-10 h-10 rounded-full ${item.bg} flex items-center justify-center flex-shrink-0 mr-3`}>
+                                            <item.icon className={`${item.color}`} />
                                         </div>
                                         <div>
-                                            <p className="text-gray-500 text-xs">Name</p>
-                                            <p className="font-medium text-gray-800 capitalize">{student?.full_name || 'Loading...'}</p>
+                                            <h4 className="font-bold text-gray-900 text-sm">{item.title}</h4>
+                                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.text}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                            <FaUser className="text-blue-600 text-sm" />
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 text-xs">Student ID</p>
-                                            <p className="font-medium text-gray-800">{student?.candidate_no || 'Loading...'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                            <FaBook className="text-blue-600 text-sm" />
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 text-xs">Course</p>
-                                            <p className="font-medium text-gray-800">{course?.title || 'Loading...'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                            <FaClock className="text-blue-600 text-sm" />
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 text-xs">Duration</p>
-                                            <p className="font-medium text-gray-800">{durationInMinutes} minutes</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
+                        </div>
 
-                            {/* Exam Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                            <span className="text-blue-600 font-bold">
-                                                {examData?.questions?.length || 0}
-                                            </span>
-                                        </div>
-                                        <h3 className="font-bold text-gray-800">Questions</h3>
-                                    </div>
-                                    <p className="text-sm text-gray-600">
-                                        Total number of questions in this exam
-                                    </p>
-                                </div>
-
-                                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                            <span className="text-green-600 font-bold">
-                                                {examData?.exam?.marks_per_question || 0}
-                                            </span>
-                                        </div>
-                                        <h3 className="font-bold text-gray-800">Marks/Question</h3>
-                                    </div>
-                                    <p className="text-sm text-gray-600">
-                                        Marks awarded for each correct answer
-                                    </p>
-                                </div>
-
-                                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                                    <div className="flex items-center mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                                            <FaClock className="text-purple-600" />
-                                        </div>
-                                        <h3 className="font-bold text-gray-800">Timer</h3>
-                                    </div>
-                                    <p className="text-sm text-gray-600">
-                                        Starts immediately when you begin the exam
-                                    </p>
-                                </div>
+                        {/* Security Warning */}
+                        <div className="bg-red-50 border border-red-100 rounded-xl p-5 flex gap-4">
+                            <div className="flex-shrink-0">
+                                <FaExclamationTriangle className="text-red-500 text-xl" />
                             </div>
-
-                            {/* Specific Instructions */}
-                            <div className="mb-8">
-                                <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center">
-                                    <FaInfoCircle className="mr-2 text-blue-600" />
-                                    Exam-Specific Instructions
-                                </h3>
-                                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                                    {examData?.exam?.instructions ? (
-                                        <p className="text-gray-700 whitespace-pre-line">
-                                            {examData.exam.instructions}
-                                        </p>
-                                    ) : (
-                                        <p className="text-gray-500 italic">
-                                            No specific instructions provided for this exam.
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* General Instructions */}
-                            <div className="mb-8">
-                                <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center">
-                                    <FaCheckCircle className="mr-2 text-green-600" />
-                                    General Exam Instructions
-                                </h3>
-                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                                    <ul className="divide-y divide-gray-100">
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">1</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                The exam timer will start as soon as you click "Start Exam" and cannot be paused.
-                                            </p>
-                                        </li>
-
-
-
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">2</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                Your exam will be automatically submitted when the timer reaches zero.
-                                            </p>
-                                        </li>
-
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">3</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                Navigate between questions using the question numbers or Next/Previous buttons.
-                                            </p>
-                                        </li>
-
-                                        <li className="p-4 flex items-start">
-                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                                <span className="text-blue-600 text-xs">4</span>
-                                            </div>
-                                            <p className="text-gray-700">
-                                                Click "Submit Exam" when you have completed all questions.
-                                            </p>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            {/* Security Monitoring Warning */}
-                            <div className="mb-8">
-                                <h3 className="font-bold text-red-600 text-lg mb-4 flex items-center">
-                                    <FaExclamationTriangle className="mr-2" />
-                                    Exam Security & Monitoring
-                                </h3>
-                                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6">
-                                    <p className="text-red-800 font-medium mb-4">
-                                        This exam is monitored by advanced security systems. Please observe the following rules:
-                                    </p>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-start text-red-700">
-                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
-                                            <span><strong>Fullscreen Mode Required:</strong> The exam will automatically enter fullscreen mode. Exiting fullscreen is considered a violation.</span>
-                                        </li>
-                                        <li className="flex items-start text-red-700">
-                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
-                                            <span><strong>No Tab Switching:</strong> Switching to other browser tabs or applications will be detected and logged.</span>
-                                        </li>
-                                        <li className="flex items-start text-red-700">
-                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
-                                            <span><strong>Copy/Paste Disabled:</strong> All copy, cut, and paste operations are blocked during the exam.</span>
-                                        </li>
-                                        <li className="flex items-start text-red-700">
-                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
-                                            <span><strong>Screenshots Prevented:</strong> Screenshot shortcuts and screen capture tools are disabled.</span>
-                                        </li>
-                                        <li className="flex items-start text-red-700">
-                                            <FaCheckCircle className="mr-2 mt-1 flex-shrink-0" />
-                                            <span><strong>Right-Click Disabled:</strong> Right-click context menus are disabled.</span>
-                                        </li>
-                                    </ul>
-                                    <div className="mt-4 p-4 bg-red-100 rounded-lg">
-                                        <p className="text-red-900 font-bold">
-                                            ⚠️ WARNING: Violating these rules will result in automatic warnings. After 3 violations, your exam will be automatically submitted.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Declaration */}
-                            <div className="bg-yellow-50 rounded-xl p-5 border border-yellow-200 mb-8">
-                                <div className="flex">
-                                    <FaExclamationTriangle className="text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
-                                    <div>
-                                        <h3 className="font-bold text-yellow-800 mb-2">Important Declaration</h3>
-                                        <p className="text-yellow-700 text-sm">
-                                            By clicking "Start Exam", you confirm that you have read and understood all instructions,
-                                            and agree to comply with the examination rules. Any violation of exam rules may result in
-                                            disqualification.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col sm:flex-row justify-end gap-4">
-                                <button
-                                    onClick={() => navigate(-1)}
-                                    className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition flex items-center justify-center"
-                                >
-                                    Go Back
-                                </button>
-                                <button
-                                    onClick={handleStartExam}
-                                    className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg font-semibold hover:from-gray-700 hover:to-gray-800 transition flex items-center justify-center shadow-lg"
-                                >
-                                    Start Exam
-                                </button>
-                            </div>
+                            <div>
+                                <h4 className="font-bold text-red-900 text-sm mb-1">Security Violation Policy</h4>
+                                                                <p className="text-xs text-red-800 leading-relaxed">
+                                                                    This exam is monitored. Violations such as exiting fullscreen, switching tabs, or using copy/paste will be logged. 
+                                                                    <span className="font-bold"> {examData?.exam?.max_violations || 3} violations will result in automatic disqualification/submission.</span>
+                                                                </p>                            </div>
                         </div>
                     </div>
                 </div>
-            </main>
 
-            {/* Footer */}
-            <footer className="bg-gray-800 text-white py-8 mt-12">
-                <div className="container mx-auto px-4">
-                    <div className="text-center">
-                        <p className="text-gray-400 text-sm">
-                            © {new Date().getFullYear()} BUK KANO. All rights reserved.
-                        </p>
+                {/* Bottom Action Bar */}
+                <div className="h-20 border-t border-gray-100 bg-white px-8 flex items-center justify-between flex-shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                    <div className="hidden sm:block text-xs text-gray-500">
+                        By starting, you agree to the <span className="underline cursor-pointer hover:text-gray-800">Terms of Examination</span>
                     </div>
+                    <button
+                        onClick={handleStartExam}
+                        className="w-full sm:w-auto px-8 py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold text-sm tracking-wide shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group"
+                    >
+                        <span>Start Examination</span>
+                        <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </div>
-            </footer>
+            </div>
         </div>
     );
 };

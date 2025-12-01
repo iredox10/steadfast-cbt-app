@@ -2409,44 +2409,44 @@ class Admin extends Controller
     }
 
     /**
-     * Log a security violation during exam
+     * Log an exam security violation
      */
     public function logViolation(Request $request)
     {
         try {
-            $validated = $request->validate([
+            $request->validate([
                 'student_id' => 'required|exists:students,id',
                 'exam_id' => 'required|exists:exams,id',
-                'violation_type' => 'required|in:tab_switch,fullscreen_exit,copy_attempt,paste_attempt,screenshot_attempt,right_click,devtools_attempt,multiple_monitors_detected',
+                'violation_type' => 'required|string',
                 'details' => 'nullable|array'
             ]);
 
             $violation = \App\Models\ExamViolation::create([
-                'student_id' => $validated['student_id'],
-                'exam_id' => $validated['exam_id'],
-                'violation_type' => $validated['violation_type'],
-                'details' => $validated['details'] ?? null,
-                'violated_at' => now()
+                'student_id' => $request->student_id,
+                'exam_id' => $request->exam_id,
+                'violation_type' => $request->violation_type,
+                'details' => $request->details,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
             ]);
 
-            // Get current violation count for this student in this exam
-            $violationCount = \App\Models\ExamViolation::where('student_id', $validated['student_id'])
-                ->where('exam_id', $validated['exam_id'])
+            // Count total violations for this student/exam
+            $violationCount = \App\Models\ExamViolation::where('student_id', $request->student_id)
+                ->where('exam_id', $request->exam_id)
                 ->count();
 
-            // Get exam's max violations threshold
-            $exam = Exam::find($validated['exam_id']);
-            $maxViolations = $exam->max_violations ?? 3;
+            // Get max violations setting (global default or exam specific)
+            // Priority: Global System Config
+            $maxViolations = SystemConfig::get('max_violations', 3);
 
             return response()->json([
-                'message' => 'Violation logged successfully',
+                'message' => 'Violation logged',
                 'violation' => $violation,
                 'violation_count' => $violationCount,
                 'max_violations' => $maxViolations,
                 'should_auto_submit' => $violationCount >= $maxViolations
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Error logging violation: ' . $e->getMessage());
+            ]);
+        } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

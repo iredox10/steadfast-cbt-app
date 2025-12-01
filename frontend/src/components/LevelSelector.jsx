@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { path } from '../../utils/path'
 
-const LevelSelector = ({ currentUser, selectedLevel, onLevelChange, showAllOption = false }) => {
+const LevelSelector = ({ currentUser, selectedLevel, onLevelChange, showAllOption = false, allOptionText = "All Levels" }) => {
     const [academicSessions, setAcademicSessions] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -65,7 +65,7 @@ const LevelSelector = ({ currentUser, selectedLevel, onLevelChange, showAllOptio
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
                 {showAllOption && currentUser?.role === 'super_admin' && (
-                    <option value="">All Levels</option>
+                    <option value="">{allOptionText}</option>
                 )}
                 {availableLevels.map(session => (
                     <option key={session.id} value={session.id}>

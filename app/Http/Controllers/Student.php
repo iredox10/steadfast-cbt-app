@@ -9,6 +9,7 @@ use App\Models\Question;
 use App\Models\Student as ModelsStudent;
 use App\Models\StudentCourse;
 use App\Models\ExamTicket;
+use App\Models\SystemConfig;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -530,6 +531,10 @@ class Student extends Controller
             $examResponse['exam_duration'] = $total_duration;
             $examResponse['base_duration'] = $base_duration;
             $examResponse['time_extension'] = $time_extension;
+
+            // Override exam's max_violations with global setting from SystemConfig
+            $globalMaxViolations = SystemConfig::get('max_violations', 3);
+            $examResponse['max_violations'] = $globalMaxViolations;
             
             $data = [
                 'exam' => $examResponse,

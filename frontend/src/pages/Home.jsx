@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../utils/path";
 import logo from "../../public/assets/buk.png";
-import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaTicketAlt } from "react-icons/fa";
+import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaTicketAlt, FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Home = () => {
     const [candidateNumber, setCandidateNumber] = useState("");
@@ -11,6 +11,7 @@ const Home = () => {
     const [errMsg, setErrMsg] = useState("");
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -179,10 +180,10 @@ const Home = () => {
                                             </div>
                                             <input
                                                 id="ticketNumber"
-                                                type="password"
+                                                type={showPassword ? "text" : "password"}
                                                 name="ticketNumber"
                                                 placeholder="Enter your ticket number"
-                                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                                 value={ticketNumber}
                                                 onChange={(e) => {
                                                     setTicketNumber(e.target.value);
@@ -190,6 +191,13 @@ const Home = () => {
                                                 }}
                                                 disabled={loading}
                                             />
+                                            <button
+                                                type="button"
+                                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                            </button>
                                         </div>
                                     </div>
 

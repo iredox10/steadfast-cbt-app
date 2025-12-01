@@ -248,7 +248,8 @@ const Instructors = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.put(`${path}/update-user/${editingInstructor.id}`, editingInstructor, {
+            // Use PATCH to match backend route definition (though PUT is now supported too)
+            const response = await axios.patch(`${path}/update-user/${editingInstructor.id}`, editingInstructor, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

@@ -271,17 +271,17 @@ const SuperAdminDashboard = () => {
                     {/* Level Selector for Super Admin */}
                     {currentUser?.role === 'super_admin' && (
                         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <FaListAlt className="text-blue-500" />
-                                Filter by Level
-                            </h3>
-                            <LevelSelector
-                                currentUser={currentUser}
-                                selectedLevel={selectedLevel}
-                                onLevelChange={setSelectedLevel}
-                                showAllOption={true}
-                            />
-                        </div>
+                                                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                                                <FaListAlt className="text-blue-500" />
+                                                                Filter by Session
+                                                            </h3>
+                                                            <LevelSelector
+                                                                currentUser={currentUser}
+                                                                selectedLevel={selectedLevel}
+                                                                onLevelChange={setSelectedLevel}
+                                                                showAllOption={true}
+                                                                allOptionText="All Sessions"
+                                                            />                        </div>
                     )}
 
                     {/* Enhanced Stats Cards */}

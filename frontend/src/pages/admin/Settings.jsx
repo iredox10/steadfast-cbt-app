@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { path } from '../../../utils/path';
 import AdminSidebar from '../../components/AdminSidebar';
-import { FaCog, FaSave, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { FaCog, FaSave, FaToggleOn, FaToggleOff, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useParams } from 'react-router-dom';
 
 const Settings = () => {
@@ -22,6 +22,11 @@ const Settings = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState(null);
+    
+    // Password visibility state
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const [passwordData, setPasswordData] = useState({
         current_password: '',
@@ -335,35 +340,62 @@ const Settings = () => {
                             <form onSubmit={handlePasswordChange} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Current Password</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        value={passwordData.current_password}
-                                        onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                    <div className="relative mt-1">
+                                        <input
+                                            type={showCurrentPassword ? "text" : "password"}
+                                            required
+                                            value={passwordData.current_password}
+                                            onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        >
+                                            {showCurrentPassword ? <FaEyeSlash /> : <FaEye />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">New Password</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        minLength={6}
-                                        value={passwordData.new_password}
-                                        onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                    <div className="relative mt-1">
+                                        <input
+                                            type={showNewPassword ? "text" : "password"}
+                                            required
+                                            minLength={6}
+                                            value={passwordData.new_password}
+                                            onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                        >
+                                            {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        minLength={6}
-                                        value={passwordData.new_password_confirmation}
-                                        onChange={(e) => setPasswordData({ ...passwordData, new_password_confirmation: e.target.value })}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                    <div className="relative mt-1">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            required
+                                            minLength={6}
+                                            value={passwordData.new_password_confirmation}
+                                            onChange={(e) => setPasswordData({ ...passwordData, new_password_confirmation: e.target.value })}
+                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        >
+                                            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="pt-2">
                                     <button
