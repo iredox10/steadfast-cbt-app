@@ -431,8 +431,8 @@ const ExamSecurityProvider = ({
 
             {/* Security Status Indicator */}
             {enabled && (
-                <div className="fixed top-4 right-4 z-40">
-                    <div className="bg-white rounded-lg shadow-lg p-3 flex items-center space-x-2">
+                <div className="fixed bottom-4 left-4 z-40">
+                    <div className="bg-white rounded-lg shadow-lg p-3 flex items-center space-x-2 border border-gray-200">
                         <FaShieldAlt className={`${isFullscreen ? 'text-green-600' : 'text-yellow-600'}`} />
                         <span className="text-sm font-medium text-gray-700">
                             Violations: {violations.length}/{settings.max_violations}
