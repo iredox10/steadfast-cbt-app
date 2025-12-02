@@ -89,26 +89,6 @@ class Student extends Controller
                 return response()->json('You are not enrolled in this exam\'s course', 403);
             }
 
-            // ASSIGN ticket to this student on first login
-            if (!$ticketRecord->assigned_to_student_id) {
-                $ticketRecord->assigned_to_student_id = $student->id;
-                $ticketRecord->assigned_at = now();
-                $ticketRecord->is_used = true;
-                $ticketRecord->save();
-                
-                \Log::info('Ticket assigned to student', [
-                    'ticket_no' => $ticketNo,
-                    'student_id' => $student->id,
-                    'exam_id' => $examForTicket->id
-                ]);
-            } else if ($ticketRecord->assigned_to_student_id == $student->id) {
-                // Ticket already assigned to this student, just mark as used
-                if (!$ticketRecord->is_used) {
-                    $ticketRecord->is_used = true;
-                    $ticketRecord->save();
-                }
-            }
-
             // Ensure a candidate record exists for this student and exam
             $candidate = \App\Models\Candidate::firstOrCreate(
                 [
@@ -128,6 +108,27 @@ class Student extends Controller
                     'status' => 'active',
                 ]
             );
+
+            // ASSIGN ticket to this student ONLY after successful candidate creation/retrieval
+            // and ONLY if we are sure we are proceeding.
+            if (!$ticketRecord->assigned_to_student_id) {
+                $ticketRecord->assigned_to_student_id = $student->id;
+                $ticketRecord->assigned_at = now();
+                $ticketRecord->is_used = true;
+                $ticketRecord->save();
+                
+                \Log::info('Ticket assigned to student', [
+                    'ticket_no' => $ticketNo,
+                    'student_id' => $student->id,
+                    'exam_id' => $examForTicket->id
+                ]);
+            } else if ($ticketRecord->assigned_to_student_id == $student->id) {
+                // Ticket already assigned to this student, ensure it's marked used
+                if (!$ticketRecord->is_used) {
+                    $ticketRecord->is_used = true;
+                    $ticketRecord->save();
+                }
+            }
 
             // Update candidate ticket if it differs
             if ($candidate->ticket_no !== $ticketNo) {
