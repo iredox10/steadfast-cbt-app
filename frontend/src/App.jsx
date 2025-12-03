@@ -40,6 +40,7 @@ import Settings from "./pages/admin/Settings";
 import InstructorDashboard from "./pages/instructor/Dashboard";
 import CourseResults from "./pages/instructor/CourseResults";
 import ExamResultsDetail from "./pages/instructor/ExamResultsDetail";
+import StudentResult from "./pages/StudentResult";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -53,6 +54,7 @@ function App() {
                         path="/student-submission/:studentId"
                         element={<StudentSubmission />}
                     />
+                    <Route path="/student-result/:studentId" element={<StudentResult />} />
                     <Route path="/logged-student" element={<LoggedStudent />} />
 
                     <Route path="/instructor/:id" element={<Instructor />} />

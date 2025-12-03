@@ -8,6 +8,7 @@ import { parseDuration } from "../../utils/parseDuration";
 import Model from "../components/Model";
 import ExamSecurityProvider from "../components/ExamSecurityProvider";
 import { FaTimes, FaTimesCircle, FaBook, FaUser, FaClock, FaGraduationCap, FaPaperPlane, FaExclamationTriangle } from "react-icons/fa";
+import logo from "../../public/assets/buk.png";
 
 // Simple test component to verify rendering
 const TestComponent = () => {
@@ -427,7 +428,11 @@ const Student = () => {
             localStorage.removeItem("examTimeRemaining");
             localStorage.removeItem("examLastTimestamp");
 
-            navigate(`/student-submission/${studentId}`, { state: { submissionResult: res.data } });
+            if (res.data.show_result) {
+                navigate(`/student-result/${studentId}`, { state: { result: res.data } });
+            } else {
+                navigate(`/student-submission/${studentId}`);
+            }
         } catch (err) {
             console.log("Error submitting exam:", err);
             // Don't clear localStorage on error, so student can retry
@@ -529,7 +534,7 @@ const Student = () => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
-                                    <FaGraduationCap className="text-white" />
+                                    <img src={logo} alt="BUK KANO Logo" className="w-8 h-8 object-contain" />
                                 </div>
                                 <div>
                                     <h1 className="text-xl font-bold text-gray-800">BUK KANO</h1>
@@ -540,9 +545,17 @@ const Student = () => {
                             <div className="flex items-center space-x-6">
                                 {/* Student Info */}
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <FaUser className="text-blue-600" />
-                                    </div>
+                                    {student?.image ? (
+                                        <img
+                                            src={`${path.replace('/api', '')}/${student.image}`}
+                                            alt={student.full_name}
+                                            className="w-10 h-10 rounded-full object-cover border-2 border-blue-100"
+                                        />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <FaUser className="text-blue-600" />
+                                        </div>
+                                    )}
                                     <div className="text-right">
                                         <p className="text-sm font-medium text-gray-900">
                                             {student && student.full_name ? student.full_name : 'Loading...'}

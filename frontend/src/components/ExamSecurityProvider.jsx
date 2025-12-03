@@ -35,10 +35,12 @@ const ExamSecurityProvider = ({
     enabled = true
 }) => {
     const [violations, setViolations] = useState([]);
+    const [serverViolationCount, setServerViolationCount] = useState(0);
     const [showWarning, setShowWarning] = useState(false);
     const [warningMessage, setWarningMessage] = useState('');
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [multipleMonitorsDetected, setMultipleMonitorsDetected] = useState(false);
+    const [fullscreenRequired, setFullscreenRequired] = useState(false);
 
     // Default security settings (can be overridden)
     const settings = {
@@ -72,8 +74,10 @@ const ExamSecurityProvider = ({
                 }
             );
 
-            const newViolations = [...violations, response.data.violation];
-            setViolations(newViolations);
+            setViolations(prev => [...prev, response.data.violation]);
+            if (response.data.violation_count) {
+                setServerViolationCount(response.data.violation_count);
+            }
 
             // Check if should auto-submit
             if (response.data.should_auto_submit) {
@@ -98,7 +102,7 @@ const ExamSecurityProvider = ({
         } catch (error) {
             console.error('Error logging violation:', error);
         }
-    }, [enabled, studentId, examId, violations, settings.max_violations, onAutoSubmit]);
+    }, [enabled, studentId, examId, settings.max_violations, onAutoSubmit]);
 
     /**
      * Show warning modal
@@ -111,6 +115,26 @@ const ExamSecurityProvider = ({
             setTimeout(() => {
                 setShowWarning(false);
             }, 5000);
+        }
+    };
+
+    const triggerFullscreen = async () => {
+        try {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                await elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                await elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                await elem.msRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                await elem.mozRequestFullScreen();
+            }
+            setIsFullscreen(true);
+            setFullscreenRequired(false);
+        } catch (error) {
+            console.error('Fullscreen request failed:', error);
+            setFullscreenRequired(true);
         }
     };
 
@@ -129,11 +153,13 @@ const ExamSecurityProvider = ({
                     await elem.webkitRequestFullscreen();
                 } else if (elem.msRequestFullscreen) {
                     await elem.msRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    await elem.mozRequestFullScreen();
                 }
                 setIsFullscreen(true);
             } catch (error) {
-                console.error('Fullscreen request failed:', error);
-                showWarningModal('Please enable fullscreen mode for security purposes.');
+                console.error('Fullscreen request failed on mount:', error);
+                setFullscreenRequired(true);
             }
         };
 
@@ -141,15 +167,19 @@ const ExamSecurityProvider = ({
             const isCurrentlyFullscreen = !!(
                 document.fullscreenElement ||
                 document.webkitFullscreenElement ||
-                document.msFullscreenElement
+                document.msFullscreenElement ||
+                document.mozFullScreenElement
             );
 
             setIsFullscreen(isCurrentlyFullscreen);
 
-            if (!isCurrentlyFullscreen && enabled) {
+            if (!isCurrentlyFullscreen && enabled && settings.enable_fullscreen) {
                 logViolation('fullscreen_exit', {
                     timestamp: new Date().toISOString()
                 });
+                setFullscreenRequired(true);
+            } else {
+                setFullscreenRequired(false);
             }
         };
 
@@ -160,11 +190,13 @@ const ExamSecurityProvider = ({
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
         document.addEventListener('msfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
             document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
         };
     }, [enabled, settings.enable_fullscreen, logViolation]);
 
@@ -395,12 +427,37 @@ const ExamSecurityProvider = ({
         isFullscreen,
         multipleMonitorsDetected,
         settings,
-        violationCount: violations.length
+        violationCount: serverViolationCount || violations.length
     };
 
     return (
         <ExamSecurityContext.Provider value={value}>
             {children}
+
+            {/* Fullscreen Required Modal */}
+            {enabled && settings.enable_fullscreen && fullscreenRequired && !isFullscreen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900 bg-opacity-95 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+                        <div className="mb-6 flex justify-center">
+                            <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center animate-pulse">
+                                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Fullscreen Required</h2>
+                        <p className="text-gray-600 mb-8">
+                            To ensure exam integrity, this exam must be taken in fullscreen mode.
+                        </p>
+                        <button
+                            onClick={triggerFullscreen}
+                            className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+                        >
+                            Enter Fullscreen Mode
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Warning Modal */}
             {showWarning && (
@@ -435,7 +492,7 @@ const ExamSecurityProvider = ({
                     <div className="bg-white rounded-lg shadow-lg p-3 flex items-center space-x-2 border border-gray-200">
                         <FaShieldAlt className={`${isFullscreen ? 'text-green-600' : 'text-yellow-600'}`} />
                         <span className="text-sm font-medium text-gray-700">
-                            Violations: {violations.length}/{settings.max_violations}
+                            Violations: {serverViolationCount || violations.length}/{settings.max_violations}
                         </span>
                     </div>
                 </div>
