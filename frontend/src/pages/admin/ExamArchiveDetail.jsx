@@ -209,7 +209,6 @@ const ExamArchiveDetail = () => {
                                         <SortableHeader name="full_name">Full Name</SortableHeader>
                                         <SortableHeader name="candidate_no">Candidate No.</SortableHeader>
                                         <SortableHeader name="questions_answered">Questions Answered</SortableHeader>
-                                        <SortableHeader name="correct_answers">Correct Answers</SortableHeader>
                                         <SortableHeader name="score">Score</SortableHeader>
                                         <SortableHeader name="submission_time">Submission Time</SortableHeader>
                                     </tr>
@@ -229,17 +228,6 @@ const ExamArchiveDetail = () => {
                                                         ? `${result.questions_answered} / ${archive.total_questions || 'N/A'}` 
                                                         : 'N/A'}
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                    result.correct_answers === 'N/A' || result.correct_answers === undefined || result.correct_answers === null
-                                                        ? 'bg-gray-100 text-gray-800'
-                                                        : 'bg-green-100 text-green-800'
-                                                }`}>
-                                                    {result.correct_answers !== undefined && result.correct_answers !== null 
-                                                        ? result.correct_answers 
-                                                        : 'N/A'}
-                                                </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">

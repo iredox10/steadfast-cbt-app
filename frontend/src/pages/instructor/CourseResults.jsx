@@ -41,73 +41,24 @@ const CourseResults = () => {
             setLoading(true);
             const headers = getAuthHeaders();
             
-            // First, try to get exam archives
-            const archivesRes = await axios.get(`${path}/exam-archives`, { headers });
-            console.log("All archives:", archivesRes.data);
+            // 1. Get exams for this course to get their IDs
+            // We need to know which exams belong to this course to filter the archives
+            const examsRes = await axios.get(`${path}/get-exams/${userId}/${courseId}`, { headers });
+            const courseExamIds = examsRes.data.map(exam => exam.id);
             
-            // Filter archives for this specific course
+            console.log("Course Exam IDs:", courseExamIds);
+
+            // 2. Get all exam archives
+            const archivesRes = await axios.get(`${path}/exam-archives`, { headers });
+            
+            // 3. Filter archives that belong to one of the course's exams
             const courseArchives = archivesRes.data.filter(archive => 
-                archive.course_id === parseInt(courseId)
+                courseExamIds.includes(archive.exam_id)
             );
             
-            // If no archives found, fetch terminated exams directly
-            if (courseArchives.length === 0) {
-                console.log("No archives found, fetching terminated exams...");
-                const examsRes = await axios.get(`${path}/get-exams/${userId}/${courseId}`, { headers });
-                
-                // Get terminated exams (those with finished_time)
-                const terminatedExams = examsRes.data.filter(exam => 
-                    exam.finished_time !== null && exam.finished_time !== undefined
-                );
-                
-                console.log("Terminated exams:", terminatedExams);
-                
-                // Convert exams to archive format for display
-                const examArchives = await Promise.all(terminatedExams.map(async (exam) => {
-                    try {
-                        // Get questions count
-                        const questionsRes = await axios.get(`${path}/get-questions/${exam.id}`, { headers });
-                        const totalQuestions = questionsRes.data.length;
-                        
-                        // Get student scores
-                        const scoresRes = await axios.get(`${path}/get-students-score/${courseId}`, { headers });
-                        const studentCount = scoresRes.data.length;
-                        
-                        return {
-                            id: exam.id,
-                            exam_id: exam.id,
-                            exam_title: exam.title || `${exam.exam_type} Exam`,
-                            exam_type: exam.exam_type,
-                            course_id: exam.course_id,
-                            exam_date: exam.finished_time || exam.activated_date || exam.created_at,
-                            duration: exam.exam_duration,
-                            total_questions: totalQuestions,
-                            student_results: scoresRes.data || [],
-                            is_generated: true // Flag to indicate this is generated, not from archive table
-                        };
-                    } catch (err) {
-                        console.error("Error processing exam:", exam.id, err);
-                        return {
-                            id: exam.id,
-                            exam_id: exam.id,
-                            exam_title: exam.title || `${exam.exam_type} Exam`,
-                            exam_type: exam.exam_type,
-                            course_id: exam.course_id,
-                            exam_date: exam.finished_time || exam.created_at,
-                            duration: exam.exam_duration,
-                            total_questions: 0,
-                            student_results: [],
-                            is_generated: true
-                        };
-                    }
-                }));
-                
-                console.log("Generated exam archives:", examArchives);
-                setArchives(examArchives);
-            } else {
-                console.log("Course archives:", courseArchives);
-                setArchives(courseArchives);
-            }
+            console.log("Filtered Course Archives:", courseArchives);
+            setArchives(courseArchives);
+            
         } catch (err) {
             console.error("Error fetching archives:", err);
             setError("Failed to load exam archives");
@@ -125,14 +76,9 @@ const CourseResults = () => {
     });
 
     const handleViewDetails = (archive) => {
-        // If it's a real archive, navigate to archive detail
-        if (!archive.is_generated) {
-            navigate(`/exam-archive-detail/${userId}/${archive.id}`);
-        } else {
-            // If it's a generated view, navigate to a results detail page
-            // For now, we'll create a simple results view
-            navigate(`/exam-results-detail/${userId}/${courseId}/${archive.exam_id}`);
-        }
+        // Always navigate to the instructor's results detail page
+        // Use exam_id if available (which it should be for both generated and fetched archives)
+        navigate(`/exam-results-detail/${userId}/${courseId}/${archive.exam_id || archive.id}`);
     };
 
     return (
@@ -257,8 +203,12 @@ const CourseResults = () => {
                                                 {archive.exam_title || 'N/A'}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                                    {archive.exam_type || 'N/A'}
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                    archive.status === 'Active' 
+                                                        ? 'bg-green-100 text-green-700' 
+                                                        : 'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                    {archive.status || archive.exam_type || 'N/A'}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">

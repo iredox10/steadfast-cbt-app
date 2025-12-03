@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Support\Facades\Log;
+
 class SystemConfig extends Model
 {
     use HasFactory;
@@ -25,6 +27,10 @@ class SystemConfig extends Model
     {
         $config = self::where('key', $key)->first();
         
+        if ($key === 'max_violations') {
+            Log::debug("SystemConfig::get called for max_violations. Config found: " . ($config ? "true" : "false") . ", raw value: " . ($config ? $config->value : "N/A"));
+        }
+
         if (!$config) {
             return $default;
         }

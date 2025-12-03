@@ -111,7 +111,7 @@ const ExamResultsDetail = () => {
                 index + 1,
                 result.full_name || 'N/A',
                 result.candidate_no || 'N/A',
-                result.score || '0',
+                `${Math.round(result.score)} / ${result.total_questions || 'N/A'}`,
                 `${percentage}%`,
                 result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
             ];
@@ -119,7 +119,7 @@ const ExamResultsDetail = () => {
 
         autoTable(doc, {
             startY: 58,
-            head: [['#', 'Student Name', 'Candidate Number', 'Score', 'Percentage', 'Submitted']],
+            head: [['#', 'Student Name', 'Candidate Number', 'Score (Rounded)', 'Total Questions', 'Percentage', 'Submitted']],
             body: tableData,
         });
 
@@ -140,7 +140,7 @@ const ExamResultsDetail = () => {
             ['Passed:', stats.passed],
             ['Failed:', stats.failed],
             [],
-            ['#', 'Student Name', 'Candidate Number', 'Score', 'Percentage', 'Submitted'],
+            ['#', 'Student Name', 'Candidate Number', 'Score (Rounded)', 'Total Questions', 'Percentage', 'Submitted'],
             ...filteredResults.map((result, index) => {
                 const percentage = exam.max_score > 0 
                     ? ((result.score / exam.max_score) * 100).toFixed(2)
@@ -150,7 +150,7 @@ const ExamResultsDetail = () => {
                     index + 1,
                     result.full_name || 'N/A',
                     result.candidate_no || 'N/A',
-                    result.score || '0',
+                    `${Math.round(result.score)} / ${result.total_questions || 'N/A'}`,
                     `${percentage}%`,
                     result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
                 ];
@@ -307,7 +307,7 @@ const ExamResultsDetail = () => {
                                             <td className="py-4 px-6 text-sm font-medium text-gray-900">{result.full_name}</td>
                                             <td className="py-4 px-6 text-sm text-gray-600">{result.candidate_no}</td>
                                             <td className="py-4 px-6 text-sm font-semibold text-gray-900">
-                                                {result.score} / {exam?.max_score}
+                                                {Math.round(result.score)} / {result.total_questions}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">{percentage.toFixed(2)}%</td>
                                             <td className="py-4 px-6 text-sm">
