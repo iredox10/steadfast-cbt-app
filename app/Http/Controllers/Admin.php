@@ -1321,7 +1321,7 @@ class Admin extends Controller
                 });
             }
             
-            $archives = $query->orderBy('created_at', 'desc')->get();
+            $archives = $query->with('exam')->orderBy('created_at', 'desc')->get();
             
             return response()->json($archives);
         } catch (Exception $e) {

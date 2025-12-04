@@ -208,7 +208,8 @@ const CourseResults = () => {
                                                         ? 'bg-green-100 text-green-700' 
                                                         : 'bg-blue-100 text-blue-700'
                                                 }`}>
-                                                    {archive.status || archive.exam_type || 'N/A'}
+                                                    {archive.exam_type || archive.exam?.exam_type || 'N/A'}
+                                                    {archive.status ? ` (${archive.status})` : ''}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
