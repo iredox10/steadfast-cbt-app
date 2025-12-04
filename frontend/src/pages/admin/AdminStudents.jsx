@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload, FaEdit } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import LevelSelector from "../../components/LevelSelector";
 import AdminSidebar from "../../components/AdminSidebar";
@@ -12,10 +12,13 @@ const AdminStudents = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [newStudent, setNewStudent] = useState({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
+    const [editingStudent, setEditingStudent] = useState(null);
     const [file, setFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [editImagePreview, setEditImagePreview] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [errMsg, setErrMsg] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
@@ -27,6 +30,60 @@ const AdminStudents = () => {
     const [currentUser, setCurrentUser] = useState(null);
     const [selectedLevel, setSelectedLevel] = useState("");
     const studentsPerPage = 10;
+
+    // ... (fetchStudents remains same)
+
+    const handleEditStudent = (student) => {
+        setEditingStudent({
+            id: student.id,
+            full_name: student.full_name,
+            candidate_no: student.candidate_no,
+            department: student.department,
+            programme: student.programme,
+            image: null // Start with no new image
+        });
+        setEditImagePreview(student.image ? `${path.replace('/api', '')}/${student.image}` : null);
+        setShowEditModal(true);
+        setErrMsg("");
+    };
+
+    const handleUpdateStudent = async (e) => {
+        e.preventDefault();
+        if (!editingStudent.full_name || !editingStudent.candidate_no) {
+            setErrMsg("Full name and candidate number are required.");
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('full_name', editingStudent.full_name);
+            formData.append('candidate_no', editingStudent.candidate_no);
+            
+            // Only append department/programme if super admin (level admin can't change level-bound fields usually, but assuming editable for now based on role check)
+            if (currentUser?.role !== 'level_admin') {
+                formData.append('department', editingStudent.department);
+                formData.append('programme', editingStudent.programme);
+            }
+
+            if (editingStudent.image) {
+                formData.append('image', editingStudent.image);
+            }
+
+            await axios.post(`${path}/update-student/${editingStudent.id}`, formData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            setShowEditModal(false);
+            fetchStudents();
+            alert("Student updated successfully!");
+        } catch (err) {
+            console.error("Error updating student:", err);
+            setErrMsg(err.response?.data?.error || "Failed to update student.");
+        }
+    };
 
     const fetchStudents = async () => {
         setLoading(true);
@@ -132,13 +189,19 @@ const AdminStudents = () => {
     };
 
     useEffect(() => {
-        fetchStudents();
+        const loadStudents = async () => {
+            await fetchStudents();
+        };
+        loadStudents();
     }, []); // Remove selectedLevel dependency to avoid multiple calls
 
     useEffect(() => {
         // Only refetch when selectedLevel changes and it's not the initial load
         if (selectedLevel && currentUser) {
-            fetchStudents();
+            const loadStudents = async () => {
+                await fetchStudents();
+            };
+            loadStudents();
         }
     }, [selectedLevel]);
 
@@ -476,21 +539,26 @@ const AdminStudents = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {activeExam && (
-                                                <div className="flex space-x-2">
-                                                    {student.ticket_no && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedStudent(student);
-                                                                setShowExtendTimeModal(true);
-                                                            }}
-                                                            className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
-                                                        >
-                                                            Extend Time
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => handleEditStudent(student)}
+                                                    className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"
+                                                    title="Edit Student"
+                                                >
+                                                    <FaEdit />
+                                                </button>
+                                                {activeExam && student.ticket_no && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedStudent(student);
+                                                            setShowExtendTimeModal(true);
+                                                        }}
+                                                        className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
+                                                    >
+                                                        Extend Time
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -636,6 +704,101 @@ const AdminStudents = () => {
                             <div className="flex justify-end gap-4 pt-4">
                                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
                                 <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Register</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Student Modal */}
+            {showEditModal && editingStudent && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold">Edit Student</h3>
+                            <button onClick={() => setShowEditModal(false)}><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleUpdateStudent} className="space-y-4">
+                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={editingStudent.full_name}
+                                    onChange={e => setEditingStudent({ ...editingStudent, full_name: e.target.value })}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">Candidate Number</label>
+                                <input
+                                    type="text"
+                                    value={editingStudent.candidate_no}
+                                    onChange={e => setEditingStudent({ ...editingStudent, candidate_no: e.target.value })}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                    required
+                                />
+                            </div>
+
+                            {/* Image Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Student Photo
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            setEditingStudent({ ...editingStudent, image: file });
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setEditImagePreview(reader.result);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                />
+                                {editImagePreview && (
+                                    <div className="mt-2">
+                                        <img src={editImagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {currentUser?.role !== 'level_admin' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Department</label>
+                                        <input
+                                            type="text"
+                                            value={editingStudent.department}
+                                            onChange={e => setEditingStudent({ ...editingStudent, department: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">Programme</label>
+                                        <input
+                                            type="text"
+                                            value={editingStudent.programme}
+                                            onChange={e => setEditingStudent({ ...editingStudent, programme: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="flex justify-end gap-4 pt-4">
+                                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Update Student</button>
                             </div>
                         </form>
                     </div>

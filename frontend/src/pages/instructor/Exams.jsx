@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
-import { FaCheck, FaTimes, FaPlus, FaSearch, FaChevronDown, FaTachometerAlt, FaBook } from "react-icons/fa";
+import { FaCheck, FaTimes, FaPlus, FaSearch, FaChevronDown, FaTachometerAlt, FaBook, FaEdit } from "react-icons/fa";
 import { format } from "date-fns";
 import axios from "axios";
 import { path } from "../../../utils/path";
@@ -10,6 +10,7 @@ const Exams = () => {
     const { userId, courseId } = useParams();
 
     const [showModel, setshowModel] = useState(false);
+    const [showEditModel, setShowEditModel] = useState(false);
     const [showSubmitModel, setShowSubmitModel] = useState(false);
     const [loading, setLoading] = useState(false);
     const [courseLoading, setCourseLoading] = useState(true);
@@ -25,6 +26,9 @@ const Exams = () => {
     const [examDuration, setExamDuration] = useState("");
     const [marksPerQuestion, setMarksPerQuestion] = useState("");
 
+    // State for editing
+    const [editingExam, setEditingExam] = useState(null);
+
     const [exams, setExams] = useState([]);
     const [exam, setExam] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -37,7 +41,10 @@ const Exams = () => {
             const calculatedMaxScore = parseFloat(marksPerQuestion) * parseInt(actualQuestions);
             setMaxScore(calculatedMaxScore.toString());
         } else {
-            setMaxScore("");
+            // Only clear if we are NOT editing (or if user cleared fields while editing)
+            // During edit initialization, we set maxScore directly, so this effect might overwrite it if we are not careful.
+            // But since we set actualQuestions/marksPerQuestion on edit init, this will recalculate correctly anyway.
+            if (!editingExam) setMaxScore("");
         }
     }, [marksPerQuestion, actualQuestions]);
 
@@ -93,6 +100,61 @@ const Exams = () => {
             fetchExams();
         }
     }, [userId, courseId]);
+
+    const handleEditExam = (exam) => {
+        setEditingExam(exam);
+        setInstructions(exam.instructions || "");
+        setNoOfQuestions(exam.no_of_questions);
+        setActualQuestions(exam.actual_questions);
+        setExamType(exam.exam_type);
+        setExamDuration(exam.exam_duration);
+        setMarksPerQuestion(exam.marks_per_question);
+        // Max score will be auto-calculated by useEffect
+        setShowEditModel(true);
+    };
+
+    const handleUpdateExam = async (e) => {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            const headers = getAuthHeaders();
+            const res = await axios.put(
+                `${path}/update-exam/${editingExam.id}`,
+                {
+                    instructions,
+                    max_score: maxScore,
+                    no_of_questions: noOfQuestions,
+                    actual_questions: actualQuestions,
+                    exam_type: examType,
+                    exam_duration: examDuration,
+                    marks_per_question: marksPerQuestion,
+                },
+                { headers }
+            );
+            if (res.status === 200) {
+                setShowEditModel(false);
+                setEditingExam(null);
+                fetchExams();
+                // Reset form fields
+                setInstructions("");
+                setMaxScore("");
+                setNoOfQuestions("");
+                setActualQuestions("");
+                setExamType("");
+                setExamDuration("");
+                setMarksPerQuestion("");
+            }
+        } catch (err) {
+            console.error("Error updating exam:", err);
+            if (err.response?.status === 401) {
+                setErr("Authentication failed. Please log in again.");
+            } else {
+                setErr(err.response?.data?.message || "Error updating exam");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -169,6 +231,27 @@ const Exams = () => {
                 setErr("Authentication failed. Please log in again.");
             } else {
                 setErr(error.response?.data?.message || "Error submitting exam");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRecallExam = async (examId) => {
+        if (!window.confirm("Are you sure you want to recall this exam? It will be removed from the admin's view.")) return;
+        
+        try {
+            setLoading(true);
+            const headers = getAuthHeaders();
+            await axios.post(`${path}/recall-exam/${examId}`, {}, { headers });
+            fetchExams();
+        } catch (error) {
+            console.error("Error recalling exam:", error);
+            if (error.response?.status === 401) {
+                setErr("Authentication failed. Please log in again.");
+            } else {
+                // Check for 'error' key which is common in my backend responses
+                setErr(error.response?.data?.error || error.response?.data?.message || "Error recalling exam");
             }
         } finally {
             setLoading(false);
@@ -450,33 +533,63 @@ const Exams = () => {
                                                 {exam.updated_at ? format(new Date(exam.updated_at), "Pp") : "N/A"}
                                             </td>
                                             <td className="py-4 px-6">
-                                                {exam.finished_time ? (
-                                                    <button
-                                                        onClick={() => handleShowSubmitModel(exam.id)}
-                                                        className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                                                        disabled={loading}
-                                                    >
-                                                        <i className="fas fa-redo"></i>
-                                                        Resubmit
-                                                    </button>
-                                                ) : exam.submission_status === "submitted" ? (
-                                                    <span className="text-sm font-medium text-gray-400">
-                                                        Submitted
-                                                    </span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleShowSubmitModel(exam.id)}
-                                                        className={`text-sm font-medium ${
-                                                            exam.filled_questions_count < exam.no_of_questions 
-                                                                ? "text-gray-400 cursor-not-allowed" 
-                                                                : "text-blue-600 hover:text-blue-800"
-                                                        }`}
-                                                        disabled={loading || exam.filled_questions_count < exam.no_of_questions}
-                                                        title={exam.filled_questions_count < exam.no_of_questions ? `Complete all questions to submit (${exam.filled_questions_count}/${exam.no_of_questions} filled)` : "Submit Exam"}
-                                                    >
-                                                        Submit
-                                                    </button>
-                                                )}
+                                                <div className="flex gap-3 items-center">
+                                                    {/* Edit Button - Always visible if not terminated */}
+                                                    {!exam.finished_time && (
+                                                        <button
+                                                            onClick={() => handleEditExam(exam)}
+                                                            className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                                            disabled={loading}
+                                                            title="Edit Exam"
+                                                        >
+                                                            <FaEdit />
+                                                            Edit
+                                                        </button>
+                                                    )}
+
+                                                    {/* Action Button/Status */}
+                                                    {exam.finished_time ? (
+                                                        <button
+                                                            onClick={() => handleShowSubmitModel(exam.id)}
+                                                            className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                                            disabled={loading}
+                                                        >
+                                                            <i className="fas fa-redo"></i>
+                                                            Resubmit
+                                                        </button>
+                                                    ) : exam.submission_status === "submitted" ? (
+                                                        <>
+                                                            <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+                                                                <FaCheck className="w-3 h-3" />
+                                                                Submitted
+                                                            </span>
+                                                            {exam.activated !== 'yes' && (
+                                                                <button
+                                                                    onClick={() => handleRecallExam(exam.id)}
+                                                                    className="text-sm font-medium text-orange-600 hover:text-orange-800 flex items-center gap-1"
+                                                                    disabled={loading}
+                                                                    title="Recall Exam"
+                                                                >
+                                                                    <i className="fas fa-undo"></i>
+                                                                    Recall
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleShowSubmitModel(exam.id)}
+                                                            className={`text-sm font-medium ${
+                                                                exam.filled_questions_count < exam.no_of_questions 
+                                                                    ? "text-gray-400 cursor-not-allowed" 
+                                                                    : "text-blue-600 hover:text-blue-800"
+                                                            }`}
+                                                            disabled={loading || exam.filled_questions_count < exam.no_of_questions}
+                                                            title={exam.filled_questions_count < exam.no_of_questions ? `Complete all questions to submit (${exam.filled_questions_count}/${exam.no_of_questions} filled)` : "Submit Exam"}
+                                                        >
+                                                            Submit
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -782,6 +895,191 @@ const Exams = () => {
                                     </>
                                 ) : (
                                     "Add Exam"
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Edit Exam Modal */}
+            {showEditModel && editingExam && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <form
+                        onSubmit={handleUpdateExam}
+                        className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                    >
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                            <h2 className="text-xl font-bold text-gray-900">
+                                Edit Exam
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowEditModel(false);
+                                    setEditingExam(null);
+                                }}
+                                className="text-gray-400 hover:text-gray-500 transition-colors"
+                                disabled={loading}
+                            >
+                                <FaTimes className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {err && (
+                                <div className="p-4 text-red-700 bg-red-100 rounded-lg">
+                                    <p>{typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                                    Exam Type
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        className="w-full appearance-none bg-white px-4 py-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 text-gray-700 hover:border-gray-300"
+                                        onChange={(e) => setExamType(e.target.value)}
+                                        value={examType}
+                                        disabled={loading}
+                                        required
+                                    >
+                                        <option value="">Select Exam Type</option>
+                                        <option value="school">School Examination</option>
+                                        <option value="external">External Assessment</option>
+                                    </select>
+                                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                                        <FaChevronDown />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Instructions
+                                </label>
+                                <textarea
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    rows="3"
+                                    placeholder="Enter exam instructions..."
+                                    value={instructions}
+                                    onChange={(e) => setInstructions(e.target.value)}
+                                    disabled={loading}
+                                    required
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Duration (minutes)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter duration in minutes"
+                                        value={examDuration}
+                                        onChange={(e) => setExamDuration(e.target.value)}
+                                        disabled={loading}
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Total Questions
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter total questions"
+                                        value={noOfQuestions}
+                                        onChange={(e) => setNoOfQuestions(e.target.value)}
+                                        disabled={loading}
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Questions to Display
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter questions to display"
+                                        value={actualQuestions}
+                                        onChange={(e) => setActualQuestions(e.target.value)}
+                                        disabled={loading}
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Marks per Question
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter marks per question"
+                                        value={marksPerQuestion}
+                                        onChange={(e) => setMarksPerQuestion(e.target.value)}
+                                        disabled={loading}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Maximum Score
+                                    <span className="ml-2 text-xs text-green-600 font-normal">
+                                        (Auto-calculated)
+                                    </span>
+                                </label>
+                                <input
+                                    type="number"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                                    placeholder="Will be calculated automatically"
+                                    value={maxScore}
+                                    readOnly
+                                    disabled
+                                />
+                                {maxScore && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {actualQuestions} questions × {marksPerQuestion} marks = {maxScore} total marks
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-100">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowEditModel(false);
+                                    setEditingExam(null);
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors flex items-center"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                                        Updating...
+                                    </>
+                                ) : (
+                                    "Update Exam"
                                 )}
                             </button>
                         </div>

@@ -812,6 +812,9 @@ class Admin extends Controller
                 ]);
             }
 
+            // Clear exam violations for this exam (so subsequent attempts start fresh)
+            \App\Models\ExamViolation::where('exam_id', $exam_id)->delete();
+
             // Clear candidates table for this exam (removes all candidate records)
             Candidate::where('exam_id', $exam_id)->delete();
 

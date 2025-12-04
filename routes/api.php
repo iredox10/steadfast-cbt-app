@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/add-exam/{user_id}/{course_id}', [Instructor::class, 'add_exam']);
     Route::get('/get-exams/{user_id}/{course_id}', [Instructor::class, 'get_exams']);
     Route::post('/submit-exam/{exam_id}', [Instructor::class, 'submitExam']);
+    Route::post('/recall-exam/{exam_id}', [Instructor::class, 'recallExam']);
     Route::get('/get-exam-by-id/{exam_id}', [Instructor::class, 'get_exam_by_id']);
     Route::get('/delete-exam/{exam_id}', [Instructor::class, 'delete_exam']);
     Route::post('/add-question/{question_id}/{user_id}/{course_id}/{exam_id}', [Instructor::class, 'add_question']);

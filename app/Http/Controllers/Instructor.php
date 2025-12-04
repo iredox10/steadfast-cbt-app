@@ -314,6 +314,44 @@ class Instructor extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function recallExam(Request $request, $exam_id)
+    {
+        try {
+            \Illuminate\Support\Facades\Log::info('Attempting to recall exam (RAW SQL FIXED): ' . $exam_id);
+            
+            $exam = Exam::findOrFail($exam_id);
+            
+            // Check if exam is activated
+            if ($exam->activated === 'yes') {
+                return response()->json(['error' => 'Cannot recall an activated exam.'], 400);
+            }
+            
+            // Check if exam is actually submitted
+            if ($exam->submission_status !== 'submitted') {
+                return response()->json(['error' => 'Exam is not currently submitted.'], 400);
+            }
+            
+            // Use RAW SQL update to bypass any Eloquent timestamp handling issues
+            // We format the time explicitly to standard MySQL DATETIME format to avoid microsecond truncation issues
+            // CORRECTED: Set submission_status to 'not_submitted' as per database ENUM definition
+            \Illuminate\Support\Facades\DB::table('exams')
+                ->where('id', $exam_id)
+                ->update([
+                    'submission_status' => 'not_submitted',
+                    'updated_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s')
+                ]);
+            
+            return response()->json([
+                'message' => 'Exam recalled successfully',
+                'exam' => $exam->fresh()
+            ]);
+        } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error recalling exam: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+            return response()->json(['error' => 'Server Error: ' . $e->getMessage()], 500);
+        }
+    }
     public function get_exam()
     {
         try {
