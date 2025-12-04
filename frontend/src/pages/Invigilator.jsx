@@ -326,8 +326,8 @@ const Invigilator = () => {
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
-                                        <p className="text-blue-100 text-sm mb-1">Exam Title</p>
-                                        <p className="text-xl font-bold">{userData.exam.title || 'N/A'}</p>
+                                        <p className="text-blue-100 text-sm mb-1">Exam Type</p>
+                                        <p className="text-xl font-bold capitalize">{userData.exam.exam_type || 'N/A'}</p>
                                     </div>
                                     <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
                                         <p className="text-blue-100 text-sm mb-1">Course</p>
@@ -349,15 +349,6 @@ const Invigilator = () => {
                                                 : 'N/A'}
                                         </p>
                                     </div>
-                                    {userData.exam.marks_per_question && (
-                                        <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
-                                            <p className="text-blue-100 text-sm mb-1">Marks per Question</p>
-                                            <p className="text-xl font-bold flex items-center">
-                                                <FaMedal className="mr-2" />
-                                                {userData.exam.marks_per_question} marks
-                                            </p>
-                                        </div>
-                                    )}
                                     <div className="bg-white bg-opacity-20 p-4 rounded-lg backdrop-blur-sm">
                                         <p className="text-blue-100 text-sm mb-1">Status</p>
                                         <p className="text-xl font-bold flex items-center">
@@ -399,13 +390,14 @@ const Invigilator = () => {
                     <div className="flex items-start">
                         <FaCheckCircle className="text-blue-500 text-2xl mt-1 mr-4" />
                         <div>
-                            <h3 className="text-lg font-bold text-blue-900 mb-2">Your Role as Invigilator</h3>
-                            <p className="text-blue-800">
-                                <strong>Physically verify each student's identity</strong> and confirm that the ticket number they present matches the one assigned in the system. 
-                                Students can only access the exam <strong>after you approve their check-in</strong>. 
-                                Your verification is the final step in activating their pre-issued ticket.
-                            </p>
-                        </div>
+                            <h3 className="text-lg font-bold text-blue-900 mb-2">Invigilator Responsibilities</h3>
+                                                            <p className="text-blue-800 space-y-2">
+                                                                Your primary role is to ensure the integrity of the examination process. This involves:
+                                                                <ul className="list-disc list-inside ml-4 mt-2">
+                                                                    <li><strong>Identity Confirmation:</strong> Physically verify each student's identity against their registration details.</li>
+                                                                </ul>
+                                                                Upon successful completion of this step and your approval, students will be officially checked in, enabling them to proceed with the exam.
+                                                            </p>                        </div>
                     </div>
                 </div>
 
