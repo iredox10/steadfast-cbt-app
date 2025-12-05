@@ -29,6 +29,11 @@ const CourseQuestions = () => {
     
     const [course, setCourse] = useState(null);
 
+    // Pagination state for Question Bank
+    const [bankPage, setBankPage] = useState(1);
+    const [bankSearchTerm, setBankSearchTerm] = useState("");
+    const questionsPerBankPage = 10;
+
     // Helper function to get auth headers
     const getAuthHeaders = () => {
         const token = localStorage.getItem('token');
@@ -174,6 +179,19 @@ const CourseQuestions = () => {
         }
     };
 
+    // Filter and paginate question bank
+    const filteredBankQuestions = questionBank.filter(q => 
+        q.question.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
+        q.correct_answer.toLowerCase().includes(bankSearchTerm.toLowerCase())
+    );
+
+    const paginatedBankQuestions = filteredBankQuestions.slice(
+        (bankPage - 1) * questionsPerBankPage,
+        bankPage * questionsPerBankPage
+    );
+
+    const totalBankPages = Math.ceil(filteredBankQuestions.length / questionsPerBankPage);
+
     return (
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <Sidebar>
@@ -280,82 +298,109 @@ const CourseQuestions = () => {
             {showQuestionBank && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-900">Question Bank</h2>
-                            <button 
-                                onClick={() => setShowQuestionBank(false)}
-                                className="text-gray-400 hover:text-gray-500 transition-colors"
-                            >
-                                <FaTimes className="w-5 h-5" />
-                            </button>
+                        <div className="flex flex-col p-6 border-b border-gray-100 gap-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900">Question Bank ({filteredBankQuestions.length})</h2>
+                                <button 
+                                    onClick={() => setShowQuestionBank(false)}
+                                    className="text-gray-400 hover:text-gray-500 transition-colors"
+                                >
+                                    <FaTimes className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search questions..."
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={bankSearchTerm}
+                                onChange={(e) => {
+                                    setBankSearchTerm(e.target.value);
+                                    setBankPage(1);
+                                }}
+                            />
                         </div>
 
-                        <div className="p-6 flex-1 overflow-y-auto">
+                        <div className="p-6 flex-1 overflow-y-auto bg-gray-50">
                             {loading ? (
                                 <div className="flex justify-center items-center h-32">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {questionBank.map((bankQuestion) => (
-                                        <div key={bankQuestion.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                                    {paginatedBankQuestions.map((bankQuestion) => (
+                                        <div key={bankQuestion.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
                                             <div className="mb-3">
                                                 <h3 className="font-medium text-gray-900 mb-2">Question:</h3>
                                                 <div 
-                                                    className="text-gray-800"
+                                                    className="text-gray-800 prose prose-sm max-w-none"
                                                     dangerouslySetInnerHTML={{__html: bankQuestion.question}} 
                                                 />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                                 <div className="p-3 bg-green-50 border border-green-100 rounded-lg">
-                                                    <strong className="text-green-800">Correct Answer:</strong>
+                                                    <strong className="text-green-800 text-sm">Correct Answer:</strong>
                                                     <div 
-                                                        className="mt-1 text-green-700"
+                                                        className="mt-1 text-green-700 text-sm"
                                                         dangerouslySetInnerHTML={{__html: bankQuestion.correct_answer}} 
                                                     />
                                                 </div>
+                                                {/* Simplified options display for compactness */}
                                                 <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                                    <strong className="text-gray-800">Option B:</strong>
-                                                    <div 
-                                                        className="mt-1 text-gray-700"
-                                                        dangerouslySetInnerHTML={{__html: bankQuestion.option_b}} 
-                                                    />
+                                                    <strong className="text-gray-800 text-sm">Other Options:</strong>
+                                                    <div className="mt-1 text-gray-600 text-xs space-y-1">
+                                                        <div className="truncate" title="Option B" dangerouslySetInnerHTML={{__html: `B: ${bankQuestion.option_b}`}} />
+                                                        {bankQuestion.option_c && <div className="truncate" title="Option C" dangerouslySetInnerHTML={{__html: `C: ${bankQuestion.option_c}`}} />}
+                                                        {bankQuestion.option_d && <div className="truncate" title="Option D" dangerouslySetInnerHTML={{__html: `D: ${bankQuestion.option_d}`}} />}
+                                                    </div>
                                                 </div>
-                                                {bankQuestion.option_c && (
-                                                    <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                                        <strong className="text-gray-800">Option C:</strong>
-                                                        <div 
-                                                            className="mt-1 text-gray-700"
-                                                            dangerouslySetInnerHTML={{__html: bankQuestion.option_c}} 
-                                                        />
-                                                    </div>
-                                                )}
-                                                {bankQuestion.option_d && (
-                                                    <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
-                                                        <strong className="text-gray-800">Option D:</strong>
-                                                        <div 
-                                                            className="mt-1 text-gray-700"
-                                                            dangerouslySetInnerHTML={{__html: bankQuestion.option_d}} 
-                                                        />
-                                                    </div>
-                                                )}
                                             </div>
-                                            <div className="flex justify-end gap-2">
-                                                {questions && questions.map((q) => !q.question && (
+                                            <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+                                                {questions && questions.filter(q => !q.question).slice(0, 3).map((q) => (
                                                     <button
                                                         key={q.id}
                                                         onClick={() => populateQuestionFromBank(bankQuestion, q.id)}
                                                         disabled={loading}
-                                                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm disabled:opacity-50"
+                                                        className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-xs font-medium transition-colors"
                                                     >
-                                                        Use for Question {q.serial_number}
+                                                        Fill Q{q.serial_number}
                                                     </button>
                                                 ))}
+                                                {questions && questions.filter(q => !q.question).length > 3 && (
+                                                    <span className="text-xs text-gray-400 self-center ml-1">...and more</span>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
+                                    {paginatedBankQuestions.length === 0 && (
+                                        <div className="text-center py-8 text-gray-500">
+                                            No questions found matching your search.
+                                        </div>
+                                    )}
                                 </div>
                             )}
+                        </div>
+
+                        {/* Pagination Footer */}
+                        <div className="p-4 border-t border-gray-100 bg-white flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                                Page {bankPage} of {totalBankPages || 1}
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setBankPage(p => Math.max(1, p - 1))}
+                                    disabled={bankPage === 1}
+                                    className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setBankPage(p => Math.min(totalBankPages, p + 1))}
+                                    disabled={bankPage === totalBankPages || totalBankPages === 0}
+                                    className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

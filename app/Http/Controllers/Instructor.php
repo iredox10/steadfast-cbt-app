@@ -246,6 +246,33 @@ class Instructor extends Controller
                         'serial_number' => $i + 1
                     ]);
                 }
+            } elseif ($newQuestionCount < $currentQuestionCount) {
+                // Remove questions from the end (highest serial numbers)
+                $diff = $currentQuestionCount - $newQuestionCount;
+                
+                // Use CAST to ensure serial_number is treated as integer for sorting
+                // otherwise '10' comes before '2' in string sort
+                $idsToDelete = Question::where('exam_id', $exam->id)
+                    ->orderByRaw('CAST(serial_number AS UNSIGNED) DESC')
+                    ->limit($diff)
+                    ->pluck('id');
+                    
+                Question::destroy($idsToDelete);
+            }
+
+            // Re-sequence serial numbers to ensure continuity (1, 2, 3...)
+            // This fixes issues where reducing questions results in non-serial numbers (e.g., 1, 10, 11)
+            $remainingQuestions = Question::where('exam_id', $exam->id)
+                ->orderByRaw('CAST(serial_number AS UNSIGNED) ASC')
+                ->get();
+                
+            foreach ($remainingQuestions as $index => $question) {
+                $newSerial = $index + 1;
+                // Only update if different to avoid unnecessary DB writes
+                if ($question->serial_number != $newSerial) {
+                    $question->serial_number = $newSerial;
+                    $question->save();
+                }
             }
             
             return response()->json($exam, 200);

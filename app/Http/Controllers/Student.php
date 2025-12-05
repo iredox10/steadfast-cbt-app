@@ -396,8 +396,8 @@ class Student extends Controller
             $student->checkout_time = now();
             $student->save();
 
-            // 2. Get exam details first
-            $exam = Exam::where('course_id', $course_id)
+            // 2. Get exam details first with course relationship
+            $exam = Exam::with('course')->where('course_id', $course_id)
                 ->where('activated', 'yes')
                 ->first();
 

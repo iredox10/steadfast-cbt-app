@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
-import { FaCheck, FaTimes, FaPlus, FaSearch, FaChevronDown, FaTachometerAlt, FaBook, FaEdit } from "react-icons/fa";
+import { FaCheck, FaTimes, FaPlus, FaSearch, FaChevronDown, FaTachometerAlt, FaBook, FaEdit, FaUsers, FaChartBar } from "react-icons/fa";
 import { format } from "date-fns";
 import axios from "axios";
 import { path } from "../../../utils/path";
@@ -383,14 +383,14 @@ const Exams = () => {
                     to={`/instructor-student/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-users"></i>
+                    <FaUsers />
                     <span>Students</span>
                 </Link>
                 <Link
                     to={`/course-results/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
-                    <i className="fas fa-chart-bar"></i>
+                    <FaChartBar />
                     <span>Results</span>
                 </Link>
             </Sidebar>
@@ -489,8 +489,8 @@ const Exams = () => {
                                                     {course?.title || "Course"}
                                                 </Link>
                                             </td>
-                                            <td className="py-4 px-6 text-sm text-gray-600">
-                                                {exam.no_of_questions || 0} / {exam.actual_questions || 0}
+                                            <td className="py-4 px-6 text-sm text-gray-600" title={`${exam.filled_questions_count || 0} filled out of ${exam.no_of_questions || 0} pool`}>
+                                                {exam.filled_questions_count || 0} / {exam.no_of_questions || 0}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
                                                 {exam.exam_duration || 0} min
