@@ -429,9 +429,9 @@ const Student = () => {
             localStorage.removeItem("examLastTimestamp");
 
             if (res.data.show_result) {
-                navigate(`/student-result/${studentId}`, { state: { result: res.data } });
+                navigate(`/student-result/${studentId}`, { state: { result: res.data }, replace: true });
             } else {
-                navigate(`/student-submission/${studentId}`);
+                navigate(`/student-submission/${studentId}`, { replace: true });
             }
         } catch (err) {
             console.log("Error submitting exam:", err);

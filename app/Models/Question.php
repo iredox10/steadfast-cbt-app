@@ -18,6 +18,7 @@ class Question extends Model
         'option_b',
         'option_c',
         'option_d',
+        'serial_number',
     ];
 
     // protected $fillable = [

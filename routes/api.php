@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get-lecturer-courses/{user_id}', [Instructor::class, 'get_courses']);
     Route::get('/get-user/{id}', [Instructor::class, 'show']);
     Route::post('/add-exam/{user_id}/{course_id}', [Instructor::class, 'add_exam']);
+    Route::put('/update-exam/{exam_id}', [Instructor::class, 'update_exam']);
     Route::get('/get-exams/{user_id}/{course_id}', [Instructor::class, 'get_exams']);
     Route::post('/submit-exam/{exam_id}', [Instructor::class, 'submitExam']);
     Route::post('/recall-exam/{exam_id}', [Instructor::class, 'recallExam']);

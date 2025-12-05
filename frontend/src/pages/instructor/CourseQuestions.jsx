@@ -216,7 +216,15 @@ const CourseQuestions = () => {
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-gray-900">Exam Questions</h2>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Exam Questions</h2>
+                            {exam && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Pool Size: <span className="font-semibold text-blue-600">{questions.length}</span> | 
+                                    Students Answer: <span className="font-semibold text-green-600">{exam.actual_questions}</span>
+                                </p>
+                            )}
+                        </div>
                         <button
                             onClick={fetchQuestionBank}
                             disabled={loading}

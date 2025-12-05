@@ -527,6 +527,11 @@ class Student extends Controller
             // Shuffle the valid questions.
             $shuffledQuestions = $validQuestions->shuffle();
             
+            // Limit the questions if actual_questions is set and greater than 0
+            if ($exam->actual_questions > 0) {
+                $shuffledQuestions = $shuffledQuestions->take($exam->actual_questions);
+            }
+            
             // Create exam response with extended duration
             $examResponse = $exam->toArray();
             $examResponse['exam_duration'] = $total_duration;

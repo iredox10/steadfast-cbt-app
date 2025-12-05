@@ -204,6 +204,56 @@ class Instructor extends Controller
         }
     }
 
+    public function update_exam(Request $request, $exam_id)
+    {
+        $validate = request()->validate([
+            'instructions' => 'string | required',
+            'no_of_questions' => 'numeric | required',
+            'actual_questions' => 'numeric | required',
+            'marks_per_question' => 'required|regex:/^\d+(\.\d{1,2})?$/',
+            'max_score' => 'numeric | required',
+            'exam_duration' => 'string | required',
+            'exam_type' => 'string | required',
+        ]);
+        
+        try {
+            $exam = Exam::findOrFail($exam_id);
+            
+            // Prevent updating if exam is submitted or finished (double check backend side too)
+            if ($exam->finished_time) {
+                return response()->json(['error' => 'Cannot update a terminated exam'], 403);
+            }
+            
+            $exam->update([
+                'instructions' => $validate['instructions'],
+                'max_score' => $validate['max_score'],
+                'marks_per_question' => $validate['marks_per_question'],
+                'no_of_questions' => $validate['no_of_questions'],
+                'actual_questions' => $validate['actual_questions'],
+                'exam_duration' => $validate['exam_duration'],
+                'exam_type' => $validate['exam_type'],
+            ]);
+
+            // Check if we need to add more questions
+            $currentQuestionCount = Question::where('exam_id', $exam->id)->count();
+            $newQuestionCount = (int)$validate['no_of_questions'];
+
+            if ($newQuestionCount > $currentQuestionCount) {
+                for ($i = $currentQuestionCount; $i < $newQuestionCount; $i++) {
+                    Question::create([
+                        'exam_id' => $exam->id,
+                        'user_id' => $exam->user_id,
+                        'serial_number' => $i + 1
+                    ]);
+                }
+            }
+            
+            return response()->json($exam, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function get_exams($user_id, $course_id)
     {
         try {

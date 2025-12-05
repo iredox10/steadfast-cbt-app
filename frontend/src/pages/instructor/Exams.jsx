@@ -28,6 +28,7 @@ const Exams = () => {
 
     // State for editing
     const [editingExam, setEditingExam] = useState(null);
+    const [minQuestions, setMinQuestions] = useState(0);
 
     const [exams, setExams] = useState([]);
     const [exam, setExam] = useState(null);
@@ -109,6 +110,7 @@ const Exams = () => {
         setExamType(exam.exam_type);
         setExamDuration(exam.exam_duration);
         setMarksPerQuestion(exam.marks_per_question);
+        setMinQuestions(exam.filled_questions_count || 0);
         // Max score will be auto-calculated by useEffect
         setShowEditModel(true);
     };
@@ -806,7 +808,7 @@ const Exams = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Total Questions
+                                        Total Questions (Pool Size)
                                     </label>
                                     <input
                                         type="number"
@@ -821,17 +823,26 @@ const Exams = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Questions to Display
+                                        Questions to Answer
                                     </label>
                                     <input
                                         type="number"
                                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter questions to display"
                                         value={actualQuestions}
-                                        onChange={(e) => setActualQuestions(e.target.value)}
+                                        max={noOfQuestions}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (!noOfQuestions || val <= parseInt(noOfQuestions)) {
+                                                setActualQuestions(e.target.value);
+                                            }
+                                        }}
                                         disabled={loading}
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Cannot exceed Pool Size ({noOfQuestions || 0})
+                                    </p>
                                 </div>
 
                                 <div>
@@ -988,32 +999,45 @@ const Exams = () => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Total Questions
+                                        Total Questions (Pool Size)
                                     </label>
                                     <input
                                         type="number"
                                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter total questions"
                                         value={noOfQuestions}
+                                        min={minQuestions}
                                         onChange={(e) => setNoOfQuestions(e.target.value)}
                                         disabled={loading}
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Cannot be less than {minQuestions} (questions already set)
+                                    </p>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Questions to Display
+                                        Questions to Answer
                                     </label>
                                     <input
                                         type="number"
                                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter questions to display"
                                         value={actualQuestions}
-                                        onChange={(e) => setActualQuestions(e.target.value)}
+                                        max={noOfQuestions}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            if (!noOfQuestions || val <= parseInt(noOfQuestions)) {
+                                                setActualQuestions(e.target.value);
+                                            }
+                                        }}
                                         disabled={loading}
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Cannot exceed Pool Size ({noOfQuestions || 0})
+                                    </p>
                                 </div>
 
                                 <div>
@@ -1023,6 +1047,7 @@ const Exams = () => {
                                     <input
                                         type="number"
                                         step="0.01"
+                                        min="1"
                                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         placeholder="Enter marks per question"
                                         value={marksPerQuestion}

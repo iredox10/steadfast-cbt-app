@@ -20,18 +20,27 @@ const StudentResult = () => {
     const {
         total_score,
         correct_answers,
-        answered_questions = [], // Assuming this is available or derived
-        total_questions, // We might need to pass this or derive it
-        score_record
+        answered_questions = [],
+        score_record,
+        course_name // Added this fallback
     } = result;
 
-    // Calculate percentage if not provided
-    // Note: result object structure depends on backend response.
-    // Based on previous turns: { show_result: true, answered_questions: [], correct_answers: 5, total_score: 10, score_record: {...} }
+    // Prevent back button navigation
+    useEffect(() => {
+        window.history.pushState(null, document.title, window.location.href);
+        const handlePopState = () => {
+            window.history.pushState(null, document.title, window.location.href);
+        };
 
-    // We need total questions count to calculate percentage or show "X out of Y".
-    // The backend response might not have 'total_questions' directly in the root, but maybe in score_record?
-    // If not, we might only be able to show the absolute score.
+        window.addEventListener('popstate', handlePopState);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
+    // Calculate percentage if not provided
+    // ... (comments)
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -68,7 +77,7 @@ const StudentResult = () => {
                                     <FaTrophy className="text-4xl text-yellow-300" />
                                 </div>
                                 <h2 className="text-3xl font-bold mb-1">Examination Completed</h2>
-                                <p className="text-blue-100 text-sm uppercase tracking-wider">{score_record?.course_name || 'Course Exam'}</p>
+                                <p className="text-blue-100 text-sm uppercase tracking-wider">{score_record?.course_name || course_name || 'Course Exam'}</p>
 
                                 <div className="mt-8 mb-4">
                                     <span className="text-6xl font-extrabold tracking-tight">{total_score}</span>
@@ -109,7 +118,7 @@ const StudentResult = () => {
                                     Your result has been saved. You can print this page for your records.
                                 </p>
                                 <button
-                                    onClick={() => navigate('/')}
+                                    onClick={() => navigate('/', { replace: true })}
                                     className="inline-flex items-center justify-center px-8 py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors shadow-lg"
                                 >
                                     <FaHome className="mr-2" />
