@@ -815,6 +815,12 @@ class Admin extends Controller
             // Clear exam violations for this exam (so subsequent attempts start fresh)
             \App\Models\ExamViolation::where('exam_id', $exam_id)->delete();
 
+            // Clear answers for this exam to ensure fresh start on reactivation
+            $questionIds = \App\Models\Question::where('exam_id', $exam_id)->pluck('id');
+            if ($questionIds->isNotEmpty()) {
+                \App\Models\Answers::whereIn('question_id', $questionIds)->delete();
+            }
+
             // Clear candidates table for this exam (removes all candidate records)
             Candidate::where('exam_id', $exam_id)->delete();
 
@@ -1737,12 +1743,14 @@ class Admin extends Controller
                         ->first();
                     $student->ticket_no = $candidate ? $candidate->ticket_no : null;
                     $student->candidate_id = $candidate ? $candidate->id : null;
+                    $student->time_extension = $candidate ? $candidate->time_extension : 0;
                 }
             } else {
                 // If no active exam, set ticket_no to null for all students
                 foreach ($students as $student) {
                     $student->ticket_no = null;
                     $student->candidate_id = null;
+                    $student->time_extension = 0;
                 }
             }
 
@@ -2424,14 +2432,19 @@ class Admin extends Controller
                 'details' => 'nullable|array'
             ]);
 
-            $violation = \App\Models\ExamViolation::create([
+            // Use DB facade to insert to avoid timestamp truncation issues
+            $violationId = \Illuminate\Support\Facades\DB::table('exam_violations')->insertGetId([
                 'student_id' => $request->student_id,
                 'exam_id' => $request->exam_id,
                 'violation_type' => $request->violation_type,
-                'details' => $request->details,
+                'details' => json_encode($request->details),
                 'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent()
+                'user_agent' => $request->userAgent(),
+                'created_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s'),
+                'updated_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s')
             ]);
+
+            $violation = \App\Models\ExamViolation::find($violationId);
 
             // Count total violations for this student/exam
             $violationCount = \App\Models\ExamViolation::where('student_id', $request->student_id)

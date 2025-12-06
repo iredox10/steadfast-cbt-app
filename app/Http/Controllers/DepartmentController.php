@@ -426,4 +426,33 @@ class DepartmentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Toggle instructor enrollment permission
+     */
+    public function toggleEnrollment(Request $request, $id)
+    {
+        try {
+            $department = Acd_session::findOrFail($id);
+            
+            $request->validate([
+                'allow_instructor_enrollment' => 'required|boolean'
+            ]);
+
+            $department->allow_instructor_enrollment = $request->allow_instructor_enrollment;
+            $department->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Enrollment permission updated successfully',
+                'department' => $department
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update enrollment permission',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

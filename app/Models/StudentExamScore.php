@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StudentExamScore extends Model
 {
     use HasFactory;
+    protected $dateFormat = 'Y-m-d H:i:s';
     protected $table = 'student_exam_score';
     protected $fillable = ['course_id', 'student_id', 'score', 'course_name'];
 

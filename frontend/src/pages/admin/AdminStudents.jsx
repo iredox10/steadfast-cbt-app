@@ -176,7 +176,8 @@ const AdminStudents = () => {
             console.log('Students fetched (with active exam):', res.data);
             setStudents(res.data.map(student => ({
                 ...student,
-                exam_id: currentExam.id
+                exam_id: currentExam.id,
+                time_extension: student.time_extension || 0 // Ensure it uses the value from backend if available
             })));
         } catch (err) {
             console.error("Error fetching students:", err);

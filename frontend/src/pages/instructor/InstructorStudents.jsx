@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Link, useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch";
-import { FaSearch, FaFilePdf, FaFileExcel, FaTachometerAlt, FaBook, FaUsers, FaChartBar } from "react-icons/fa";
+import { FaSearch, FaFilePdf, FaFileExcel, FaTachometerAlt, FaBook, FaUsers, FaChartBar, FaPlus } from "react-icons/fa";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -42,6 +42,83 @@ const InstructorStudents = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
+    
+    // Enrollment states
+    const [canEnroll, setCanEnroll] = useState(false);
+    const [showEnrollModal, setShowEnrollModal] = useState(false);
+    const [unenrolledStudents, setUnenrolledStudents] = useState([]);
+    const [selectedStudentsToEnroll, setSelectedStudentsToEnroll] = useState([]);
+    const [enrollLoading, setEnrollLoading] = useState(false);
+    const [enrollError, setEnrollError] = useState("");
+
+    // Check enrollment permission
+    useEffect(() => {
+        const checkPermission = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = { Authorization: `Bearer ${token}` };
+                
+                // 1. Get user info
+                const userRes = await axios.get(`${path}/user`, { headers });
+                const user = userRes.data;
+                
+                console.log("User checking enrollment permission:", user);
+
+                // Instructors/Level Admins check session settings
+                if (user.level_id) {
+                    // 2. Get session info to check setting
+                    const sessionRes = await axios.get(`${path}/get-acd-session/${user.level_id}`, { headers });
+                    console.log("Session settings:", sessionRes.data);
+                    setCanEnroll(!!sessionRes.data.allow_instructor_enrollment);
+                } else {
+                    console.warn("User has no level_id, cannot check enrollment permissions");
+                }
+            } catch (err) {
+                console.error("Error checking enrollment permission:", err);
+            }
+        };
+        checkPermission();
+    }, [userId]);
+
+    const fetchUnenrolledStudents = async () => {
+        setEnrollLoading(true);
+        setEnrollError("");
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${path}/unenrolled-students/${courseId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUnenrolledStudents(res.data);
+            setShowEnrollModal(true);
+        } catch (err) {
+            console.error("Error fetching unenrolled students:", err);
+            setEnrollError("Failed to load students available for enrollment");
+        } finally {
+            setEnrollLoading(false);
+        }
+    };
+
+    const handleEnrollSubmit = async () => {
+        if (selectedStudentsToEnroll.length === 0) return;
+        
+        setEnrollLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${path}/enroll-students`, {
+                course_id: courseId,
+                student_ids: selectedStudentsToEnroll
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            // Refresh list
+            window.location.reload();
+        } catch (err) {
+            console.error("Error enrolling students:", err);
+            setEnrollError(err.response?.data?.message || "Failed to enroll students");
+            setEnrollLoading(false);
+        }
+    };
 
     // Combine student data with scores
     const studentsWithScores = students?.map(student => {
@@ -238,6 +315,14 @@ const InstructorStudents = () => {
                         <button onClick={handleDownloadExcel} className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center gap-2">
                             <FaFileExcel /> Excel
                         </button>
+                        {canEnroll && (
+                            <button 
+                                onClick={fetchUnenrolledStudents}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700"
+                            >
+                                <FaPlus /> Enroll Student
+                            </button>
+                        )}
                     </div>
                 </header>
 
@@ -352,6 +437,76 @@ const InstructorStudents = () => {
                     )}
                 </div>
             </main>
+            {/* Enroll Student Modal */}
+            {showEnrollModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold">Enroll Students</h3>
+                            <button onClick={() => setShowEnrollModal(false)} className="text-gray-500 hover:text-gray-700">
+                                ✕
+                            </button>
+                        </div>
+                        
+                        {enrollError && (
+                            <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{enrollError}</div>
+                        )}
+
+                        <div className="space-y-4">
+                            {enrollLoading && !unenrolledStudents.length ? (
+                                <p className="text-center py-4">Loading students...</p>
+                            ) : unenrolledStudents.length === 0 ? (
+                                <p className="text-center py-4 text-gray-500">No students available to enroll.</p>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-gray-600 mb-2">Select students to enroll in {course?.title}:</p>
+                                    <div className="border rounded-lg max-h-60 overflow-y-auto p-2 space-y-2">
+                                        {unenrolledStudents.map(student => (
+                                            <div key={student.id} className="flex items-center p-2 hover:bg-gray-50 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`student-${student.id}`}
+                                                    className="mr-3 h-4 w-4 text-blue-600"
+                                                    checked={selectedStudentsToEnroll.includes(student.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedStudentsToEnroll([...selectedStudentsToEnroll, student.id]);
+                                                        } else {
+                                                            setSelectedStudentsToEnroll(selectedStudentsToEnroll.filter(id => id !== student.id));
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer">
+                                                    <div className="font-medium">{student.full_name}</div>
+                                                    <div className="text-xs text-gray-500">{student.candidate_no}</div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between items-center pt-4">
+                                        <span className="text-sm text-gray-600">{selectedStudentsToEnroll.length} selected</span>
+                                        <div className="flex gap-3">
+                                            <button 
+                                                onClick={() => setShowEnrollModal(false)}
+                                                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button 
+                                                onClick={handleEnrollSubmit}
+                                                disabled={selectedStudentsToEnroll.length === 0 || enrollLoading}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {enrollLoading ? 'Enrolling...' : 'Enroll Selected'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

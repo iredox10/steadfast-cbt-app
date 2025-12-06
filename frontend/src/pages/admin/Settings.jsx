@@ -10,6 +10,7 @@ const Settings = () => {
     const [settings, setSettings] = useState({
         student_see_result: false,
         student_registration_enabled: true,
+        allow_instructor_enrollment: false, // Default
         // Security settings
         enable_browser_lockdown: true,
         enable_fullscreen: true,
@@ -49,12 +50,30 @@ const Settings = () => {
                 axios.get(`${path}/user`, { headers })
             ]);
 
+            const userData = userResponse.data;
+            let levelSettings = {};
+
+            // If level admin, fetch their session settings
+            if (userData.role === 'level_admin' && userData.level_id) {
+                try {
+                    const sessionRes = await axios.get(`${path}/get-acd-session/${userData.level_id}`, { headers });
+                    levelSettings = {
+                        allow_instructor_enrollment: !!sessionRes.data.allow_instructor_enrollment
+                    };
+                } catch (err) {
+                    console.error("Error fetching session settings:", err);
+                }
+            }
+
             // Ensure we have default values
             setSettings({
                 student_see_result: false,
                 student_registration_enabled: true,
+                allow_instructor_enrollment: false,
                 ...settingsResponse.data,
-                role: userResponse.data.role // Add role from user profile
+                ...levelSettings,
+                role: userData.role, // Add role from user profile
+                level_id: userData.level_id
             });
         } catch (error) {
             console.error('Error fetching settings:', error);
@@ -86,6 +105,33 @@ const Settings = () => {
             // Revert on error
             setSettings(prev => ({ ...prev, [key]: value !== null ? !value : !newValue }));
             setMessage({ type: 'error', text: 'Failed to update setting' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleLevelToggle = async () => {
+        const newValue = !settings.allow_instructor_enrollment;
+        
+        // Optimistic update
+        setSettings(prev => ({ ...prev, allow_instructor_enrollment: newValue }));
+
+        try {
+            setSaving(true);
+            const token = localStorage.getItem('token');
+            await axios.put(`${path}/departments/${settings.level_id}/toggle-enrollment`, {
+                allow_instructor_enrollment: newValue
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setMessage({ type: 'success', text: 'Level setting updated successfully' });
+            setTimeout(() => setMessage(null), 3000);
+        } catch (error) {
+            console.error('Error updating level setting:', error);
+            // Revert on error
+            setSettings(prev => ({ ...prev, allow_instructor_enrollment: !newValue }));
+            setMessage({ type: 'error', text: 'Failed to update level setting' });
         } finally {
             setSaving(false);
         }
@@ -146,6 +192,36 @@ const Settings = () => {
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Level Configuration - Level Admin Only */}
+                    {settings.role === 'level_admin' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">
+                            <div className="p-6 border-b border-gray-100">
+                                <h3 className="text-lg font-semibold text-gray-900">Level Configuration</h3>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                {/* Instructor Enrollment Toggle */}
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div>
+                                        <h4 className="font-medium text-gray-900">Instructor Enrollment</h4>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Allow instructors to enroll students in their courses.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleLevelToggle}
+                                        disabled={saving}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.allow_instructor_enrollment ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.allow_instructor_enrollment ? 'translate-x-6' : 'translate-x-1'}`}
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* System Configuration - Super Admin Only */}
                     {settings.role === 'super_admin' && (
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-fit">

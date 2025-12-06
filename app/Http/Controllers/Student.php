@@ -393,17 +393,47 @@ class Student extends Controller
         try {
             // 1. Update student checkout time
             $student = \App\Models\Student::findOrFail($student_id);
+            // Disable auto timestamps to prevent truncation error on students table
+            $student->timestamps = false;
             $student->checkout_time = now();
+            $student->updated_at = \Carbon\Carbon::now()->format('Y-m-d H:i:s');
             $student->save();
 
-            // 2. Get exam details first with course relationship
-            $exam = Exam::with('course')->where('course_id', $course_id)
-                ->where('activated', 'yes')
+            // 2. Get the exam via Candidate record first (most accurate)
+            // This ensures we get the specific exam the student was taking, even if it's now deactivated
+            $candidate = Candidate::where('student_id', $student_id)
+                ->whereHas('exam', function($q) use ($course_id) {
+                    $q->where('course_id', $course_id);
+                })
+                ->with('exam') // Removed nested eager load of course to avoid potential relationship errors
+                ->latest() // Get the most recent candidacy
                 ->first();
 
-            if (!$exam) {
-                throw new \Exception('No active exam found for this course');
+            if ($candidate && $candidate->exam) {
+                $exam = $candidate->exam;
+            } else {
+                // Fallback 1: try to find any active exam for this course
+                $exam = Exam::where('course_id', $course_id) // Removed with('course')
+                    ->where('activated', 'yes')
+                    ->latest()
+                    ->first();
+                
+                // Fallback 2: If no active exam, find the most recent exam for this course (even if inactive/terminated)
+                // This allows late submissions to still be recorded
+                if (!$exam) {
+                    $exam = Exam::where('course_id', $course_id) // Removed with('course')
+                        ->latest()
+                        ->first();
+                }
             }
+
+            if (!$exam) {
+                throw new \Exception('No valid exam found for this submission');
+            }
+
+            // Fetch course details manually to ensure we have the title
+            $courseObj = \App\Models\Course::find($course_id);
+            $courseTitle = $courseObj ? $courseObj->title : 'Unknown Course';
 
             // 3. Get all answers and calculate score
             $answers = Answers::where('candidate_id', $student_id)
@@ -425,17 +455,28 @@ class Student extends Controller
                 'exam_id' => $exam->id
             ]);
 
-            // 5. Save the score
-            $score_record = \App\Models\StudentExamScore::updateOrCreate(
-                [
-                    'student_id' => $student_id,
-                    'course_id' => $course_id
-                ],
-                [
-                    'score' => number_format($total_score, 2, '.', ''),
-                    'course_name' => $exam->course->title ?? 'Unknown Course'
-                ]
-            );
+            // 5. Save the score using firstOrNew to handle timestamps manually
+            $score_record = \App\Models\StudentExamScore::firstOrNew([
+                'student_id' => $student_id,
+                'course_id' => $course_id
+            ]);
+            
+            $score_record->score = $total_score;
+            $score_record->course_name = $courseTitle;
+            
+            // Disable auto timestamps to prevent truncation error
+            $score_record->timestamps = false;
+            
+            $now = \Carbon\Carbon::now()->format('Y-m-d H:i:s');
+            if (!$score_record->exists) {
+                $score_record->created_at = $now;
+            }
+            $score_record->updated_at = $now;
+            
+            $score_record->save();
+            
+            // Re-enable timestamps for the instance (good practice)
+            $score_record->timestamps = true;
 
             // 6. Log the saved score
             \Illuminate\Support\Facades\Log::info('Score Saved', [
@@ -542,10 +583,16 @@ class Student extends Controller
             $globalMaxViolations = SystemConfig::get('max_violations', 3);
             $examResponse['max_violations'] = $globalMaxViolations;
             
+            // Fetch existing answers for this student and course to restore progress
+            $existingAnswers = Answers::where('candidate_id', $student_id)
+                ->where('course_id', $exam->course_id)
+                ->get();
+            
             $data = [
                 'exam' => $examResponse,
                 'questions' => $shuffledQuestions->values()->all(),
-                'candidate' => $candidate
+                'candidate' => $candidate,
+                'existing_answers' => $existingAnswers
             ];
             
             return response()->json($data, 200);

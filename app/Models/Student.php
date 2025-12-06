@@ -9,6 +9,8 @@ class Student extends Model
 {
     use HasFactory;
 
+    protected $dateFormat = 'Y-m-d H:i:s';
+
     protected $fillable = [
         'candidate_no',
         'full_name',

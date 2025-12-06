@@ -197,6 +197,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'update']);
     Route::delete('/departments/{id}', [\App\Http\Controllers\DepartmentController::class, 'destroy']);
     Route::put('/departments/{id}/toggle-status', [\App\Http\Controllers\DepartmentController::class, 'toggleStatus']);
+    Route::put('/departments/{id}/toggle-enrollment', [\App\Http\Controllers\DepartmentController::class, 'toggleEnrollment']);
 
     // Legacy department routes (for backward compatibility)
     Route::get('/departments-legacy', [\App\Http\Controllers\DepartmentController::class, 'getDepartments']);

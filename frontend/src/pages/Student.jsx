@@ -167,6 +167,60 @@ const Student = () => {
         }
     }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, data?.exam?.id, studentId, localStorageKey]);
 
+    // Restore answers from server (database) if available
+    // This handles cases where localStorage is cleared or student changes devices
+    useEffect(() => {
+        if (data?.existing_answers && data.existing_answers.length > 0) {
+            console.log("Restoring answers from server:", data.existing_answers);
+            
+            const serverSelectedAnswers = {};
+            const serverClickedBtns = [];
+            const serverAnswers = [];
+
+            data.existing_answers.forEach(ans => {
+                // Update selected answers map (questionId -> answer text)
+                serverSelectedAnswers[ans.question_id] = ans.choice;
+                
+                // Update clicked buttons list
+                if (!serverClickedBtns.includes(ans.question_id)) {
+                    serverClickedBtns.push(ans.question_id);
+                }
+
+                // Update answers array structure
+                serverAnswers.push({
+                    question_id: ans.question_id,
+                    question: ans.question,
+                    answer: ans.choice
+                });
+            });
+
+            // Only update if we don't have local state yet (initial load)
+            // or merge carefully. Here we prefer server data on initial load.
+            setSelectedAnswers(prev => {
+                // If local state is empty, use server. If local has data, it might be newer (from localStorage hydrate), so keep local.
+                // But wait, localStorage hydration runs first.
+                // If localStorage had data, 'prev' is populated.
+                // We should probably merge, preferring local if conflict? Or server?
+                // Server is the "submitted" truth. Local is "draft".
+                // Let's merge, ensuring we don't lose server data that isn't in local.
+                return { ...serverSelectedAnswers, ...prev };
+            });
+            
+            setClickedBtns(prev => [...new Set([...serverClickedBtns, ...prev])]);
+            
+            setAnswers(prev => {
+                // Similar merge logic for answers array
+                const combined = [...prev];
+                serverAnswers.forEach(serverAns => {
+                    if (!combined.find(a => a.question_id === serverAns.question_id)) {
+                        combined.push(serverAns);
+                    }
+                });
+                return combined;
+            });
+        }
+    }, [data]);
+
     // Periodically refresh exam data to pick up time extensions
     useEffect(() => {
         if (!studentId) return;
@@ -590,6 +644,7 @@ const Student = () => {
                                         {(examData || data) && (
                                             <Timer
                                                 initialTime={(examData || data)?.exam?.exam_duration || 0}
+                                                startTime={(examData || data)?.candidate?.created_at}
                                                 onTimeUp={handleSubmit}
                                             />
                                         )}

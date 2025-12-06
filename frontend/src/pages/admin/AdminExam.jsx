@@ -155,14 +155,26 @@ const AdminExam = () => {
         setShowViewModal(true);
     };
 
-    // Filter exams based on search and status
-    const filteredExams = Array.isArray(exams) ? exams.filter((exam) => {
-        // Remove terminated exams from the list
-        // Terminated exams are identified by having finished_time set (exam was completed/terminated)
-        if (exam.finished_time !== null) {
-            return false; // Don't show terminated exams
-        }
+    // Calculate stats based on VISIBLE exams (matching table logic)
+    const getBaseVisibleExams = () => {
+        if (!Array.isArray(exams)) return [];
+        return exams.filter(exam => {
+            // Remove terminated exams from the list
+            if (exam.finished_time !== null) {
+                return false; 
+            }
+            // Hide exams that are not submitted AND not active (e.g. drafted or recalled)
+            if (exam.submission_status !== 'submitted' && exam.activated !== 'yes') {
+                return false;
+            }
+            return true;
+        });
+    };
 
+    const visibleExams = getBaseVisibleExams();
+
+    // Filter visible exams based on search and status dropdown
+    const filteredExams = visibleExams.filter((exam) => {
         const courseName =
             courses?.find((course) => course.id === exam.course_id)?.title ||
             "";
@@ -182,7 +194,7 @@ const AdminExam = () => {
         }
 
         return matchesSearch && matchesStatus;
-    }) : [];
+    });
 
     // Calculate pagination
     const indexOfLastItem = currentPage * itemsPerPage;
@@ -195,10 +207,10 @@ const AdminExam = () => {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-    // Calculate stats
-    const activeExams = Array.isArray(exams) ? exams.filter(exam => exam.activated === "yes").length : 0;
-    const inactiveExams = Array.isArray(exams) ? exams.filter(exam => exam.activated === "no").length : 0;
-    const totalExams = Array.isArray(exams) ? exams.length : 0;
+    // Calculate stats based on VISIBLE exams
+    const activeExams = visibleExams.filter(exam => exam.activated === "yes").length;
+    const inactiveExams = visibleExams.filter(exam => exam.activated === "no").length;
+    const totalExams = visibleExams.length;
 
     // Stats cards matching admin dashboard
     const stats = [

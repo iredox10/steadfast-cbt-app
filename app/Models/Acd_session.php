@@ -15,10 +15,12 @@ class Acd_session extends Model
         'description',
         'head_of_department',
         'contact_email',
-        'contact_phone'
+        'contact_phone',
+        'allow_instructor_enrollment'
     ];
 
     protected $casts = [
+        'allow_instructor_enrollment' => 'boolean'
         // Removed status casting to allow string values as per database constraint
     ];
 

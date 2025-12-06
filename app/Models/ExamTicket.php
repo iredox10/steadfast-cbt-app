@@ -9,6 +9,8 @@ class ExamTicket extends Model
 {
     use HasFactory;
 
+    protected $dateFormat = 'Y-m-d H:i:s';
+
     protected $fillable = [
         'exam_id',
         'ticket_no',
