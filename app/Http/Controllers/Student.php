@@ -582,11 +582,20 @@ class Student extends Controller
             // Override exam's max_violations with global setting from SystemConfig
             $globalMaxViolations = SystemConfig::get('max_violations', 3);
             $examResponse['max_violations'] = $globalMaxViolations;
+
+            // Fetch course details
+            $course = \App\Models\Course::find($exam->course_id);
+            $examResponse['course_title'] = $course ? $course->title : 'Unknown Course';
+            $examResponse['course_code'] = $course ? $course->code : '';
             
             // Fetch existing answers for this student and course to restore progress
-            $existingAnswers = Answers::where('candidate_id', $student_id)
-                ->where('course_id', $exam->course_id)
-                ->get();
+            $existingAnswers = collect(); // Default to empty
+            // Only restore answers if time extension is given (implies continuing a session)
+            if ($time_extension > 0) {
+                $existingAnswers = Answers::where('candidate_id', $student_id)
+                    ->where('course_id', $exam->course_id)
+                    ->get();
+            }
             
             $data = [
                 'exam' => $examResponse,

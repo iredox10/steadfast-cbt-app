@@ -229,13 +229,11 @@ class InvigilatorController extends Controller
         ]);
 
         try {
-            // Find the active exam
-            $active_exam = Exam::where('id', $validate['exam_id'])
-                             ->where('activated', 'yes')
-                             ->first();
+            // Find the exam (active or inactive)
+            $active_exam = Exam::find($validate['exam_id']);
 
             if (!$active_exam) {
-                return response()->json(['error' => 'No active exam found. Please make sure an exam is activated.'], 404);
+                return response()->json(['error' => 'Exam not found.'], 404);
             }
 
             // Find the student

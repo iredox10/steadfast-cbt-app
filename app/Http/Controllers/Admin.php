@@ -1284,13 +1284,29 @@ class Admin extends Controller
         return response()->json(['Invigilator' => $invigilator, 'exam' => $exam, 'examAssigned' => true]);
     }
 
-    public function get_current_exam()
+    public function get_current_exam(Request $request)
     {
         try {
-            $exam = Exam::where('activated', 'yes')->first();
+            $user = $request->user();
+            $query = Exam::query();
+
+            // Filter by level if level admin
+            if ($user && $user->role === 'level_admin' && $user->level_id) {
+                $query->where('level_id', $user->level_id);
+            }
+
+            // Try to find active exam first
+            // Clone query to avoid modifying the original for the fallback
+            $exam = (clone $query)->where('activated', 'yes')->latest()->first();
+
+            // If no active exam, find the latest exam (terminated or pending)
+            // This allows admin to manage students/extensions for the most recent context even after termination
+            if (!$exam) {
+                $exam = $query->latest()->first();
+            }
 
             if (!$exam) {
-                return response()->json(['message' => 'No active exam found'], 404);
+                return response()->json(['message' => 'No active or recent exam found'], 404);
             }
 
             $course = Course::findOrFail($exam->course_id);
@@ -1301,7 +1317,8 @@ class Admin extends Controller
                 'exam_name' => $exam->title,
                 'start_time' => $exam->activated_date,
                 'duration' => $exam->exam_duration,
-                'course' => $course->title
+                'course' => $course->title,
+                'status' => $exam->activated === 'yes' ? 'Active' : 'Inactive'
             ]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

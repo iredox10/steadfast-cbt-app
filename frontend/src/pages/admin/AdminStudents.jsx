@@ -107,7 +107,9 @@ const AdminStudents = () => {
             // Get the active exam first (handle 404 if no active exam)
             let currentExam = null;
             try {
-                const examRes = await axios.get(`${path}/get-current-exam`);
+                const examRes = await axios.get(`${path}/get-current-exam`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
                 currentExam = examRes.data;
                 console.log('Current exam from API:', currentExam);
                 setActiveExam(currentExam);
@@ -548,7 +550,7 @@ const AdminStudents = () => {
                                                 >
                                                     <FaEdit />
                                                 </button>
-                                                {activeExam && student.ticket_no && (
+                                                {activeExam && (
                                                     <button
                                                         onClick={() => {
                                                             setSelectedStudent(student);

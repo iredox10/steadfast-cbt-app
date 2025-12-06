@@ -27,13 +27,13 @@ const Student = () => {
     const [answers, setAnswers] = useState([]);
 
     const { data: student } = useFetch(`/get-student/${studentId}`);
-    const [course, setCourse] = useState();
     const [questionIndexToShow, setQuestionIndexToShow] = useState(0);
     const [clickedBtns, setClickedBtns] = useState([]);
     const [activeButton, setActiveButton] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [showModel, setShowModel] = useState(false);
     const [sumbitModel, setSubmitModel] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission loading
 
     // Store shuffled options for each question to prevent reshuffling
     const [shuffledOptions, setShuffledOptions] = useState({});
@@ -85,239 +85,89 @@ const Student = () => {
     console.log('Question index to show:', questionIndexToShow);
     console.log('Total questions:', data?.questions?.length);
 
-    // Generate a unique key for localStorage based on student and exam
-    const localStorageKey = `exam_answers_${studentId}_${data?.exam?.id || 'unknown'}`;
+        // Generate a unique key for localStorage based on student and exam
 
-    // Load saved answers from localStorage on component mount
-    useEffect(() => {
-        console.log('Checking for saved data with:', {
-            examId: data?.exam?.id,
-            studentId,
-            localStorageKey
-        });
+        const localStorageKey = `exam_answers_${studentId}_${data?.exam?.id || 'unknown'}`;
 
-        if (data?.exam?.id && studentId) {
-            const savedData = localStorage.getItem(localStorageKey);
-            console.log('Found saved data:', savedData);
+    
 
-            if (savedData) {
-                try {
-                    const parsedData = JSON.parse(savedData);
-                    console.log('Parsed saved data:', parsedData);
+        // Load saved answers from localStorage on component mount (first instance)
 
-                    // Only load saved data if it's for the same exam
-                    if (parsedData.examId === data?.exam?.id) {
-                        setAnswers(parsedData.answers || []);
-                        setSelectedAnswers(parsedData.selectedAnswers || {});
-                        setClickedBtns(parsedData.clickedBtns || []);
-                        setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
-                        setActiveButton(parsedData.activeButton || 0);
-                        setShuffledOptions(parsedData.shuffledOptions || {});
-                        console.log("Loaded saved exam data from localStorage");
-                    } else {
-                        console.log("Saved data is for a different exam, clearing it");
+        useEffect(() => {
+
+            console.log('Checking for saved data with:', {
+
+                examId: data?.exam?.id,
+
+                studentId,
+
+                localStorageKey
+
+            });
+
+    
+
+            if (data?.exam?.id && studentId) {
+
+                const savedData = localStorage.getItem(localStorageKey);
+
+                console.log('Found saved data:', savedData);
+
+    
+
+                if (savedData) {
+
+                    try {
+
+                        const parsedData = JSON.parse(savedData);
+
+                        console.log('Parsed saved data:', parsedData);
+
+    
+
+                        // Only load saved data if it's for the same exam
+
+                        if (parsedData.examId === data?.exam?.id) {
+
+                            setAnswers(parsedData.answers || []);
+
+                            setSelectedAnswers(parsedData.selectedAnswers || {});
+
+                            setClickedBtns(parsedData.clickedBtns || []);
+
+                            setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
+
+                            setActiveButton(parsedData.activeButton || 0);
+
+                            setShuffledOptions(parsedData.shuffledOptions || {});
+
+                            console.log("Loaded saved exam data from localStorage");
+
+                        } else {
+
+                            console.log("Saved data is for a different exam, clearing it");
+
+                            localStorage.removeItem(localStorageKey);
+
+                        }
+
+                    } catch (error) {
+
+                        console.error("Error parsing saved exam data:", error);
+
+                        // Clear invalid data
+
                         localStorage.removeItem(localStorageKey);
+
                     }
-                } catch (error) {
-                    console.error("Error parsing saved exam data:", error);
-                    // Clear invalid data
-                    localStorage.removeItem(localStorageKey);
-                }
-            }
-        }
-    }, [data?.exam?.id, studentId, localStorageKey]);
 
-    // Load saved answers from localStorage on component mount
-    useEffect(() => {
-        if (data?.exam?.id && studentId) {
-            const savedData = localStorage.getItem(localStorageKey);
-            if (savedData) {
-                try {
-                    const parsedData = JSON.parse(savedData);
-                    setAnswers(parsedData.answers || []);
-                    setSelectedAnswers(parsedData.selectedAnswers || {});
-                    setClickedBtns(parsedData.clickedBtns || []);
-                    setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
-                    setActiveButton(parsedData.activeButton || 0);
-                    setShuffledOptions(parsedData.shuffledOptions || {});
-                    console.log("Loaded saved exam data from localStorage");
-                } catch (error) {
-                    console.error("Error parsing saved exam data:", error);
-                    // Clear invalid data
-                    localStorage.removeItem(localStorageKey);
-                }
-            }
-        }
-    }, [data?.exam?.id, studentId, localStorageKey]);
-
-    // Save answers to localStorage whenever they change
-    useEffect(() => {
-        if (data?.exam?.id && studentId) {
-            const examData = {
-                examId: data?.exam?.id, // Include examId for validation
-                answers,
-                selectedAnswers,
-                clickedBtns,
-                questionIndexToShow,
-                activeButton,
-                shuffledOptions,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem(localStorageKey, JSON.stringify(examData));
-        }
-    }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, data?.exam?.id, studentId, localStorageKey]);
-
-    // Restore answers from server (database) if available
-    // This handles cases where localStorage is cleared or student changes devices
-    useEffect(() => {
-        if (data?.existing_answers && data.existing_answers.length > 0) {
-            console.log("Restoring answers from server:", data.existing_answers);
-            
-            const serverSelectedAnswers = {};
-            const serverClickedBtns = [];
-            const serverAnswers = [];
-
-            data.existing_answers.forEach(ans => {
-                // Update selected answers map (questionId -> answer text)
-                serverSelectedAnswers[ans.question_id] = ans.choice;
-                
-                // Update clicked buttons list
-                if (!serverClickedBtns.includes(ans.question_id)) {
-                    serverClickedBtns.push(ans.question_id);
                 }
 
-                // Update answers array structure
-                serverAnswers.push({
-                    question_id: ans.question_id,
-                    question: ans.question,
-                    answer: ans.choice
-                });
-            });
-
-            // Only update if we don't have local state yet (initial load)
-            // or merge carefully. Here we prefer server data on initial load.
-            setSelectedAnswers(prev => {
-                // If local state is empty, use server. If local has data, it might be newer (from localStorage hydrate), so keep local.
-                // But wait, localStorage hydration runs first.
-                // If localStorage had data, 'prev' is populated.
-                // We should probably merge, preferring local if conflict? Or server?
-                // Server is the "submitted" truth. Local is "draft".
-                // Let's merge, ensuring we don't lose server data that isn't in local.
-                return { ...serverSelectedAnswers, ...prev };
-            });
-            
-            setClickedBtns(prev => [...new Set([...serverClickedBtns, ...prev])]);
-            
-            setAnswers(prev => {
-                // Similar merge logic for answers array
-                const combined = [...prev];
-                serverAnswers.forEach(serverAns => {
-                    if (!combined.find(a => a.question_id === serverAns.question_id)) {
-                        combined.push(serverAns);
-                    }
-                });
-                return combined;
-            });
-        }
-    }, [data]);
-
-    // Periodically refresh exam data to pick up time extensions
-    useEffect(() => {
-        if (!studentId) return;
-
-        const refreshExamData = async () => {
-            try {
-                const response = await axios.get(`${path}/get-student-exam/${studentId}`);
-                setExamData(response.data);
-            } catch (error) {
-                console.error('Error refreshing exam data:', error);
             }
-        };
 
-        // Initial load
-        if (data) {
-            setExamData(data);
-        }
+        }, [data?.exam?.id, studentId, localStorageKey]);
 
-        // Refresh every 30 seconds to pick up time extensions
-        const interval = setInterval(refreshExamData, 30000);
-
-        return () => clearInterval(interval);
-    }, [studentId, data]);
-
-    // Load saved answers from localStorage on component mount
-    useEffect(() => {
-        if (data?.exam?.id && studentId) {
-            const savedData = localStorage.getItem(localStorageKey);
-            if (savedData) {
-                try {
-                    const parsedData = JSON.parse(savedData);
-                    setAnswers(parsedData.answers || []);
-                    setSelectedAnswers(parsedData.selectedAnswers || {});
-                    setClickedBtns(parsedData.clickedBtns || []);
-                    setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
-                    setActiveButton(parsedData.activeButton || 0);
-                    setShuffledOptions(parsedData.shuffledOptions || {});
-                    console.log("Loaded saved exam data from localStorage");
-                } catch (error) {
-                    console.error("Error parsing saved exam data:", error);
-                    // Clear invalid data
-                    localStorage.removeItem(localStorageKey);
-                }
-            }
-        }
-    }, [data?.exam?.id, studentId, localStorageKey]);
-    const shuffleArray = (array) => {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-    };
-    const getShuffledOptions = (question) => {
-        if (!question) return [];
-
-        // If we already have shuffled options for this question, return them
-        if (shuffledOptions[question.id]) {
-            return shuffledOptions[question.id];
-        }
-
-        // Create options array with original types
-        const options = [
-            { value: question.option_a, type: "a" },
-            { value: question.option_b, type: "b" },
-            { value: question.option_c, type: "c" },
-            { value: question.option_d, type: "d" },
-        ];
-
-        // Filter out any options that might be null, empty, or default placeholder values
-        const validOptions = options.filter(option =>
-            option.value &&
-            option.value.trim() !== '' &&
-            !option.value.toLowerCase().includes('default option')
-        );
-
-        // Shuffle the option values
-        const shuffledValues = shuffleArray(validOptions);
-
-        // Re-assign labels A, B, C, D to the shuffled options
-        const labelsArray = ["A", "B", "C", "D"];
-        const shuffledWithLabels = shuffledValues.map((option, index) => ({
-            ...option,
-            label: labelsArray[index]
-        }));
-
-        // Store the shuffled options
-        setShuffledOptions(prev => ({
-            ...prev,
-            [question.id]: shuffledWithLabels
-        }));
-
-        return shuffledWithLabels;
-    };
-
-    // Get shuffled options for current question (consistent order)
+        // Save answers to localStorage whenever they change
     const currentShuffledOptions = currentQuestion ? getShuffledOptions(currentQuestion) : [];
 
     // Handle keyboard navigation for options
@@ -355,34 +205,6 @@ const Student = () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
     }, [currentQuestion, questionIndexToShow, activeButton]);
-
-    useEffect(() => {
-        const fetch = async () => {
-            try {
-                const res = await axios(
-                    `${path}/get-course-exam-questions/${data?.exam?.course_id}`
-                );
-                setCourse(res.data);
-            } catch (err) { }
-        };
-        fetch();
-    }, [data]);
-
-    useEffect(() => {
-        const fetch = async () => {
-            try {
-                const res = await axios.get(
-                    `${path}/get-course/${data?.exam?.course_id}`
-                );
-                setCourse(res.data);
-            } catch (err) {
-                console.log(err);
-            }
-        };
-        if (data?.exam?.course_id) {
-            fetch();
-        }
-    }, [data]);
 
     // Function to handle answer selection
     const handleAnswer = async (optionType, questionId, question, answer) => {
@@ -457,6 +279,7 @@ const Student = () => {
     };
 
     const handleSubmit = async (timeUp = false) => {
+        setIsSubmitting(true);
         try {
             // First, submit each answer individually
             for (const answer of answers) {
@@ -490,7 +313,10 @@ const Student = () => {
         } catch (err) {
             console.log("Error submitting exam:", err);
             // Don't clear localStorage on error, so student can retry
-            alert("Error submitting exam. Please try again.");
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to submit exam. Please try again.";
+            alert(`Error submitting exam: ${errorMessage}`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -627,7 +453,7 @@ const Student = () => {
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm font-medium text-gray-900">
-                                            {course?.title || "Loading..."}
+                                            {data?.exam?.course_title || "Loading..."}
                                         </p>
                                         <p className="text-xs text-gray-500">
                                             {data?.questions?.length || 0} Questions
@@ -700,13 +526,13 @@ const Student = () => {
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-600">Answered:</span>
                                         <span className="font-medium text-green-600">
-                                            {Object.keys(selectedAnswers).length} / {data?.questions?.length || 0}
+                                            {Object.keys(selectedAnswers).filter(id => data?.questions?.some(q => q.id.toString() === id)).length} / {data?.questions?.length || 0}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm mt-1">
                                         <span className="text-gray-600">Not Answered:</span>
                                         <span className="font-medium text-gray-600">
-                                            {(data?.questions?.length || 0) - Object.keys(selectedAnswers).length}
+                                            {Math.max(0, (data?.questions?.length || 0) - Object.keys(selectedAnswers).filter(id => data?.questions?.some(q => q.id.toString() === id)).length)}
                                         </span>
                                     </div>
                                 </div>
@@ -729,24 +555,12 @@ const Student = () => {
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <button
-                                                onClick={() => handlePrev()}
-                                                disabled={questionIndexToShow === 0}
-                                                className={`px-4 py-2 rounded-lg font-medium text-sm ${questionIndexToShow === 0
-                                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                                    }`}
+                                                onClick={() => setSubmitModel(true)}
+                                                disabled={isSubmitting}
+                                                className={`px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg shadow-md transition-all duration-300 flex items-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             >
-                                                Previous
-                                            </button>
-                                            <button
-                                                onClick={() => handleNext()}
-                                                disabled={questionIndexToShow === (data?.questions?.length || 0) - 1}
-                                                className={`px-4 py-2 rounded-lg font-medium text-sm ${questionIndexToShow === (data?.questions?.length || 0) - 1
-                                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                    : "bg-blue-600 text-white hover:bg-blue-700"
-                                                    }`}
-                                            >
-                                                Next
+                                                <FaPaperPlane />
+                                                <span>{isSubmitting ? 'Submitting...' : 'Submit Exam'}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -833,14 +647,27 @@ const Student = () => {
                                 </div>
                             </div>
 
-                            {/* Submit Button */}
-                            <div className="mt-6 text-center">
+                            {/* Navigation Buttons */}
+                            <div className="mt-6 flex justify-center gap-4">
                                 <button
-                                    onClick={() => setSubmitModel(true)}
-                                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg transition-all duration-300 flex items-center gap-2 mx-auto"
+                                    onClick={() => handlePrev()}
+                                    disabled={questionIndexToShow === 0}
+                                    className={`px-6 py-3 rounded-xl font-medium text-base shadow-sm transition-all duration-200 ${questionIndexToShow === 0
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300"
+                                        }`}
                                 >
-                                    <FaPaperPlane />
-                                    <span>Submit Exam</span>
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => handleNext()}
+                                    disabled={questionIndexToShow === (data?.questions?.length || 0) - 1}
+                                    className={`px-6 py-3 rounded-xl font-medium text-base shadow-sm transition-all duration-200 ${questionIndexToShow === (data?.questions?.length || 0) - 1
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
+                                        }`}
+                                >
+                                    Next
                                 </button>
                             </div>
                         </div>
@@ -872,9 +699,13 @@ const Student = () => {
                                     </button>
                                     <button
                                         onClick={() => handleSubmit(false)}
-                                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors duration-200"
+                                        disabled={isSubmitting}
+                                        className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors duration-200 flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
-                                        Yes, Submit
+                                        {isSubmitting && (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        )}
+                                        {isSubmitting ? 'Submitting...' : 'Yes, Submit'}
                                     </button>
                                 </div>
                             </div>

@@ -163,7 +163,7 @@ Route::get('/question-bank/{user_id}/{exam_id}', [Instructor::class, 'getExamQue
 
 // TODO: populate student answer table with question that the student answer
 
-Route::get('/get-current-exam', [Admin::class, 'get_current_exam']);
+Route::get('/get-current-exam', [Admin::class, 'get_current_exam'])->middleware(['auth:sanctum']);
 
 Route::get('/exam-archives', [Admin::class, 'getExamArchives'])->middleware(['auth:sanctum']);
 Route::get('/exam-archives/{archive_id}', [Admin::class, 'getExamArchive'])->middleware(['auth:sanctum']);
