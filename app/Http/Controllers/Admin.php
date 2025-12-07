@@ -238,16 +238,10 @@ class Admin extends Controller
     {
         try {
             // Get only academic sessions (not departments)
-            // Academic sessions have "/" in title (e.g., "2023/2024", "2024/2025")
-            // Or they are entries WITHOUT head_of_department field (departments have this field)
-            $academicSessions = Acd_session::where(function($query) {
-                $query->where('title', 'LIKE', '%/%')
-                      ->orWhere(function($q) {
-                          $q->whereNull('head_of_department')
-                            ->whereNull('contact_email')
-                            ->whereNull('contact_phone');
-                      });
-            })->orderBy('title')->get();
+            // Academic sessions must have "/" in title (e.g., "2023/2024")
+            $academicSessions = Acd_session::where('title', 'LIKE', '%/%')
+                ->orderBy('title')
+                ->get();
             
             return response()->json($academicSessions);
         } catch (Exception $e) {
