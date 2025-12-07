@@ -164,6 +164,11 @@ class InvigilatorController extends Controller
 
             $active_exam = Exam::where('course_id', $course_id)->where('activated', 'yes')->first();
             
+            // Fallback to latest exam if no active one found (to support viewing past/terminated exam data)
+            if (!$active_exam) {
+                $active_exam = Exam::where('course_id', $course_id)->latest()->first();
+            }
+            
             // Get the authenticated user (invigilator)
             $invigilator = $request->user();
 

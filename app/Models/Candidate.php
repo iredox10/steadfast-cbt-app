@@ -28,7 +28,13 @@ class Candidate extends Model
         'ticket_no',
         'status',
         'time_extension',
+        'start_time',
     ];
+
+    protected $casts = [
+        'start_time' => 'datetime',
+    ];
+
     public function semester() // New relationship
     {
         return $this->belongsTo(Semester::class);

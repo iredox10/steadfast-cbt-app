@@ -525,7 +525,7 @@ class Admin extends Controller
                 'title' => $course->title,
                 'code' => $course->code,
                 'credit_unit' => $course->credit_unit,
-                'status' => $course->status,
+                'status' => 'active',
                 'created_by' => $currentUser->id, // Set the admin who assigned this course
             ]);
             return response()->json($lecturerCourse, 201);
@@ -1750,7 +1750,19 @@ class Admin extends Controller
             $students = $studentsQuery->orderBy('created_at', 'desc')->get();
 
             // Get the active exam to fetch ticket numbers
-            $activeExam = Exam::where('activated', 'yes')->first();
+            // Filter exams based on user level to get the relevant one
+            $examQuery = Exam::query();
+            if ($user && $user->role === 'level_admin' && $user->level_id) {
+                $examQuery->where('level_id', $user->level_id);
+            }
+
+            // Try to find active exam first
+            $activeExam = (clone $examQuery)->where('activated', 'yes')->latest()->first();
+
+            // If no active exam, find the latest exam (terminated or pending) to show recent status
+            if (!$activeExam) {
+                $activeExam = $examQuery->latest()->first();
+            }
 
             // Add ticket information to each student
             if ($activeExam) {
@@ -2403,11 +2415,12 @@ class Admin extends Controller
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
-            'session_id' => 'required|exists:acd_sessions,id'
+            'session_id' => 'required|exists:acd_sessions,id',
+            'semester_id' => 'nullable|exists:semesters,id'
         ]);
 
         try {
-            Excel::import(new CoursesImport($request->session_id), $request->file('file'));
+            Excel::import(new CoursesImport($request->session_id, $request->semester_id), $request->file('file'));
             return response()->json(['message' => 'Courses imported successfully']);
         } catch (\Exception $e) {
             Log::error('Course Import Error: ' . $e->getMessage());

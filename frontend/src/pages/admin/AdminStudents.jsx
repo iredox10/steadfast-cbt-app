@@ -550,7 +550,7 @@ const AdminStudents = () => {
                                                 >
                                                     <FaEdit />
                                                 </button>
-                                                {activeExam && (
+                                                {activeExam && student.ticket_no && (
                                                     <button
                                                         onClick={() => {
                                                             setSelectedStudent(student);

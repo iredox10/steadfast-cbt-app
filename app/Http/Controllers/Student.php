@@ -194,6 +194,24 @@ class Student extends Controller
             $student = \App\Models\Student::findOrFail($student_id);
             $student->is_logged_on = 'yes';
             $student->save();
+            
+            // Find the active exam to update the candidate record
+            $activeExam = Exam::where('activated', 'yes')->first();
+            
+            if ($activeExam) {
+                $candidate = Candidate::where('student_id', $student_id)
+                    ->where('exam_id', $activeExam->id)
+                    ->first();
+                    
+                if ($candidate) {
+                     // Only set start_time if it hasn't been set yet
+                    if (is_null($candidate->start_time)) {
+                        $candidate->start_time = now();
+                        $candidate->save();
+                    }
+                }
+            }
+            
             return response()->json($student, 200);
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 500);

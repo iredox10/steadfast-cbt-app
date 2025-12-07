@@ -168,6 +168,73 @@ const Student = () => {
         }, [data?.exam?.id, studentId, localStorageKey]);
 
         // Save answers to localStorage whenever they change
+    useEffect(() => {
+        if (data?.exam?.id && studentId) {
+            const examData = {
+                examId: data?.exam?.id,
+                answers,
+                selectedAnswers,
+                clickedBtns,
+                questionIndexToShow,
+                activeButton,
+                shuffledOptions,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(localStorageKey, JSON.stringify(examData));
+        }
+    }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, data?.exam?.id, studentId, localStorageKey]);
+
+    const shuffleArray = (array) => {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    };
+
+    const getShuffledOptions = (question) => {
+        if (!question) return [];
+
+        // If we already have shuffled options for this question, return them
+        if (shuffledOptions[question.id]) {
+            return shuffledOptions[question.id];
+        }
+
+        // Create options array with original types
+        const options = [
+            { value: question.option_a, type: "a" },
+            { value: question.option_b, type: "b" },
+            { value: question.option_c, type: "c" },
+            { value: question.option_d, type: "d" },
+        ];
+
+        // Filter out any options that might be null, empty, or default placeholder values
+        const validOptions = options.filter(option =>
+            option.value &&
+            option.value.trim() !== '' &&
+            !option.value.toLowerCase().includes('default option')
+        );
+
+        // Shuffle the option values
+        const shuffledValues = shuffleArray(validOptions);
+
+        // Re-assign labels A, B, C, D to the shuffled options
+        const labelsArray = ["A", "B", "C", "D"];
+        const shuffledWithLabels = shuffledValues.map((option, index) => ({
+            ...option,
+            label: labelsArray[index]
+        }));
+
+        // Store the shuffled options
+        setShuffledOptions(prev => ({
+            ...prev,
+            [question.id]: shuffledWithLabels
+        }));
+
+        return shuffledWithLabels;
+    };
+
     const currentShuffledOptions = currentQuestion ? getShuffledOptions(currentQuestion) : [];
 
     // Handle keyboard navigation for options
@@ -467,10 +534,10 @@ const Student = () => {
                                         <FaClock className="text-red-600" />
                                     </div>
                                     <div className="text-right">
-                                        {(examData || data) && (
+                                        {((examData || data)?.exam?.exam_duration > 0) && (
                                             <Timer
                                                 initialTime={(examData || data)?.exam?.exam_duration || 0}
-                                                startTime={(examData || data)?.candidate?.created_at}
+                                                startTime={(examData || data)?.candidate?.start_time}
                                                 onTimeUp={handleSubmit}
                                             />
                                         )}

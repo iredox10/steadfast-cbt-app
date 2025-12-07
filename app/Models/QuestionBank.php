@@ -14,6 +14,7 @@ class QuestionBank extends Model
         'user_id',
         'course_id',
         'question',
+        'option_a',
         'correct_answer',
         'option_b',
         'option_c',

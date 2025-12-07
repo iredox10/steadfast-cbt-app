@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaPlus, FaTimes, FaBook, FaChevronRight, FaUserPlus } from "react-icons/fa";
+import { FaCalendarAlt, FaPlus, FaTimes, FaBook, FaChevronRight, FaUserPlus, FaUpload, FaDownload } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import AdminSidebar from "../../components/AdminSidebar";
+import * as XLSX from 'xlsx';
 
 const Semester = () => {
     const { id: semesterId, userId } = useParams();
@@ -12,7 +13,10 @@ const Semester = () => {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [newCourse, setNewCourse] = useState({ title: "", code: "", credit_unit: "" });
+    const [file, setFile] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [errMsg, setErrMsg] = useState("");
 
     const fetchSemesterAndCourses = async () => {
@@ -56,6 +60,85 @@ const Semester = () => {
         }
     };
 
+    const handleImportCourses = async (e) => {
+        e.preventDefault();
+        if (!file) {
+            setErrMsg("Please select a file to upload.");
+            return;
+        }
+        setIsUploading(true);
+        setErrMsg("");
+
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        // Pass both session_id and semester_id to the backend
+        // This allows the backend to optionally use the semester_id if provided
+        // to automatically assign the course to this semester if the column is missing
+        if (semester?.acd_session_id) {
+            formData.append("session_id", semester.acd_session_id);
+        }
+        
+        // Pass the specific semester ID we are currently viewing
+        if (semesterId) {
+            formData.append("semester_id", semesterId);
+        }
+
+        try {
+            await axios.post(`${path}/import-courses`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            setShowImportModal(false);
+            setFile(null);
+            fetchSemesterAndCourses();
+            alert("Courses imported successfully!");
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            setErrMsg(error.response?.data?.error || "Error uploading file. Please check the format.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDownloadTemplate = () => {
+        // Generate template based on backend expectation
+        // Backend expects: Code, Title, Credit Unit, Semester
+        // We can pre-fill "Semester" column with the current semester name to help the user
+        const currentSemesterName = semester?.semester || "First Semester";
+        
+        const templateData = [
+            {
+                'Code': 'CSC101',
+                'Title': 'Introduction to Computer Science',
+                'Credit Unit': '3',
+                'Semester': currentSemesterName
+            },
+            {
+                'Code': 'MTH101',
+                'Title': 'General Mathematics I',
+                'Credit Unit': '3',
+                'Semester': currentSemesterName
+            }
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 10 }, // Code
+            { wch: 30 }, // Title
+            { wch: 12 }, // Credit Unit
+            { wch: 20 }  // Semester
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Courses');
+        XLSX.writeFile(wb, 'courses_import_template.xlsx');
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewCourse(prev => ({ ...prev, [name]: value }));
@@ -78,9 +161,14 @@ const Semester = () => {
                         </div>
                         <h2 className="text-3xl font-bold text-gray-900">Manage Courses</h2>
                     </div>
-                    <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
-                        <FaPlus className="mr-2" /> Add New Course
-                    </button>
+                    <div className="flex gap-3">
+                        <button onClick={() => setShowImportModal(true)} className="flex items-center px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600">
+                            <FaUpload className="mr-2" /> Import Courses
+                        </button>
+                        <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
+                            <FaPlus className="mr-2" /> Add New Course
+                        </button>
+                    </div>
                 </header>
 
                 {loading ? (
@@ -139,13 +227,22 @@ const Semester = () => {
                             <p className="text-gray-600 mb-6">
                                 This semester doesn't have any courses yet. Click the button below to add your first course.
                             </p>
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                            >
-                                <FaPlus className="mr-2" />
-                                Add First Course
-                            </button>
+                            <div className="flex justify-center gap-4">
+                                <button
+                                    onClick={() => setShowImportModal(true)}
+                                    className="inline-flex items-center px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                >
+                                    <FaUpload className="mr-2" />
+                                    Import Courses
+                                </button>
+                                <button
+                                    onClick={() => setShowAddModal(true)}
+                                    className="inline-flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    <FaPlus className="mr-2" />
+                                    Add First Course
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -182,6 +279,49 @@ const Semester = () => {
                                 </button>
                                 <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
                                     Add Course
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Courses Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold">Import Courses</h3>
+                            <button onClick={() => setShowImportModal(false)}><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleImportCourses} className="space-y-4">
+                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm text-gray-700 mb-3">
+                                    <strong>Download Template:</strong> Use this template to ensure your file is formatted correctly.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadTemplate}
+                                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full justify-center"
+                                >
+                                    <FaDownload className="mr-2" />
+                                    Download Excel Template
+                                </button>
+                            </div>
+
+                            <div className="p-4 border-2 border-dashed rounded-lg text-center">
+                                <input type="file" onChange={e => setFile(e.target.files[0])} accept=".xlsx, .xls, .csv" className="hidden" id="course-file-upload" />
+                                <label htmlFor="course-file-upload" className="cursor-pointer text-blue-500">
+                                    {file ? file.name : "Choose an Excel file"}
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-4">
+                                <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
+                                <button type="submit" disabled={isUploading} className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300">
+                                    {isUploading ? "Uploading..." : "Import"}
                                 </button>
                             </div>
                         </form>
