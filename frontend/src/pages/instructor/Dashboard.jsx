@@ -111,6 +111,13 @@ const Dashboard = () => {
                     <FaBook />
                     <span>Courses</span>
                 </Link>
+                <Link
+                    to="/manual/instructor"
+                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                    <FaQuestionCircle />
+                    <span>User Manual</span>
+                </Link>
             </Sidebar>
             
             <main className="flex-1 p-8 overflow-y-auto">

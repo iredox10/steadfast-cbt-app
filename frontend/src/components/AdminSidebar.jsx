@@ -15,7 +15,8 @@ import {
     FaGraduationCap,
     FaEye,
     FaTicketAlt,
-    FaUserPlus
+    FaUserPlus,
+    FaQuestionCircle
 } from 'react-icons/fa';
 
 const AdminSidebar = ({ userId }) => {
@@ -218,6 +219,14 @@ const AdminSidebar = ({ userId }) => {
 
             {/* Bottom Actions */}
             <div className="mt-auto pt-6 border-t border-gray-200">
+                {currentUser && (
+                    <Link
+                        to={`/manual/${currentUser.role}`}
+                        className={getLinkClass('manual')}
+                    >
+                        <FaQuestionCircle className="mr-3" /> User Manual
+                    </Link>
+                )}
                 {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
                     <Link
                         to={`/admin-settings/${userId}`}

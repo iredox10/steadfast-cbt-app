@@ -1,6 +1,6 @@
-# Steadfast CBT Application - User Guide
+# BUK CBT Application - User Guide
 
-Welcome to the Steadfast Computer Based Test (CBT) User Guide. This system is designed to manage the entire examination lifecycle, from student registration to result processing, with a strong focus on security and ease of use.
+Welcome to the BUK Computer Based Test (CBT) User Guide. This system is designed to manage the entire examination lifecycle, from student registration to result processing, with a strong focus on security and ease of use.
 
 ---
 

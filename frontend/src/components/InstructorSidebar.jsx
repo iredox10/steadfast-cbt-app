@@ -39,7 +39,7 @@ const InstructorSidebar = () => {
         <div className="w-72 bg-gray-800 text-white flex flex-col h-screen shadow-2xl">
             <div className="flex items-center justify-center p-6 border-b border-gray-700">
                 <img src={logo} className="w-16 h-16 object-contain" alt="HUK POLY Logo" />
-                <h1 className="text-xl font-bold ml-4">Steadfast CBT</h1>
+                <h1 className="text-xl font-bold ml-4">BUK CBT</h1>
             </div>
 
             <nav className="flex-1 px-6 py-8 space-y-4">

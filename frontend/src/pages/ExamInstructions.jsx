@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -132,12 +132,21 @@ const ExamInstructions = () => {
                         <FaInfoCircle className="text-blue-600" />
                         <span>Instructions</span>
                     </h2>
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2 transition-colors"
-                    >
-                        <FaTimes /> Cancel
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <Link 
+                            to="/manual/student"
+                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-2 font-medium"
+                        >
+                            <FaBook /> Full Guide
+                        </Link>
+                        <div className="h-4 w-px bg-gray-300"></div>
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-2 transition-colors"
+                        >
+                            <FaTimes /> Cancel
+                        </button>
+                    </div>
                 </div>
 
                 {/* Scrollable Content */}

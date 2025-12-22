@@ -7,7 +7,8 @@ import Timer from "../components/Timer";
 import { parseDuration } from "../../utils/parseDuration";
 import Model from "../components/Model";
 import ExamSecurityProvider from "../components/ExamSecurityProvider";
-import { FaTimes, FaTimesCircle, FaBook, FaUser, FaClock, FaGraduationCap, FaPaperPlane, FaExclamationTriangle } from "react-icons/fa";
+import Calculator from "../components/Calculator";
+import { FaTimes, FaTimesCircle, FaBook, FaUser, FaClock, FaGraduationCap, FaPaperPlane, FaExclamationTriangle, FaCalculator } from "react-icons/fa";
 import logo from "../../public/assets/buk.png";
 
 // Simple test component to verify rendering
@@ -34,6 +35,7 @@ const Student = () => {
     const [showModel, setShowModel] = useState(false);
     const [sumbitModel, setSubmitModel] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission loading
+    const [showCalculator, setShowCalculator] = useState(false);
 
     // Store shuffled options for each question to prevent reshuffling
     const [shuffledOptions, setShuffledOptions] = useState({});
@@ -528,6 +530,16 @@ const Student = () => {
                                     </div>
                                 </div>
 
+                                {/* Calculator Toggle */}
+                                <button
+                                    onClick={() => setShowCalculator(!showCalculator)}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${showCalculator ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                    title="Toggle Calculator"
+                                >
+                                    <FaCalculator className={showCalculator ? 'text-blue-600' : 'text-gray-600'} />
+                                    <span className="text-sm font-medium hidden sm:inline">Calculator</span>
+                                </button>
+
                                 {/* Timer */}
                                 <div className="flex items-center space-x-3">
                                     <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -780,6 +792,10 @@ const Student = () => {
                     </Model>
                 )}
             </div>
+            
+            {showCalculator && (
+                <Calculator onClose={() => setShowCalculator(false)} />
+            )}
         </ExamSecurityProvider>
     );
 };

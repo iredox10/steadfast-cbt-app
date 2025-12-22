@@ -13,7 +13,7 @@ class CreateSuperAdmin extends Command
 
     public function handle()
     {
-        $email = 'superadmin@steadfast.com';
+        $email = 'admin@buk.edu.ng';
         $password = 'admin123';
 
         // Check if user exists

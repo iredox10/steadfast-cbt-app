@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../utils/path";
 import logo from "../../public/assets/buk.png";
-import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaTicketAlt, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaGraduationCap, FaSignInAlt, FaHeadset, FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaHeart, FaUser, FaTicketAlt, FaEye, FaEyeSlash, FaBook } from "react-icons/fa";
 
 const Home = () => {
     const [candidateNumber, setCandidateNumber] = useState("");
@@ -108,10 +108,10 @@ const Home = () => {
                             <p className="text-xs text-gray-600">Computer Based Test Portal</p>
                         </div>
                     </div>
-                    <button className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition flex items-center">
-                        <FaHeadset className="mr-2" />
-                        <span className="hidden sm:inline">Support</span>
-                    </button>
+                    <Link to="/manual/student" className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition flex items-center">
+                        <FaBook className="mr-2" />
+                        <span className="hidden sm:inline">User Guide</span>
+                    </Link>
                 </div>
             </header>
 
@@ -317,7 +317,7 @@ const Home = () => {
                     <div className="mt-6 pt-6 border-t border-gray-700 text-center text-gray-400 text-sm">
                         <p>
                             &copy; {new Date().getFullYear()} BUK KANO. All rights reserved. |
-                            Developed by  <a href="https://steadfast.com.ng" className="text-blue-500"> Steadfast Limited</a>
+                            Maintained by  <a href="https://steadfast.com.ng" className="text-blue-500"> BUK CBT Team</a>
                         </p>
                     </div>
                 </div>

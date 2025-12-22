@@ -293,6 +293,13 @@ const Invigilator = () => {
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
+                            <Link
+                                to="/manual/invigilator"
+                                className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                <FaBook className="mr-2" />
+                                Manual
+                            </Link>
                             <button
                                 onClick={fetchStudents}
                                 disabled={loadingStudents}

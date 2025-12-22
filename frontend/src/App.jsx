@@ -42,6 +42,7 @@ import CourseResults from "./pages/instructor/CourseResults";
 import ExamResultsDetail from "./pages/instructor/ExamResultsDetail";
 import StudentResult from "./pages/StudentResult";
 import NotFound from "./pages/NotFound";
+import UserManual from "./pages/UserManual";
 
 function App() {
     return (
@@ -56,6 +57,8 @@ function App() {
                     />
                     <Route path="/student-result/:studentId" element={<StudentResult />} />
                     <Route path="/logged-student" element={<LoggedStudent />} />
+                    
+                    <Route path="/manual/:role" element={<UserManual />} />
 
                     <Route path="/instructor/:id" element={<Instructor />} />
                     <Route path="/instructor/dashboard/:id" element={<InstructorDashboard />} />

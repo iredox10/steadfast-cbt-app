@@ -13,7 +13,7 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = 'superadmin@steadfast.com';
+        $email = 'admin@buk.edu.ng';
         
         // Check if user exists to avoid duplicates if run multiple times
         if (!User::where('email', $email)->exists()) {
