@@ -20,56 +20,55 @@ class DepartmentController extends Controller
     public function index(Request $request)
     {
         try {
-            // Filter to get only departments (not academic sessions)
-            // Departments have either head_of_department OR title that doesn't match "YYYY/YYYY" format
+            $user = $request->user();
             $query = Acd_session::where(function($q) {
                 $q->whereNotNull('head_of_department')
-                      ->orWhereNotNull('contact_email')
-                      ->orWhereNotNull('contact_phone')
-                      ->orWhere('title', 'NOT LIKE', '%/%');
+                  ->orWhere('title', 'NOT LIKE', '%/%');
             });
 
-            // Filter by status if provided
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
+            // Filter by faculty if faculty_officer
+            if ($user->role === 'faculty_officer') {
+                $query->where('faculty_id', $user->faculty_id);
+            } elseif ($request->has('faculty_id')) {
+                $query->where('faculty_id', $request->faculty_id);
             }
 
-            $departments = $query->orderBy('title')->get();
-            
-            return response()->json($departments, 200);
+            $departments = $query->with('faculty')->get();
+            return response()->json($departments);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Store a new department (for REST API)
-     */
     public function store(Request $request)
     {
         try {
-            $request->validate([
-                'title' => 'required|string|max:255|unique:acd_sessions,title',
+            $user = $request->user();
+            if (!in_array($user->role, ['super_admin', 'faculty_officer'])) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'head_of_department' => 'nullable|string|max:255',
-                'contact_email' => 'nullable|email|max:255',
-                'contact_phone' => 'nullable|string|max:20'
+                'head_of_department' => 'required|string|max:255',
+                'contact_email' => 'required|email|max:255',
+                'contact_phone' => 'required|string|max:20',
+                'faculty_id' => 'nullable|exists:faculties,id'
             ]);
+
+            // Automatically set faculty_id for faculty_officer
+            if ($user->role === 'faculty_officer') {
+                $validated['faculty_id'] = $user->faculty_id;
+            }
 
             $department = Acd_session::create([
-                'title' => $request->title,
-                'description' => $request->description,
-                'head_of_department' => $request->head_of_department,
-                'contact_email' => $request->contact_email,
-                'contact_phone' => $request->contact_phone,
-                'status' => 'active'
+                ...$validated,
+                'status' => 'active',
+                'allow_instructor_enrollment' => true
             ]);
 
-            return response()->json([
-                'message' => 'Department created successfully',
-                'department' => $department
-            ], 201);
-
+            return response()->json($department, 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

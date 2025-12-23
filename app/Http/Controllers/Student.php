@@ -172,6 +172,11 @@ class Student extends Controller
         if ($user && $user->role === 'level_admin' && $user->level_id) {
             // Level admins can only see students in their level
             $studentsQuery->where('level_id', $user->level_id);
+        } elseif ($user && $user->role === 'faculty_officer') {
+            // Faculty officers see students in all departments of their faculty
+            $studentsQuery->whereHas('level', function($q) use ($user) {
+                $q->where('faculty_id', $user->faculty_id);
+            });
         } elseif ($request->has('level_id') && $request->level_id) {
             // Super admins can filter by specific level
             $studentsQuery->where('level_id', $request->level_id);
@@ -561,15 +566,21 @@ class Student extends Controller
     public function get_student_exam($student_id)
     {
         try {
-            $exam = Exam::where('activated', 'yes')->first();
-            if (!$exam) {
-                return response()->json(['error' => 'No active exam found'], 404);
+            // Find the active exam(s) for this student via the Candidate table
+            // We prioritize the most recently updated candidate record that is linked to an active exam
+            $candidate = Candidate::where('student_id', $student_id)
+                ->whereHas('exam', function($q) {
+                    $q->where('activated', 'yes');
+                })
+                ->with('exam')
+                ->latest('updated_at')
+                ->first();
+
+            if (!$candidate || !$candidate->exam) {
+                return response()->json(['error' => 'No active exam found for this student. Please ensure you are checked in and the exam is activated.'], 404);
             }
 
-            // Get the candidate record for this student and exam
-            $candidate = Candidate::where('student_id', $student_id)
-                                ->where('exam_id', $exam->id)
-                                ->first();
+            $exam = $candidate->exam;
 
             // Calculate total time (base duration + extension)
             $base_duration = $exam->exam_duration;

@@ -158,16 +158,22 @@ const AdminExam = () => {
     // Calculate stats based on VISIBLE exams (matching table logic)
     const getBaseVisibleExams = () => {
         if (!Array.isArray(exams)) return [];
+        
+        console.log("Filtering Exams:", exams); // Debug log
+
         return exams.filter(exam => {
-            // Remove terminated exams from the list
+            // Always hide terminated exams (they belong in archives)
             if (exam.finished_time !== null) {
                 return false; 
             }
-            // Hide exams that are not submitted AND not active (e.g. drafted or recalled)
-            if (exam.submission_status !== 'submitted' && exam.activated !== 'yes') {
-                return false;
+            
+            // Show if it's Active OR Submitted
+            // If it's just 'not_submitted' (draft), hide it
+            if (exam.activated === 'yes' || exam.submission_status === 'submitted') {
+                return true;
             }
-            return true;
+            
+            return false;
         });
     };
 

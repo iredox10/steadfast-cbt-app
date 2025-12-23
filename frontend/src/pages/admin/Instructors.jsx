@@ -10,7 +10,10 @@ import {
     FaChalkboardTeacher,
     FaUpload,
     FaDownload,
-    FaKey
+    FaKey,
+    FaSearch,
+    FaTrash,
+    FaFileUpload
 } from 'react-icons/fa';
 import AdminSidebar from '../../components/AdminSidebar';
 import * as XLSX from 'xlsx';
@@ -101,16 +104,12 @@ const Instructors = () => {
                 instructorData.level_id = newInstructor.level_id;
             }
 
-            console.log('Creating instructor with data:', instructorData); // Debug log
-
             const response = await axios.post(`${path}/add-user`, instructorData, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 }
             });
-
-            console.log('Create instructor response:', response.data); // Debug log
 
             if (response.data.user) {
                 setInstructors([...instructors, response.data.user]);
@@ -123,12 +122,10 @@ const Instructors = () => {
                     level_id: ''
                 });
                 setSuccessMsg('Instructor created successfully');
-                // Refresh the list
                 fetchData();
             }
         } catch (error) {
             console.error('Error creating instructor:', error);
-            console.error('Error response:', error.response?.data); // Debug log
             setErrMsg(error.response?.data?.error || error.response?.data?.message || 'Failed to create instructor');
         } finally {
             setLoading(false);
@@ -169,7 +166,6 @@ const Instructors = () => {
     };
 
     const handleDownloadTemplate = () => {
-        // Create template data with headers and sample row
         const templateData = [
             {
                 'Full Name': 'Jane Smith',
@@ -180,24 +176,19 @@ const Instructors = () => {
             }
         ];
 
-        // Create workbook and worksheet
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(templateData);
 
-        // Set column widths
         ws['!cols'] = [
-            { wch: 20 }, // Full Name
-            { wch: 30 }, // Email
-            { wch: 20 }, // Password
-            { wch: 15 }, // Role
-            { wch: 12 }  // Status
+            { wch: 20 },
+            { wch: 30 },
+            { wch: 20 },
+            { wch: 15 },
+            { wch: 12 }
         ];
 
-        // Add data validation for Role column (column D, starting from row 2)
-        // Role options: lecturer, invigilator
         if (!ws['!dataValidation']) ws['!dataValidation'] = [];
 
-        // Add dropdown validation for Role column (D2:D1000)
         ws['!dataValidation'].push({
             type: 'list',
             allowBlank: false,
@@ -205,7 +196,6 @@ const Instructors = () => {
             formulas: ['"lecturer,invigilator"']
         });
 
-        // Add dropdown validation for Status column (E2:E1000)
         ws['!dataValidation'].push({
             type: 'list',
             allowBlank: false,
@@ -213,10 +203,7 @@ const Instructors = () => {
             formulas: ['"active,inactive"']
         });
 
-        // Add worksheet to workbook
         XLSX.utils.book_append_sheet(wb, ws, 'Instructors');
-
-        // Generate and download file
         XLSX.writeFile(wb, 'instructor_import_template.xlsx');
     };
 
@@ -228,7 +215,6 @@ const Instructors = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            // Update local state - map 'inactive' to 'not_active' for consistency with database
             const dbStatus = newStatus === 'inactive' ? 'not_active' : newStatus;
             setInstructors(instructors.map(inst =>
                 inst.id === instructorId ? { ...inst, status: dbStatus } : inst
@@ -248,7 +234,6 @@ const Instructors = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            // Use PATCH to match backend route definition (though PUT is now supported too)
             const response = await axios.patch(`${path}/update-user/${editingInstructor.id}`, editingInstructor, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -291,14 +276,10 @@ const Instructors = () => {
 
     const getRoleDisplay = (role) => {
         switch (role) {
-            case 'lecturer':
-                return 'Lecturer';
-            case 'invigilator':
-                return 'Invigilator';
-            case 'instructor':
-                return 'Instructor';
-            default:
-                return role;
+            case 'lecturer': return 'Lecturer';
+            case 'invigilator': return 'Invigilator';
+            case 'instructor': return 'Instructor';
+            default: return role;
         }
     };
 
@@ -312,8 +293,11 @@ const Instructors = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+            <div className="flex min-h-screen bg-gray-50">
+                <AdminSidebar userId={userId} />
+                <div className="flex-1 flex justify-center items-center h-screen">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
             </div>
         );
     }
@@ -322,477 +306,447 @@ const Instructors = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <AdminSidebar userId={userId} />
 
-            {/* Main Content */}
-            <main className="flex-1 p-8">
-                {/* Header */}
-                <header className="flex justify-between items-center mb-8">
-                    <div>
-                        <h2 className="text-3xl font-bold text-gray-900">Instructor Management</h2>
-                        <p className="text-gray-600">Manage instructors and lecturers</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <input
-                            type="text"
-                            placeholder="Search instructors..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                            onClick={() => setShowImportModal(true)}
-                            className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                        >
-                            <FaUpload className="mr-2" />
-                            Import Instructors
-                        </button>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                        >
-                            <FaPlus className="mr-2" />
-                            Add Instructor
-                        </button>
-                    </div>
-                </header>
-
-                {/* Messages */}
-                {errMsg && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                        {errMsg}
-                    </div>
-                )}
-                {successMsg && (
-                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                        {successMsg}
-                    </div>
-                )}
-
-                {/* Instructors Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    {currentUser?.role === 'level_admin' && (
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {currentInstructors.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={currentUser?.role === 'level_admin' ? 5 : 4} className="px-6 py-10 text-center text-gray-500">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <FaChalkboardTeacher className="text-4xl mb-3 text-gray-300" />
-                                                <p className="text-lg font-medium">No instructors found</p>
-                                                <p className="text-sm mt-1">Try adjusting your search or add a new instructor.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    currentInstructors.map((instructor) => (
-                                    <tr key={instructor.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                                                    {instructor.full_name.charAt(0)}
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">{instructor.full_name}</div>
-                                                    <div className="text-sm text-gray-500">{instructor.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {getRoleDisplay(instructor.role)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <select
-                                                value={instructor.status === 'not_active' ? 'inactive' : instructor.status}
-                                                onChange={(e) => handleStatusChange(instructor.id, e.target.value)}
-                                                className={`text-xs font-semibold px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-offset-2 cursor-pointer ${instructor.status === 'active'
-                                                    ? 'bg-green-100 text-green-800 focus:ring-green-500'
-                                                    : 'bg-red-100 text-red-800 focus:ring-red-500'
-                                                    }`}
-                                                disabled={currentUser?.role !== 'level_admin'}
-                                            >
-                                                <option value="active">Active</option>
-                                                <option value="inactive">Inactive</option>
-                                            </select>
-                                        </td>
-                                        {currentUser?.role === 'level_admin' && (
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex space-x-2">
-                                                    {instructor.role === 'lecturer' && (
-                                                        <Link
-                                                            to={`/assign-courses/${instructor.id}`}
-                                                            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                                                        >
-                                                            <FaUserPlus className="mr-1" />
-                                                            Assign Course
-                                                        </Link>
-                                                    )}
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingInstructor(instructor);
-                                                            setShowEditModal(true);
-                                                        }}
-                                                        className="text-blue-600 hover:text-blue-900"
-                                                        title="Edit"
-                                                    >
-                                                        <FaEdit />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setInstructorToReset(instructor);
-                                                            setShowResetPasswordModal(true);
-                                                        }}
-                                                        className="text-yellow-600 hover:text-yellow-900"
-                                                        title="Reset Password"
-                                                    >
-                                                        <FaKey />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination Controls */}
-                    {
-                        instructors.length > 0 && (
-                            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                                <div className="text-sm text-gray-500">
-                                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to <span className="font-medium">{Math.min(indexOfLastItem, instructors.length)}</span> of <span className="font-medium">{instructors.length}</span> results
-                                </div>
-                                <div className="flex space-x-2">
+            <div className="flex-1 p-8">
+                <div className="max-w-7xl mx-auto">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                                <FaChalkboardTeacher className="mr-3 text-blue-600" />
+                                Instructor Management
+                            </h1>
+                            <p className="text-gray-500 mt-1">Manage instructors, lecturers, and invigilators</p>
+                        </div>
+                        <div className="flex gap-3">
+                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                                <>
                                     <button
-                                        onClick={() => paginate(currentPage - 1)}
-                                        disabled={currentPage === 1}
-                                        className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === 1
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                                            }`}
+                                        onClick={() => setShowImportModal(true)}
+                                        className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm transition-all"
                                     >
-                                        Previous
+                                        <FaFileUpload className="mr-2 text-green-600" />
+                                        Import
                                     </button>
-
-                                    {[...Array(totalPages)].map((_, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => paginate(i + 1)}
-                                            className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === i + 1
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                                                }`}
-                                        >
-                                            {i + 1}
-                                        </button>
-                                    ))}
-
                                     <button
-                                        onClick={() => paginate(currentPage + 1)}
-                                        disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === totalPages
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                                            }`}
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all"
                                     >
-                                        Next
+                                        <FaPlus className="mr-2" />
+                                        Add Instructor
                                     </button>
-                                </div>
-                            </div>
-                        )
-                    }
-                </div >
-            </main >
+                                </>
+                            )}
+                        </div>
+                    </div>
 
-            {/* Create Instructor Modal */}
-            {
-                showCreateModal && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                            <div className="mt-3">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-medium text-gray-900">Add New Instructor</h3>
-                                    <button
-                                        onClick={() => setShowCreateModal(false)}
-                                        className="text-gray-400 hover:text-gray-600"
-                                    >
-                                        <FaTimes />
-                                    </button>
-                                </div>
+                    {errMsg && (
+                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 shadow-sm flex items-center">
+                            <FaTimes className="mr-2" /> {errMsg}
+                        </div>
+                    )}
+                    {successMsg && (
+                        <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 shadow-sm flex items-center">
+                            <FaUserPlus className="mr-2" /> {successMsg}
+                        </div>
+                    )}
 
-                                <form onSubmit={handleCreateInstructor} className="space-y-4">
-                                    {errMsg && (
-                                        <div className="text-red-600 text-sm">
-                                            {errMsg}
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                                        <input
-                                            type="text"
-                                            value={newInstructor.full_name}
-                                            onChange={(e) => setNewInstructor({ ...newInstructor, full_name: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                                        <input
-                                            type="email"
-                                            value={newInstructor.email}
-                                            onChange={(e) => setNewInstructor({ ...newInstructor, email: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                        />
-                                    </div>
-
-
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Role</label>
-                                        <select
-                                            value={newInstructor.role}
-                                            onChange={(e) => setNewInstructor({ ...newInstructor, role: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="lecturer">Lecturer</option>
-                                            <option value="invigilator">Invigilator</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Only show department selection for super admins */}
-                                    {currentUser?.role !== 'level_admin' && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Department</label>
-                                            <select
-                                                value={newInstructor.level_id}
-                                                onChange={(e) => setNewInstructor({ ...newInstructor, level_id: e.target.value })}
-                                                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            >
-                                                <option value="">Select Department</option>
-                                                {departments.map((department) => (
-                                                    <option key={department.id} value={department.id}>
-                                                        {department.title}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Status</label>
-                                        <select
-                                            value={newInstructor.status}
-                                            onChange={(e) => setNewInstructor({ ...newInstructor, status: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="mt-6 flex justify-end space-x-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowCreateModal(false)}
-                                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition duration-200"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={loading}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition duration-200"
-                                        >
-                                            {loading ? 'Creating...' : 'Create Instructor'}
-                                        </button>
-                                    </div>
-                                </form>
+                    {/* Search Bar */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                placeholder="Search by name or email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            />
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                <FaSearch />
                             </div>
                         </div>
                     </div>
-                )
-            }
 
-            {/* Import Instructors Modal */}
-            {
-                showImportModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-8 max-w-md w-full">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-2xl font-bold">Import Instructors</h3>
-                                <button onClick={() => setShowImportModal(false)}><FaTimes /></button>
+                    {/* Instructors Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                        {currentUser?.role === 'level_admin' && (
+                                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {currentInstructors.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={currentUser?.role === 'level_admin' ? 4 : 3} className="px-6 py-12 text-center text-gray-500">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <FaChalkboardTeacher className="text-4xl mb-3 text-gray-300" />
+                                                    <p className="text-lg font-medium">No instructors found</p>
+                                                    <p className="text-sm mt-1">Try adjusting your search or add a new instructor.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        currentInstructors.map((instructor) => (
+                                            <tr key={instructor.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                                                            {instructor.full_name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900">{instructor.full_name}</div>
+                                                            <div className="text-sm text-gray-500">{instructor.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                        ${instructor.role === 'lecturer' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                                                        {getRoleDisplay(instructor.role)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <select
+                                                        value={instructor.status === 'not_active' ? 'inactive' : instructor.status}
+                                                        onChange={(e) => handleStatusChange(instructor.id, e.target.value)}
+                                                        className={`text-xs font-semibold px-2 py-1 rounded-full border-0 focus:ring-2 focus:ring-offset-2 cursor-pointer outline-none ${instructor.status === 'active'
+                                                            ? 'bg-green-100 text-green-800 focus:ring-green-500'
+                                                            : 'bg-red-100 text-red-800 focus:ring-red-500'
+                                                            }`}
+                                                        disabled={currentUser?.role !== 'level_admin'}
+                                                    >
+                                                        <option value="active">Active</option>
+                                                        <option value="inactive">Inactive</option>
+                                                    </select>
+                                                </td>
+                                                {currentUser?.role === 'level_admin' && (
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        <div className="flex justify-end gap-2">
+                                                            {instructor.role === 'lecturer' && (
+                                                                <Link
+                                                                    to={`/assign-courses/${instructor.id}`}
+                                                                    className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                                                                    title="Assign Course"
+                                                                >
+                                                                    <FaUserPlus />
+                                                                </Link>
+                                                            )}
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingInstructor(instructor);
+                                                                    setShowEditModal(true);
+                                                                }}
+                                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                                title="Edit"
+                                                            >
+                                                                <FaEdit />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setInstructorToReset(instructor);
+                                                                    setShowResetPasswordModal(true);
+                                                                }}
+                                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+                                                                title="Reset Password"
+                                                            >
+                                                                <FaKey />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-sm text-gray-700">
+                                            Showing page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => paginate(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                        >
+                                            Previous
+                                        </button>
+                                        {[...Array(totalPages)].map((_, i) => (
+                                            <button
+                                                key={i + 1}
+                                                onClick={() => paginate(i + 1)}
+                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                                                    currentPage === i + 1
+                                                        ? 'bg-blue-600 text-white border-blue-600'
+                                                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => paginate(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Modals remain mostly the same structure but cleaner */}
+            {/* Create Instructor Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Add New Instructor</h3>
+                            <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleCreateInstructor} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={newInstructor.full_name}
+                                    onChange={(e) => setNewInstructor({ ...newInstructor, full_name: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={newInstructor.email}
+                                    onChange={(e) => setNewInstructor({ ...newInstructor, email: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                <select
+                                    value={newInstructor.role}
+                                    onChange={(e) => setNewInstructor({ ...newInstructor, role: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="lecturer">Lecturer</option>
+                                    <option value="invigilator">Invigilator</option>
+                                </select>
+                            </div>
+                            {currentUser?.role !== 'level_admin' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                    <select
+                                        value={newInstructor.level_id}
+                                        onChange={(e) => setNewInstructor({ ...newInstructor, level_id: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value="">Select Department</option>
+                                        {departments.map((dept) => (
+                                            <option key={dept.id} value={dept.id}>{dept.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                    value={newInstructor.status}
+                                    onChange={(e) => setNewInstructor({ ...newInstructor, status: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Create
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Import Instructors</h3>
+                            <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                                <p className="text-sm text-blue-800 mb-2 font-medium">Instructions:</p>
+                                <p className="text-xs text-blue-600 mb-3">
+                                    Upload an Excel file (.xlsx) with columns: Full Name, Email, Password, Role, Status.
+                                </p>
+                                <button
+                                    onClick={handleDownloadTemplate}
+                                    className="flex items-center text-xs font-bold text-blue-700 hover:text-blue-900"
+                                >
+                                    <FaDownload className="mr-1" /> Download Template
+                                </button>
                             </div>
                             <form onSubmit={handleImportInstructors} className="space-y-4">
-                                {errMsg && <p className="text-red-500">{errMsg}</p>}
-
-                                {/* Download Template Button */}
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <p className="text-sm text-gray-700 mb-3">
-                                        <strong>First time importing?</strong> Download the template to see the required format.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={handleDownloadTemplate}
-                                        className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full justify-center"
-                                    >
-                                        <FaDownload className="mr-2" />
-                                        Download Excel Template
-                                    </button>
-                                </div>
-
-                                {/* File Upload */}
-                                <div className="p-4 border-2 border-dashed rounded-lg text-center">
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
                                     <input
                                         type="file"
                                         onChange={e => setFile(e.target.files[0])}
                                         accept=".xlsx, .xls"
                                         className="hidden"
-                                        id="instructor-file-upload"
+                                        id="file-upload"
                                     />
-                                    <label htmlFor="instructor-file-upload" className="cursor-pointer text-blue-500">
-                                        {file ? file.name : "Choose an Excel file"}
+                                    <label htmlFor="file-upload" className="cursor-pointer">
+                                        <FaUpload className="mx-auto text-3xl text-gray-400 mb-2" />
+                                        <span className="text-sm text-gray-600">{file ? file.name : "Click to upload Excel file"}</span>
                                     </label>
                                 </div>
-
-                                <div className="flex justify-end gap-4 pt-4">
+                                <div className="flex justify-end gap-3 pt-2">
                                     <button
                                         type="button"
                                         onClick={() => setShowImportModal(false)}
-                                        className="px-4 py-2 bg-gray-200 rounded-lg"
+                                        className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isUploading}
-                                        className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300"
+                                        className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                                     >
-                                        {isUploading ? "Uploading..." : "Import"}
+                                        {isUploading ? 'Importing...' : 'Import'}
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                )
-            }
-
-            {/* Edit Instructor Modal */}
-            {
-                showEditModal && editingInstructor && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                            <div className="mt-3">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-medium text-gray-900">Edit Instructor</h3>
-                                    <button
-                                        onClick={() => setShowEditModal(false)}
-                                        className="text-gray-400 hover:text-gray-600"
-                                    >
-                                        <FaTimes />
-                                    </button>
-                                </div>
-                                <form onSubmit={handleUpdateInstructor} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                                        <input
-                                            type="text"
-                                            value={editingInstructor.full_name}
-                                            onChange={(e) => setEditingInstructor({ ...editingInstructor, full_name: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                                        <input
-                                            type="email"
-                                            value={editingInstructor.email}
-                                            onChange={(e) => setEditingInstructor({ ...editingInstructor, email: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Role</label>
-                                        <select
-                                            value={editingInstructor.role}
-                                            onChange={(e) => setEditingInstructor({ ...editingInstructor, role: e.target.value })}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="lecturer">Lecturer</option>
-                                            <option value="invigilator">Invigilator</option>
-                                        </select>
-                                    </div>
-                                    <div className="mt-6 flex justify-end space-x-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowEditModal(false)}
-                                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            disabled={loading}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300"
-                                        >
-                                            {loading ? 'Updating...' : 'Update'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
+                </div>
+            )}
 
             {/* Reset Password Modal */}
-            {
-                showResetPasswordModal && instructorToReset && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                            <div className="mt-3 text-center">
-                                <h3 className="text-lg leading-6 font-medium text-gray-900">Reset Password</h3>
-                                <div className="mt-2 px-7 py-3">
-                                    <p className="text-sm text-gray-500">
-                                        Are you sure you want to reset the password for <strong>{instructorToReset.full_name}</strong>?
-                                        It will be set to default "password".
-                                    </p>
-                                </div>
-                                <div className="items-center px-4 py-3">
-                                    <button
-                                        onClick={handleResetPassword}
-                                        className="px-4 py-2 bg-yellow-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-300"
-                                    >
-                                        Reset Password
-                                    </button>
-                                    <button
-                                        onClick={() => setShowResetPasswordModal(false)}
-                                        className="mt-3 px-4 py-2 bg-gray-100 text-gray-700 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
+            {showResetPasswordModal && instructorToReset && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden text-center p-6">
+                        <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <FaKey className="text-yellow-600 text-xl" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Reset Password?</h3>
+                        <p className="text-sm text-gray-500 mb-6">
+                            This will reset the password for <strong>{instructorToReset.full_name}</strong> to the default "password".
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={() => setShowResetPasswordModal(false)}
+                                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleResetPassword}
+                                className="px-4 py-2 bg-yellow-500 text-white font-medium rounded-lg hover:bg-yellow-600 transition-colors"
+                            >
+                                Confirm Reset
+                            </button>
                         </div>
                     </div>
-                )
-            }
-        </div >
+                </div>
+            )}
+
+            {/* Edit Modal (can follow similar pattern) */}
+            {showEditModal && editingInstructor && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Edit Instructor</h3>
+                            <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleUpdateInstructor} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                                <input
+                                    type="text"
+                                    value={editingInstructor.full_name}
+                                    onChange={(e) => setEditingInstructor({ ...editingInstructor, full_name: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    value={editingInstructor.email}
+                                    onChange={(e) => setEditingInstructor({ ...editingInstructor, email: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Role</label>
+                                <select
+                                    value={editingInstructor.role}
+                                    onChange={(e) => setEditingInstructor({ ...editingInstructor, role: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="lecturer">Lecturer</option>
+                                    <option value="invigilator">Invigilator</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

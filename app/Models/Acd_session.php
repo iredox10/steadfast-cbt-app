@@ -16,7 +16,8 @@ class Acd_session extends Model
         'head_of_department',
         'contact_email',
         'contact_phone',
-        'allow_instructor_enrollment'
+        'allow_instructor_enrollment',
+        'faculty_id'
     ];
 
     protected $casts = [
@@ -25,6 +26,11 @@ class Acd_session extends Model
     ];
 
     // Relationships
+    public function faculty()
+    {
+        return $this->belongsTo(Faculty::class);
+    }
+
     public function courses()
     {
         return $this->hasManyThrough(Course::class, Semester::class, 'acd_session_id', 'semester_id');

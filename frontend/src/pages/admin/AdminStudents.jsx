@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload, FaEdit } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload, FaEdit, FaUserGraduate, FaIdCard, FaBuilding, FaBookOpen, FaClock, FaTicketAlt } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import LevelSelector from "../../components/LevelSelector";
 import AdminSidebar from "../../components/AdminSidebar";
@@ -31,7 +31,151 @@ const AdminStudents = () => {
     const [selectedLevel, setSelectedLevel] = useState("");
     const studentsPerPage = 10;
 
-    // ... (fetchStudents remains same)
+    const fetchStudents = async () => {
+        setLoading(true);
+        try {
+            const userRes = await axios.get(`${path}/user`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setCurrentUser(userRes.data);
+
+            let currentLevel = selectedLevel;
+            if (userRes.data.role === 'level_admin' && userRes.data.level_id) {
+                if (!selectedLevel) {
+                    currentLevel = userRes.data.level_id;
+                    setSelectedLevel(userRes.data.level_id);
+                }
+            }
+
+            let currentExam = null;
+            try {
+                const examRes = await axios.get(`${path}/get-current-exam`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                currentExam = examRes.data;
+                setActiveExam(currentExam);
+            } catch (examErr) {
+                if (examErr.response?.status === 404) {
+                    setActiveExam(null);
+                }
+            }
+
+            if (!currentExam || !currentExam.course_id) {
+                let studentsUrl = `${path}/students-by-level`;
+                if (userRes.data.role === 'super_admin' && currentLevel) {
+                    studentsUrl += `?level_id=${currentLevel}`;
+                }
+                const res = await axios.get(studentsUrl, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setStudents(res.data);
+                return;
+            }
+
+            if (userRes.data.role === 'level_admin') {
+                const res = await axios.get(`${path}/students-by-level`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                });
+                setStudents(res.data.map(student => ({
+                    ...student,
+                    exam_id: currentExam.id
+                })));
+                return;
+            }
+
+            let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
+            if (userRes.data.role === 'super_admin' && currentLevel) {
+                studentsUrl += `?level_id=${currentLevel}`;
+            }
+
+            const res = await axios.get(studentsUrl, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setStudents(res.data.map(student => ({
+                ...student,
+                exam_id: currentExam.id,
+                time_extension: student.time_extension || 0
+            })));
+        } catch (err) {
+            console.error("Error fetching students:", err);
+            setErrMsg(`Failed to load students: ${err.response?.data?.error || err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const loadStudents = async () => {
+            await fetchStudents();
+        };
+        loadStudents();
+    }, []);
+
+    useEffect(() => {
+        if (selectedLevel && currentUser) {
+            const loadStudents = async () => {
+                await fetchStudents();
+            };
+            loadStudents();
+        }
+    }, [selectedLevel]);
+
+    const handleAddStudent = async (e) => {
+        e.preventDefault();
+        if (!newStudent.full_name || !newStudent.candidate_no) {
+            setErrMsg("Full name and candidate number are required.");
+            return;
+        }
+
+        if (currentUser?.role === 'super_admin') {
+            if (!newStudent.department || !newStudent.programme || !selectedLevel) {
+                setErrMsg("All fields including department, programme, and academic session are required.");
+                return;
+            }
+        }
+
+        setErrMsg("");
+        try {
+            const formData = new FormData();
+            formData.append('full_name', newStudent.full_name);
+            formData.append('candidate_no', newStudent.candidate_no);
+            formData.append('password', 'password');
+            formData.append('is_logged_on', 'no');
+
+            if (newStudent.image) {
+                formData.append('image', newStudent.image);
+            }
+
+            if (currentUser?.role === 'level_admin' && currentUser?.level_id) {
+                formData.append('level_id', currentUser.level_id);
+                formData.append('department', currentUser.level?.title || "Department");
+                formData.append('programme', currentUser.level?.title || "Programme");
+            } else {
+                formData.append('department', newStudent.department);
+                formData.append('programme', newStudent.programme);
+                if (selectedLevel) {
+                    formData.append('level_id', selectedLevel);
+                }
+            }
+
+            await axios.post(`${path}/register-student/${userId}`, formData, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            setShowAddModal(false);
+            setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
+            setImagePreview(null);
+            setTimeout(() => {
+                fetchStudents();
+            }, 500);
+
+        } catch (err) {
+            setErrMsg(err.response?.data?.error || "Failed to add student.");
+        }
+    };
 
     const handleEditStudent = (student) => {
         setEditingStudent({
@@ -40,7 +184,7 @@ const AdminStudents = () => {
             candidate_no: student.candidate_no,
             department: student.department,
             programme: student.programme,
-            image: null // Start with no new image
+            image: null
         });
         setEditImagePreview(student.image ? `${path.replace('/api', '')}/${student.image}` : null);
         setShowEditModal(true);
@@ -59,7 +203,6 @@ const AdminStudents = () => {
             formData.append('full_name', editingStudent.full_name);
             formData.append('candidate_no', editingStudent.candidate_no);
             
-            // Only append department/programme if super admin (level admin can't change level-bound fields usually, but assuming editable for now based on role check)
             if (currentUser?.role !== 'level_admin') {
                 formData.append('department', editingStudent.department);
                 formData.append('programme', editingStudent.programme);
@@ -78,204 +221,8 @@ const AdminStudents = () => {
 
             setShowEditModal(false);
             fetchStudents();
-            alert("Student updated successfully!");
         } catch (err) {
-            console.error("Error updating student:", err);
             setErrMsg(err.response?.data?.error || "Failed to update student.");
-        }
-    };
-
-    const fetchStudents = async () => {
-        setLoading(true);
-        try {
-            // Get current user first
-            const userRes = await axios.get(`${path}/user`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
-            setCurrentUser(userRes.data);
-            console.log('Current user data:', userRes.data);
-
-            // Set initial level for level admin
-            let currentLevel = selectedLevel;
-            if (userRes.data.role === 'level_admin' && userRes.data.level_id) {
-                if (!selectedLevel) {
-                    currentLevel = userRes.data.level_id;
-                    setSelectedLevel(userRes.data.level_id);
-                }
-            }
-
-            // Get the active exam first (handle 404 if no active exam)
-            let currentExam = null;
-            try {
-                const examRes = await axios.get(`${path}/get-current-exam`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                currentExam = examRes.data;
-                console.log('Current exam from API:', currentExam);
-                setActiveExam(currentExam);
-            } catch (examErr) {
-                // If 404, there's no active exam - this is okay
-                if (examErr.response?.status === 404) {
-                    console.log('No active exam found (404) - this is normal');
-                    setActiveExam(null);
-                } else {
-                    // Other errors should be logged
-                    console.error('Error fetching active exam:', examErr);
-                }
-            }
-
-            if (!currentExam || !currentExam.course_id) {
-                console.log('No active exam or course_id found');
-
-                // If no active exam, get students based on user level
-                // Use the same endpoint as dashboard for consistency
-                let studentsUrl = `${path}/students-by-level`;
-
-                // For super admins, add level filter if a specific level is selected
-                if (userRes.data.role === 'super_admin' && currentLevel) {
-                    studentsUrl += `?level_id=${currentLevel}`;
-                }
-
-                console.log('Fetching students from URL:', studentsUrl);
-                const res = await axios.get(studentsUrl, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                console.log('Students fetched (no active exam):', res.data);
-                setStudents(res.data);
-                return;
-            }
-
-            console.log('Fetching students for course:', currentExam.course_id);
-
-            // For level admins, always use level-based filtering regardless of active exam
-            // This ensures they see all their students, not just those enrolled in the active course
-            if (userRes.data.role === 'level_admin') {
-                console.log('Level admin detected, using level-based student fetching');
-                const res = await axios.get(`${path}/students-by-level`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                console.log('Students fetched (level admin):', res.data);
-                setStudents(res.data.map(student => ({
-                    ...student,
-                    exam_id: currentExam.id
-                })));
-                return;
-            }
-
-            // For super admins, get students for the active exam's course, filtered by level
-            let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
-
-            // For super admins, add level filter if a specific level is selected
-            if (userRes.data.role === 'super_admin' && currentLevel) {
-                studentsUrl += `?level_id=${currentLevel}`;
-            }
-
-            console.log('Fetching course students from URL:', studentsUrl);
-
-            const res = await axios.get(studentsUrl, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-            });
-            console.log('Students fetched (with active exam):', res.data);
-            setStudents(res.data.map(student => ({
-                ...student,
-                exam_id: currentExam.id,
-                time_extension: student.time_extension || 0 // Ensure it uses the value from backend if available
-            })));
-        } catch (err) {
-            console.error("Error fetching students:", err);
-            console.error("Error response:", err.response?.data);
-            console.error("Error status:", err.response?.status);
-            setErrMsg(`Failed to load students: ${err.response?.data?.error || err.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        const loadStudents = async () => {
-            await fetchStudents();
-        };
-        loadStudents();
-    }, []); // Remove selectedLevel dependency to avoid multiple calls
-
-    useEffect(() => {
-        // Only refetch when selectedLevel changes and it's not the initial load
-        if (selectedLevel && currentUser) {
-            const loadStudents = async () => {
-                await fetchStudents();
-            };
-            loadStudents();
-        }
-    }, [selectedLevel]);
-
-    const handleAddStudent = async (e) => {
-        e.preventDefault();
-
-        // Basic validation for required fields
-        if (!newStudent.full_name || !newStudent.candidate_no) {
-            setErrMsg("Full name and candidate number are required.");
-            return;
-        }
-
-        // Additional validation for super admin
-        if (currentUser?.role === 'super_admin') {
-            if (!newStudent.department || !newStudent.programme || !selectedLevel) {
-                setErrMsg("All fields including department, programme, and academic session are required.");
-                return;
-            }
-        }
-
-        setErrMsg("");
-        try {
-            // Use FormData to handle file upload
-            const formData = new FormData();
-            formData.append('full_name', newStudent.full_name);
-            formData.append('candidate_no', newStudent.candidate_no);
-            formData.append('password', 'password');
-            formData.append('is_logged_on', 'no');
-
-            // Add image if selected
-            if (newStudent.image) {
-                formData.append('image', newStudent.image);
-            }
-
-            // For level admins, automatically set department and programme from their academic session
-            if (currentUser?.role === 'level_admin' && currentUser?.level_id) {
-                formData.append('level_id', currentUser.level_id);
-                formData.append('department', currentUser.level?.title || "Department");
-                formData.append('programme', currentUser.level?.title || "Programme");
-                console.log('Level admin student data');
-            } else {
-                // For super admins, use the form data
-                formData.append('department', newStudent.department);
-                formData.append('programme', newStudent.programme);
-                if (selectedLevel) {
-                    formData.append('level_id', selectedLevel);
-                }
-                console.log('Super admin student data');
-            }
-
-            await axios.post(`${path}/register-student/${userId}`, formData, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            console.log('Student added successfully, refreshing list...');
-            setShowAddModal(false);
-            setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
-            setImagePreview(null);
-
-            // Wait a bit for the database to update, then refresh
-            setTimeout(() => {
-                fetchStudents();
-            }, 500);
-
-        } catch (err) {
-            console.error("Error adding student:", err);
-            console.error("Error response:", err.response?.data);
-            setErrMsg(err.response?.data?.error || "Failed to add student.");
         }
     };
 
@@ -295,37 +242,10 @@ const AdminStudents = () => {
             setShowExtendTimeModal(false);
             setSelectedStudent(null);
             setExtensionMinutes("");
-            fetchStudents(); // Refresh list to show new extension
+            fetchStudents();
             alert("Time extended successfully!");
         } catch (err) {
-            console.error("Error extending time:", err);
             setErrMsg(err.response?.data?.error || "Failed to extend time");
-        }
-    };
-
-    const handleViewTicket = async (student) => {
-        setErrMsg("");
-
-        try {
-            const res = await axios.post(`${path}/invigilator/generate-ticket`, {
-                student_id: student.id
-            });
-
-            const ticketNumber = res.data?.ticket_no;
-
-            if (!ticketNumber) {
-                throw new Error('Ticket not found for this student.');
-            }
-
-            alert(`Ticket for ${student.full_name}: ${ticketNumber}\n\nPlease ask the student to keep this ticket safe. Invigilators only verify tickets during check-in.`);
-        } catch (error) {
-            console.error('View ticket error:', error);
-            setErrMsg(
-                error.response?.data?.error ||
-                error.response?.data?.message ||
-                error.message ||
-                "Unable to fetch ticket"
-            );
         }
     };
 
@@ -345,7 +265,6 @@ const AdminStudents = () => {
             setFile(null);
             fetchStudents();
         } catch (error) {
-            console.error("Error uploading file:", error);
             setErrMsg(error.response?.data?.error || "Error uploading file.");
         } finally {
             setIsUploading(false);
@@ -353,7 +272,6 @@ const AdminStudents = () => {
     };
 
     const handleDownloadTemplate = () => {
-        // Create template data with headers and sample row
         const templateData = [
             {
                 'Full Name': 'John Doe',
@@ -364,23 +282,18 @@ const AdminStudents = () => {
             }
         ];
 
-        // Create workbook and worksheet
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(templateData);
 
-        // Set column widths
         ws['!cols'] = [
-            { wch: 20 }, // Full Name
-            { wch: 18 }, // Candidate Number
-            { wch: 25 }, // Department
-            { wch: 30 }, // Programme
-            { wch: 25 }  // Email
+            { wch: 20 },
+            { wch: 18 },
+            { wch: 25 },
+            { wch: 30 },
+            { wch: 25 } 
         ];
 
-        // Add worksheet to workbook
         XLSX.utils.book_append_sheet(wb, ws, 'Students');
-
-        // Generate and download file
         XLSX.writeFile(wb, 'student_import_template.xlsx');
     };
 
@@ -401,34 +314,42 @@ const AdminStudents = () => {
         <div className="flex min-h-screen bg-gray-50 text-gray-800">
             <AdminSidebar userId={userId} />
 
-            {/* Main Content */}
             <main className="flex-1 p-8 min-w-0 overflow-hidden">
-                <header className="flex justify-between items-center mb-8">
+                {/* Header */}
+                <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                     <div>
-                        <h2 className="text-3xl font-bold text-gray-900">Manage Students</h2>
-                        <p className="text-gray-500">Add, view, and manage student records.</p>
-                        {activeExam ? (
-                            <p className="text-green-600 text-sm">Active Exam: {activeExam.title || `Exam ID: ${activeExam.id}`}</p>
-                        ) : (
-                            <p className="text-yellow-600 text-sm">No active exam found</p>
-                        )}
-                        {currentUser?.role !== 'super_admin' && currentUser?.level?.title && (
-                            <p className="text-blue-600 text-sm">Level: {currentUser.level.title}</p>
+                        <h2 className="text-3xl font-bold text-gray-900 flex items-center">
+                            <FaUserGraduate className="mr-3 text-blue-600" />
+                            Student Management
+                        </h2>
+                        <p className="text-gray-500 mt-1">Manage student registrations and exam eligibility</p>
+                        
+                        {activeExam && (
+                            <div className="mt-2 flex items-center text-sm bg-green-50 text-green-700 px-3 py-1 rounded-full w-fit border border-green-200">
+                                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                                Active Exam: <strong>{activeExam.title || `Exam ID: ${activeExam.id}`}</strong>
+                            </div>
                         )}
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600">
-                            <FaPlus className="mr-2" /> Register Student
-                        </button>
-                        <button onClick={() => setShowImportModal(true)} className="flex items-center px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600">
-                            <FaUpload className="mr-2" /> Import Students
-                        </button>
+                    
+                    <div className="flex gap-3">
+                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                            <>
+                                <button onClick={() => setShowImportModal(true)} className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm transition-all">
+                                    <FaUpload className="mr-2 text-green-600" /> Import
+                                </button>
+                                <button onClick={() => setShowAddModal(true)} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all">
+                                    <FaPlus className="mr-2" /> Register Student
+                                </button>
+                            </>
+                        )}
                     </div>
                 </header>
 
-                {/* Level Selector for Super Admin */}
+                {/* Filters */}
                 {currentUser?.role === 'super_admin' && (
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">Filter by Session</h3>
                         <LevelSelector
                             currentUser={currentUser}
                             selectedLevel={selectedLevel}
@@ -438,180 +359,167 @@ const AdminStudents = () => {
                     </div>
                 )}
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <div className="relative mb-4">
-                        <FaSearch className="absolute top-3 left-4 text-gray-400" />
+                {/* Search Bar */}
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4">
+                    <div className="relative flex-1">
                         <input
                             type="text"
-                            placeholder="Search by name or candidate no..."
+                            placeholder="Search by name or candidate number..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                            <FaSearch />
+                        </div>
                     </div>
+                </div>
+
+                {/* Students Table */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Photo</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Full Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Candidate No.</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Department</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Programme</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Details</th>
                                     {currentUser?.role === 'super_admin' && (
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Level</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Level</th>
                                     )}
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Time Extension</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Ticket</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Exam Status</th>
+                                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="bg-white divide-y divide-gray-200">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
-                                            <div className="flex flex-col items-center justify-center">
-                                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                                                <p className="text-gray-600 text-lg">Loading students...</p>
+                                        <td colSpan={currentUser?.role === 'super_admin' ? 5 : 4} className="px-6 py-12 text-center">
+                                            <div className="flex justify-center">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : paginatedStudents.length === 0 ? (
                                     <tr>
-                                        <td colSpan={currentUser?.role === 'super_admin' ? 9 : 8} className="px-6 py-12 text-center">
-                                            <div className="flex flex-col items-center justify-center text-gray-500">
-                                                <FaUsers className="text-6xl mb-4 text-gray-300" />
-                                                <h3 className="text-xl font-semibold mb-2">No Students Found</h3>
-                                                <p className="text-gray-400 mb-4">
-                                                    {searchTerm
-                                                        ? `No students match "${searchTerm}"`
-                                                        : currentUser?.role === 'level_admin'
-                                                            ? `No students in your department yet`
-                                                            : selectedLevel
-                                                                ? `No students in the selected department`
-                                                                : `No students registered yet`
-                                                    }
-                                                </p>
-                                                <button
-                                                    onClick={() => setShowAddModal(true)}
-                                                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                                                >
-                                                    <FaPlus className="mr-2" /> Register First Student
-                                                </button>
+                                        <td colSpan={currentUser?.role === 'super_admin' ? 5 : 4} className="px-6 py-12 text-center text-gray-500">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <FaUsers className="text-4xl mb-3 text-gray-300" />
+                                                <p className="text-lg font-medium">No students found</p>
+                                                <p className="text-sm">Try adjusting your search or add a new student.</p>
                                             </div>
                                         </td>
                                     </tr>
-                                ) : paginatedStudents.map(student => (
-                                    <tr key={student.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.image ? (
-                                                <img
-                                                    src={`${path.replace('/api', '')}/${student.image}`}
-                                                    alt={student.full_name}
-                                                    className="w-10 h-10 rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                    <FaUsers className="text-gray-400" />
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{student.full_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{student.candidate_no}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{student.department}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">{student.programme}</td>
-                                        {currentUser?.role === 'super_admin' && (
+                                ) : (
+                                    paginatedStudents.map(student => (
+                                        <tr key={student.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                                                    {student.level?.title || 'Not assigned'}
-                                                </span>
+                                                <div className="flex items-center">
+                                                    {student.image ? (
+                                                        <img
+                                                            src={`${path.replace('/api', '')}/${student.image}`}
+                                                            alt={student.full_name}
+                                                            className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                                                            <FaUserGraduate />
+                                                        </div>
+                                                    )}
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-gray-900">{student.full_name}</div>
+                                                        <div className="text-sm text-gray-500 font-mono">{student.candidate_no}</div>
+                                                    </div>
+                                                </div>
                                             </td>
-                                        )}
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.time_extension ? `+${student.time_extension} minutes` : 'None'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {student.ticket_no ? (
-                                                <span className="px-3 py-1 text-sm font-mono bg-green-100 text-green-800 rounded-full border border-green-300">
-                                                    {student.ticket_no}
-                                                </span>
-                                            ) : (
-                                                <span className="px-3 py-1 text-xs bg-gray-100 text-gray-500 rounded-full italic">
-                                                    Not assigned yet
-                                                </span>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900 flex items-center gap-2">
+                                                    <FaBuilding className="text-gray-400 text-xs" />
+                                                    {student.department}
+                                                </div>
+                                                <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                                    <FaBookOpen className="text-gray-400 text-xs" />
+                                                    {student.programme}
+                                                </div>
+                                            </td>
+                                            {currentUser?.role === 'super_admin' && (
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-md">
+                                                        {student.level?.title || 'Not assigned'}
+                                                    </span>
+                                                </td>
                                             )}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleEditStudent(student)}
-                                                    className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200"
-                                                    title="Edit Student"
-                                                >
-                                                    <FaEdit />
-                                                </button>
-                                                {activeExam && student.ticket_no && (
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex flex-col gap-1">
+                                                    {student.ticket_no ? (
+                                                        <span className="flex items-center text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded w-fit">
+                                                            <FaTicketAlt className="mr-1" />
+                                                            {student.ticket_no}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic">No Ticket</span>
+                                                    )}
+                                                    
+                                                    {student.time_extension > 0 && (
+                                                        <span className="flex items-center text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded w-fit">
+                                                            <FaClock className="mr-1" />
+                                                            +{student.time_extension} mins
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end gap-2">
                                                     <button
-                                                        onClick={() => {
-                                                            setSelectedStudent(student);
-                                                            setShowExtendTimeModal(true);
-                                                        }}
-                                                        className="px-3 py-1 bg-blue-500 text-white rounded-full hover:bg-blue-600 text-sm"
+                                                        onClick={() => handleEditStudent(student)}
+                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                        title="Edit Student"
                                                     >
-                                                        Extend Time
+                                                        <FaEdit />
                                                     </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    {activeExam && student.ticket_no && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedStudent(student);
+                                                                setShowExtendTimeModal(true);
+                                                            }}
+                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-full transition-colors"
+                                                            title="Extend Time"
+                                                        >
+                                                            <FaClock />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
 
-                    {/* Error Message */}
-                    {errMsg && !loading && (
-                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-red-600 text-center">{errMsg}</p>
-                        </div>
-                    )}
-                    {/* Pagination Controls */}
-                    {!loading && filteredStudents.length > studentsPerPage && (
-                        <div className="flex justify-between items-center mt-6 px-6">
-                            <p className="text-sm text-gray-600">
-                                Showing {((currentPage - 1) * studentsPerPage) + 1} to {Math.min(currentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} students
+                    {/* Pagination */}
+                    {filteredStudents.length > studentsPerPage && (
+                        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                            <p className="text-sm text-gray-500">
+                                Showing <span className="font-medium">{((currentPage - 1) * studentsPerPage) + 1}</span> to <span className="font-medium">{Math.min(currentPage * studentsPerPage, filteredStudents.length)}</span> of <span className="font-medium">{filteredStudents.length}</span> students
                             </p>
-                            <div className="flex space-x-2">
+                            <div className="flex gap-2">
                                 <button
                                     onClick={() => setCurrentPage(currentPage - 1)}
                                     disabled={currentPage === 1}
                                     className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === 1
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                                         }`}
                                 >
                                     Previous
                                 </button>
-
-                                {[...Array(totalPages)].map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setCurrentPage(i + 1)}
-                                        className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === i + 1
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                                            }`}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                ))}
-
                                 <button
                                     onClick={() => setCurrentPage(currentPage + 1)}
                                     disabled={currentPage === totalPages}
                                     className={`px-3 py-1 rounded-md text-sm font-medium ${currentPage === totalPages
                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
                                         }`}
                                 >
                                     Next
@@ -622,289 +530,289 @@ const AdminStudents = () => {
                 </div>
             </main>
 
-            {/* Add Student Modal */}
+            {/* Add Student Modal - Redesigned */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold">Register New Student</h3>
-                            <button onClick={() => setShowAddModal(false)}><FaTimes /></button>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Register New Student</h3>
+                            <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
                         </div>
-                        <form onSubmit={handleAddStudent} className="space-y-4">
-                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+                        <form onSubmit={handleAddStudent} className="p-6 space-y-4">
+                            {errMsg && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{errMsg}</div>}
 
-                            <input
-                                type="text"
-                                placeholder="Full Name"
-                                value={newStudent.full_name}
-                                onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })}
-                                className="w-full px-4 py-2 border rounded-lg"
-                                required
-                            />
-                            <input
-                                type="text"
-                                placeholder="Candidate Number"
-                                value={newStudent.candidate_no}
-                                onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })}
-                                className="w-full px-4 py-2 border rounded-lg"
-                                required
-                            />
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. John Doe"
+                                    value={newStudent.full_name}
+                                    onChange={e => setNewStudent({ ...newStudent, full_name: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    required
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Candidate Number</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. STU/2024/001"
+                                    value={newStudent.candidate_no}
+                                    onChange={e => setNewStudent({ ...newStudent, candidate_no: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    required
+                                />
+                            </div>
 
                             {/* Image Upload */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Student Photo (Optional)
-                                </label>
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-                                    onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                            setNewStudent({ ...newStudent, image: file });
-                                            // Create preview
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => {
-                                                setImagePreview(reader.result);
-                                            };
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }}
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Supported formats: JPEG, PNG, JPG, GIF, WEBP (max 2MB)
-                                </p>
-                                {imagePreview && (
-                                    <div className="mt-2">
-                                        <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
-                                    </div>
-                                )}
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Student Photo (Optional)</label>
+                                <div className="mt-1 flex items-center gap-4">
+                                    <label className="flex-1 cursor-pointer">
+                                        <div className="flex items-center justify-center px-4 py-2 border border-gray-300 border-dashed rounded-lg hover:bg-gray-50 transition-colors">
+                                            <FaUpload className="text-gray-400 mr-2" />
+                                            <span className="text-sm text-gray-600">Choose File</span>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    setNewStudent({ ...newStudent, image: file });
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setImagePreview(reader.result);
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                    {imagePreview && (
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
+                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Only show department and programme fields for super admins */}
                             {currentUser?.role !== 'level_admin' && (
                                 <>
-                                    <input
-                                        type="text"
-                                        placeholder="Department"
-                                        value={newStudent.department}
-                                        onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
-                                        className="w-full px-4 py-2 border rounded-lg"
-                                        required
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Programme"
-                                        value={newStudent.programme}
-                                        onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })}
-                                        className="w-full px-4 py-2 border rounded-lg"
-                                        required
-                                    />
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Computer Science"
+                                            value={newStudent.department}
+                                            onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Programme</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. BSc Computer Science"
+                                            value={newStudent.programme}
+                                            onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            required
+                                        />
+                                    </div>
                                 </>
                             )}
 
-                            <div className="flex justify-end gap-4 pt-4">
-                                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Register</button>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button type="submit" className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-md">Register</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Edit Student Modal */}
-            {showEditModal && editingStudent && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold">Edit Student</h3>
-                            <button onClick={() => setShowEditModal(false)}><FaTimes /></button>
+            {/* Import Students Modal - Redesigned */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Import Students</h3>
+                            <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
                         </div>
-                        <form onSubmit={handleUpdateStudent} className="space-y-4">
-                            {errMsg && <p className="text-red-500">{errMsg}</p>}
+                        <form onSubmit={handleImportStudents} className="p-6 space-y-4">
+                            {errMsg && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{errMsg}</div>}
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                                <p className="text-sm text-blue-800 mb-3 font-medium">Instructions</p>
+                                <p className="text-xs text-blue-600 mb-3">Upload an Excel file (.xlsx) with columns: Full Name, Candidate Number, Department, Programme.</p>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadTemplate}
+                                    className="flex items-center text-xs font-bold text-blue-700 hover:text-blue-900 transition-colors"
+                                >
+                                    <FaDownload className="mr-1" /> Download Template
+                                </button>
+                            </div>
+
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                                <input type="file" onChange={e => setFile(e.target.files[0])} accept=".xlsx, .xls" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                                <FaUpload className="mx-auto text-3xl text-gray-400 mb-2" />
+                                <p className="text-sm text-gray-600 font-medium">{file ? file.name : "Click to upload Excel file"}</p>
+                                <p className="text-xs text-gray-400 mt-1">.xlsx or .xls files only</p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button type="submit" disabled={isUploading} className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {isUploading ? "Importing..." : "Import"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Extend Time Modal - Redesigned */}
+            {showExtendTimeModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-scale-in">
+                        <div className="bg-amber-50 p-4 border-b border-amber-100 flex justify-between items-center">
+                            <h3 className="font-bold text-amber-900 flex items-center">
+                                <FaClock className="mr-2" /> Extend Time
+                            </h3>
+                            <button onClick={() => setShowExtendTimeModal(false)} className="text-amber-700 hover:text-amber-900"><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleExtendTime} className="p-6 space-y-4">
+                            <div className="text-center mb-4">
+                                <p className="text-sm text-gray-500">Student</p>
+                                <p className="font-bold text-gray-900 text-lg">{selectedStudent?.full_name}</p>
+                                {selectedStudent?.time_extension > 0 && (
+                                    <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full font-medium">
+                                        Currently +{selectedStudent.time_extension} mins
+                                    </span>
+                                )}
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Minutes</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={extensionMinutes}
+                                        onChange={(e) => setExtensionMinutes(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-center font-mono text-lg"
+                                        placeholder="0"
+                                        autoFocus
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-gray-400 text-sm">min</span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button type="button" onClick={() => setShowExtendTimeModal(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button type="submit" className="px-6 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors shadow-md">Add Time</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Student Modal - Redesigned */}
+            {showEditModal && editingStudent && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-scale-in">
+                        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-gray-900">Edit Student</h3>
+                            <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleUpdateStudent} className="p-6 space-y-4">
+                            {errMsg && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{errMsg}</div>}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <input
                                     type="text"
                                     value={editingStudent.full_name}
                                     onChange={e => setEditingStudent({ ...editingStudent, full_name: e.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                     required
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">Candidate Number</label>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Candidate Number</label>
                                 <input
                                     type="text"
                                     value={editingStudent.candidate_no}
                                     onChange={e => setEditingStudent({ ...editingStudent, candidate_no: e.target.value })}
-                                    className="w-full px-4 py-2 border rounded-lg"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                     required
                                 />
                             </div>
 
-                            {/* Image Upload */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Student Photo
-                                </label>
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-                                    onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                            setEditingStudent({ ...editingStudent, image: file });
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => {
-                                                setEditImagePreview(reader.result);
-                                            };
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }}
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                />
-                                {editImagePreview && (
-                                    <div className="mt-2">
-                                        <img src={editImagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
-                                    </div>
-                                )}
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Student Photo</label>
+                                <div className="mt-1 flex items-center gap-4">
+                                    <label className="flex-1 cursor-pointer">
+                                        <div className="flex items-center justify-center px-4 py-2 border border-gray-300 border-dashed rounded-lg hover:bg-gray-50 transition-colors">
+                                            <FaUpload className="text-gray-400 mr-2" />
+                                            <span className="text-sm text-gray-600">Change Photo</span>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    setEditingStudent({ ...editingStudent, image: file });
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setEditImagePreview(reader.result);
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                    {editImagePreview && (
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
+                                            <img src={editImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {currentUser?.role !== 'level_admin' && (
                                 <>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700">Department</label>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
                                         <input
                                             type="text"
                                             value={editingStudent.department}
                                             onChange={e => setEditingStudent({ ...editingStudent, department: e.target.value })}
-                                            className="w-full px-4 py-2 border rounded-lg"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                             required
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-medium text-gray-700">Programme</label>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Programme</label>
                                         <input
                                             type="text"
                                             value={editingStudent.programme}
                                             onChange={e => setEditingStudent({ ...editingStudent, programme: e.target.value })}
-                                            className="w-full px-4 py-2 border rounded-lg"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                             required
                                         />
                                     </div>
                                 </>
                             )}
 
-                            <div className="flex justify-end gap-4 pt-4">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Update Student</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Extend Time Modal */}
-            {showExtendTimeModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold">Extend Time</h3>
-                            <button onClick={() => {
-                                setShowExtendTimeModal(false);
-                                setSelectedStudent(null);
-                                setExtensionMinutes("");
-                                setErrMsg("");
-                            }}><FaTimes /></button>
-                        </div>
-                        <form onSubmit={handleExtendTime} className="space-y-4">
-                            {errMsg && <p className="text-red-500">{errMsg}</p>}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Student: {selectedStudent?.full_name}
-                                </label>
-                                {selectedStudent?.time_extension > 0 && (
-                                    <p className="text-sm text-gray-500 mb-4">
-                                        Current extension: {selectedStudent.time_extension} minutes
-                                    </p>
-                                )}
-                                <input
-                                    type="number"
-                                    min="1"
-                                    placeholder="Extension minutes"
-                                    value={extensionMinutes}
-                                    onChange={(e) => setExtensionMinutes(e.target.value)}
-                                    className="w-full px-4 py-2 border rounded-lg"
-                                />
-                            </div>
-                            <div className="flex justify-end gap-4 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowExtendTimeModal(false);
-                                        setSelectedStudent(null);
-                                        setExtensionMinutes("");
-                                        setErrMsg("");
-                                    }}
-                                    className="px-4 py-2 bg-gray-200 rounded-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg"
-                                >
-                                    Extend Time
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Import Students Modal */}
-            {showImportModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold">Import Students</h3>
-                            <button onClick={() => setShowImportModal(false)}><FaTimes /></button>
-                        </div>
-                        <form onSubmit={handleImportStudents} className="space-y-4">
-                            {errMsg && <p className="text-red-500">{errMsg}</p>}
-
-                            {/* Download Template Button */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <p className="text-sm text-gray-700 mb-3">
-                                    <strong>First time importing?</strong> Download the template to see the required format.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadTemplate}
-                                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full justify-center"
-                                >
-                                    <FaDownload className="mr-2" />
-                                    Download Excel Template
-                                </button>
-                            </div>
-
-                            {/* File Upload */}
-                            <div className="p-4 border-2 border-dashed rounded-lg text-center">
-                                <input type="file" onChange={e => setFile(e.target.files[0])} accept=".xlsx, .xls" className="hidden" id="file-upload" />
-                                <label htmlFor="file-upload" className="cursor-pointer text-blue-500">
-                                    {file ? file.name : "Choose an Excel file"}
-                                </label>
-                            </div>
-
-                            <div className="flex justify-end gap-4 pt-4">
-                                <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-                                <button type="submit" disabled={isUploading} className="px-4 py-2 bg-green-500 text-white rounded-lg disabled:bg-green-300">
-                                    {isUploading ? "Uploading..." : "Import"}
-                                </button>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button type="submit" className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-md">Update Student</button>
                             </div>
                         </form>
                     </div>

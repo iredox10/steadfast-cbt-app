@@ -6,6 +6,8 @@ import { FaBuilding, FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaPhone, 
 
 const DepartmentManagement = () => {
     const [departments, setDepartments] = useState([]);
+    const [faculties, setFaculties] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingDepartment, setEditingDepartment] = useState(null);
@@ -14,7 +16,8 @@ const DepartmentManagement = () => {
         description: '',
         head_of_department: '',
         contact_email: '',
-        contact_phone: ''
+        contact_phone: '',
+        faculty_id: ''
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -26,7 +29,27 @@ const DepartmentManagement = () => {
     const [itemsPerPage] = useState(10);
 
     useEffect(() => {
-        fetchDepartments();
+        const initialize = async () => {
+            const token = localStorage.getItem('token');
+            const headers = { 'Authorization': `Bearer ${token}` };
+            
+            try {
+                const userRes = await axios.get(`${path}/user`, { headers });
+                setCurrentUser(userRes.data);
+                
+                if (userRes.data.role === 'super_admin') {
+                    const facultiesRes = await axios.get(`${path}/faculties`, { headers });
+                    setFaculties(facultiesRes.data);
+                }
+                
+                fetchDepartments();
+            } catch (err) {
+                console.error('Initialization error:', err);
+                setError('Failed to load user data');
+                setLoading(false);
+            }
+        };
+        initialize();
     }, []);
 
     const fetchDepartments = async () => {
@@ -59,7 +82,12 @@ const DepartmentManagement = () => {
             
             const method = editingDepartment ? 'put' : 'post';
             
-            const response = await axios[method](url, formData, {
+            const payload = { ...formData };
+            if (currentUser.role === 'faculty_officer') {
+                payload.faculty_id = currentUser.faculty_id;
+            }
+
+            const response = await axios[method](url, payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -86,7 +114,8 @@ const DepartmentManagement = () => {
             description: department.description || '',
             head_of_department: department.head_of_department || '',
             contact_email: department.contact_email || '',
-            contact_phone: department.contact_phone || ''
+            contact_phone: department.contact_phone || '',
+            faculty_id: department.faculty_id || ''
         });
         setShowAddForm(true);
         setError('');
@@ -141,7 +170,8 @@ const DepartmentManagement = () => {
             description: '',
             head_of_department: '',
             contact_email: '',
-            contact_phone: ''
+            contact_phone: '',
+            faculty_id: ''
         });
         setShowAddForm(false);
         setEditingDepartment(null);
@@ -180,22 +210,29 @@ const DepartmentManagement = () => {
 
     return (
         <div className="flex">
-            <AdminSidebar />
+            <AdminSidebar userId={currentUser?.id} />
             <div className="flex-1 p-8">
                 <div className="max-w-6xl mx-auto">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center">
                             <FaBuilding className="text-3xl text-orange-500 mr-3" />
-                            <h1 className="text-3xl font-bold text-gray-900">Department Management</h1>
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900">Department Management</h1>
+                                {currentUser?.role === 'faculty_officer' && (
+                                    <p className="text-orange-600 font-medium">Faculty: {currentUser.faculty?.name}</p>
+                                )}
+                            </div>
                         </div>
-                        <button
-                            onClick={() => setShowAddForm(true)}
-                            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
-                        >
-                            <FaPlus className="w-4 h-4" />
-                            <span>Add Department</span>
-                        </button>
+                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                            <button
+                                onClick={() => setShowAddForm(true)}
+                                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
+                            >
+                                <FaPlus className="w-4 h-4" />
+                                <span>Add Department</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Messages */}
@@ -262,6 +299,25 @@ const DepartmentManagement = () => {
                                         />
                                     </div>
                                 </div>
+
+                                {currentUser.role === 'super_admin' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Faculty *
+                                        </label>
+                                        <select
+                                            value={formData.faculty_id}
+                                            onChange={(e) => setFormData({...formData, faculty_id: e.target.value})}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            required
+                                        >
+                                            <option value="">Select Faculty</option>
+                                            {faculties.map(f => (
+                                                <option key={f.id} value={f.id}>{f.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -381,10 +437,10 @@ const DepartmentManagement = () => {
                                                     Department
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Head of Department
+                                                    Faculty
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Contact Information
+                                                    Head of Department
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Status
@@ -412,29 +468,13 @@ const DepartmentManagement = () => {
                                                             </div>
                                                         </div>
                                                     </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {department.faculty?.name || <span className="text-gray-400">Unassigned</span>}
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                         {department.head_of_department || (
                                                             <span className="text-gray-400 italic">Not assigned</span>
                                                         )}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <div className="space-y-1">
-                                                            {department.contact_email && (
-                                                                <div className="flex items-center">
-                                                                    <FaEnvelope className="w-4 h-4 mr-2 text-gray-400" />
-                                                                    {department.contact_email}
-                                                                </div>
-                                                            )}
-                                                            {department.contact_phone && (
-                                                                <div className="flex items-center">
-                                                                    <FaPhone className="w-4 h-4 mr-2 text-gray-400" />
-                                                                    {department.contact_phone}
-                                                                </div>
-                                                            )}
-                                                            {!department.contact_email && !department.contact_phone && (
-                                                                <span className="text-gray-400 italic">No contact info</span>
-                                                            )}
-                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <button

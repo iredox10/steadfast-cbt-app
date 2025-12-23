@@ -54,6 +54,11 @@ class Admin extends Controller
             return null; // No filter, show all
         }
 
+        // Faculty officers filter by their faculty
+        if ($user->role === 'faculty_officer') {
+            return null; // They manage multiple levels (departments) within a faculty
+        }
+
         // Level admins can only see their level
         if ($user->role === 'level_admin') {
             return $user->level_id;
@@ -65,6 +70,47 @@ class Admin extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Create a faculty officer user
+     */
+    public function createFacultyOfficer(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!$user || $user->role !== 'super_admin') {
+                return response()->json(['error' => 'Only super admins can create faculty officers'], 403);
+            }
+
+            $validate = $request->validate([
+                'full_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'faculty_id' => 'required|exists:faculties,id'
+            ]);
+
+            $newOfficer = new User();
+            $newOfficer->full_name = $validate['full_name'];
+            $newOfficer->email = $validate['email'];
+            $newOfficer->password = bcrypt('password'); // Default password
+            $newOfficer->role = 'faculty_officer';
+            $newOfficer->status = 'active';
+            $newOfficer->faculty_id = $validate['faculty_id'];
+            $newOfficer->save();
+
+            $userData = $newOfficer->toArray();
+            unset($userData['password']);
+
+            return response()->json([
+                'message' => 'Faculty officer created successfully',
+                'user' => $userData
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Failed to create faculty officer',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -430,6 +476,11 @@ class Admin extends Controller
             // If user is level admin, only show their own courses
             if ($user && $user->role === 'level_admin') {
                 $coursesQuery->where('created_by', $user->id);
+            } elseif ($user && $user->role === 'faculty_officer') {
+                // Faculty officers see courses in all departments of their faculty
+                $coursesQuery->whereHas('semester.acdSession', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
             }
 
             $courses = $coursesQuery->get();
@@ -541,32 +592,28 @@ class Admin extends Controller
 
             $query = Exam::query();
 
-            // If user is level_admin, filter by their lecturers' exams
+            // If user is level_admin, filter by their department (level) or courses they created
             if ($user->role === 'level_admin') {
-                // Get courses assigned to lecturers by this level admin
-                $assignedCourseIds = LecturerCourse::where('created_by', $user->id)
-                                                   ->pluck('course_id')
-                                                   ->toArray();
-                
-                // Also get lecturer IDs assigned by this level admin
-                $assignedLecturerIds = LecturerCourse::where('created_by', $user->id)
-                                                     ->pluck('user_id')
-                                                     ->toArray();
-                
-                // Filter exams by either course assignment OR lecturer assignment
-                if (!empty($assignedCourseIds) || !empty($assignedLecturerIds)) {
-                    $query->where(function($q) use ($assignedCourseIds, $assignedLecturerIds) {
-                        if (!empty($assignedCourseIds)) {
-                            $q->whereIn('course_id', $assignedCourseIds);
-                        }
-                        if (!empty($assignedLecturerIds)) {
-                            $q->orWhereIn('user_id', $assignedLecturerIds);
-                        }
+                $query->where(function($q) use ($user) {
+                    // Option 1: Course belongs to the admin's department
+                    $q->whereHas('course.semester.acdSession', function($subQ) use ($user) {
+                        $subQ->where('id', $user->level_id);
+                    })
+                    // Option 2: Course was directly created by this admin (backup)
+                    ->orWhereHas('course', function($subQ) use ($user) {
+                        $subQ->where('created_by', $user->id);
                     });
-                } else {
-                    // No assignments found, return empty result
-                    return response()->json([]);
-                }
+                });
+            } elseif ($user->role === 'faculty_officer') {
+                // Faculty officers see exams for courses in their faculty's departments
+                $query->where(function($q) use ($user) {
+                    $q->whereHas('course.semester.acdSession', function($subQ) use ($user) {
+                        $subQ->where('faculty_id', $user->faculty_id);
+                    })
+                    ->orWhereHas('level', function($subQ) use ($user) {
+                        $subQ->where('faculty_id', $user->faculty_id);
+                    });
+                });
             }
             // Super admin sees all exams (no filtering)
 
@@ -645,23 +692,29 @@ class Admin extends Controller
         try {
             // DO NOT deactivate other exams - allow multiple active exams
             // This was removed to support concurrent exam sessions
-            $exam = Exam::findOrFail($exam_id);
+            $exam = Exam::with('course.semester')->findOrFail($exam_id);
             $exam_duration = $exam->exam_duration;
 
             $exam->activated = 'yes';
             $exam->activated_date = Carbon::now();
             $exam->invigilator = $request->invigilator;
             
-            // Set level_id if the user is a level admin
+            // Set level_id for consistent filtering
             $user = $request->user();
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $exam->level_id = $user->level_id;
+            } elseif ($user && $user->role === 'faculty_officer' && $exam->course && $exam->course->semester) {
+                // Assign to the department of the course
+                $exam->level_id = $exam->course->semester->acd_session_id;
+            } elseif ($user && $user->role === 'super_admin' && $exam->course && $exam->course->semester) {
+                // Super admin also sets it to course's department
+                $exam->level_id = $exam->course->semester->acd_session_id;
             }
             
             $exam->save();
 
             // Generate tickets (NOT assigned to students yet)
-            $course = Course::find($exam->course_id);
+            $course = $exam->course;
             $ticketsGenerated = 0;
             
             if ($course) {
@@ -676,7 +729,7 @@ class Admin extends Controller
                         continue;
                     }
                     
-                    // Filter by level_id if exam has a level assigned (for level admins)
+                    // Filter by level_id if exam has a level assigned
                     if ($exam->level_id && $student->level_id != $exam->level_id) {
                         continue;
                     }
@@ -755,10 +808,10 @@ class Admin extends Controller
                 $correctAnswers = 0;
                 if ($candidate) {
                     $questionsAnswered = Answers::where('course_id', $exam->course_id)
-                                               ->where('candidate_id', $candidate->id)
+                                               ->where('candidate_id', $student->id)
                                                ->count();
                     $correctAnswers = Answers::where('course_id', $exam->course_id)
-                                            ->where('candidate_id', $candidate->id)
+                                            ->where('candidate_id', $student->id)
                                             ->where('is_correct', true)
                                             ->count();
                 }
@@ -1200,15 +1253,44 @@ class Admin extends Controller
         }
     }
 
-    public function getDashboardStats()
+    public function getDashboardStats(Request $request)
     {
         try {
-            $stats = [
-                'total_students' => Student::count(),
-                'active_courses' => Course::count(),
-                'total_instructors' => User::where('role', 'lecturer')->count(),
-                'academic_sessions' => Acd_session::count(),
-            ];
+            $user = $request->user();
+            
+            if ($user && $user->role === 'faculty_officer') {
+                $facultyId = $user->faculty_id;
+                
+                $total_students = Student::whereHas('level', function($q) use ($facultyId) {
+                    $q->where('faculty_id', $facultyId);
+                })->count();
+                
+                $active_courses = Course::whereHas('semester.acdSession', function($q) use ($facultyId) {
+                    $q->where('faculty_id', $facultyId);
+                })->count();
+                
+                $total_instructors = User::where('role', 'lecturer')
+                    ->whereHas('level', function($q) use ($facultyId) {
+                        $q->where('faculty_id', $facultyId);
+                    })->count();
+                    
+                $academic_sessions = Acd_session::where('faculty_id', $facultyId)->count();
+                
+                $stats = [
+                    'total_students' => $total_students,
+                    'active_courses' => $active_courses,
+                    'total_instructors' => $total_instructors,
+                    'academic_sessions' => $academic_sessions,
+                ];
+            } else {
+                // Default stats for super admin / generic
+                $stats = [
+                    'total_students' => Student::count(),
+                    'active_courses' => Course::count(),
+                    'total_instructors' => User::where('role', 'lecturer')->count(),
+                    'academic_sessions' => Acd_session::count(),
+                ];
+            }
 
             return response()->json($stats);
         } catch (Exception $e) {
@@ -1225,6 +1307,11 @@ class Admin extends Controller
             // If user is level_admin, filter invigilators by their level_id
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $query->where('level_id', $user->level_id);
+            } elseif ($user && $user->role === 'faculty_officer') {
+                // Faculty officers see invigilators in all departments of their faculty
+                $query->whereHas('level', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
             }
             // Super admins see all invigilators (no additional filtering)
             
@@ -1284,9 +1371,19 @@ class Admin extends Controller
             $user = $request->user();
             $query = Exam::query();
 
-            // Filter by level if level admin
+            // Filter based on user role and hierarchy
             if ($user && $user->role === 'level_admin' && $user->level_id) {
-                $query->where('level_id', $user->level_id);
+                // Department Officer sees exams in their department
+                $query->where(function($q) use ($user) {
+                    $q->whereHas('course.semester.acdSession', function($subQ) use ($user) {
+                        $subQ->where('id', $user->level_id);
+                    })->orWhere('level_id', $user->level_id);
+                });
+            } elseif ($user && $user->role === 'faculty_officer') {
+                // Faculty Officer sees exams in their faculty
+                $query->whereHas('course.semester.acdSession', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
             }
 
             // Try to find active exam first
@@ -1330,9 +1427,13 @@ class Admin extends Controller
             // Build the query
             $query = ExamArchive::query();
             
-            // If there's a level filter (level admin), filter archives by exam level_id
-            if ($levelFilter !== null) {
-                // Join with exams table to filter by level_id
+            // If faculty_officer, filter by faculty
+            if ($user->role === 'faculty_officer') {
+                $query->whereHas('exam.course.semester.acdSession', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
+            } elseif ($levelFilter !== null) {
+                // If there's a level filter (level admin), filter archives by exam level_id
                 $query->whereHas('exam', function($q) use ($levelFilter) {
                     $q->where('level_id', $levelFilter);
                 });
@@ -1473,6 +1574,11 @@ class Admin extends Controller
                 
                 // Filter candidates by those exams
                 $query->whereIn('exam_id', $examIds);
+            } elseif ($user->role === 'faculty_officer') {
+                // Faculty officers see submissions for their faculty's departments
+                $query->whereHas('exam.course.semester.acdSession', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
             }
             // Super admin sees all submissions (no filtering)
 
@@ -1582,36 +1688,59 @@ class Admin extends Controller
     }
 
     /**
-     * Create a level admin user
+     * Create a level admin user (Department Officer)
      */
     public function createLevelAdmin(Request $request)
     {
         try {
+            $user = $request->user();
+            
+            // Authorized if super_admin OR faculty_officer
+            if (!$user || !in_array($user->role, ['super_admin', 'faculty_officer'])) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
             $validate = $request->validate([
                 'full_name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
                 'level_id' => 'required|exists:acd_sessions,id'
             ]);
 
-            $user = new User();
-            $user->full_name = $validate['full_name'];
-            $user->email = $validate['email'];
-            $user->password = bcrypt('password'); // Default password
-            $user->role = 'level_admin';
-            $user->status = 'active';
-            $user->level_id = $validate['level_id'];
-            $user->save();
+            // If faculty_officer, verify the level (department) belongs to their faculty
+            if ($user->role === 'faculty_officer') {
+                $department = Acd_session::where('id', $validate['level_id'])
+                    ->where('faculty_id', $user->faculty_id)
+                    ->first();
+                
+                if (!$department) {
+                    return response()->json(['error' => 'Department not found in your faculty'], 403);
+                }
+            }
 
-            $userData = $user->toArray();
+            $newOfficer = new User();
+            $newOfficer->full_name = $validate['full_name'];
+            $newOfficer->email = $validate['email'];
+            $newOfficer->password = bcrypt('password'); // Default password
+            $newOfficer->role = 'level_admin';
+            $newOfficer->status = 'active';
+            $newOfficer->level_id = $validate['level_id'];
+            
+            // Also link the department officer to the faculty for easier querying
+            $dept = Acd_session::find($validate['level_id']);
+            $newOfficer->faculty_id = $dept->faculty_id;
+            
+            $newOfficer->save();
+
+            $userData = $newOfficer->toArray();
             unset($userData['password']);
 
             return response()->json([
-                'message' => 'Level admin created successfully',
+                'message' => 'Department officer created successfully',
                 'user' => $userData
             ], 201);
         } catch (Exception $e) {
             return response()->json([
-                'error' => 'Failed to create level admin',
+                'error' => 'Failed to create department officer',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -1728,37 +1857,35 @@ class Admin extends Controller
             $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
 
-            \Log::info('getStudentsByLevel called', [
-                'user_id' => $user ? $user->id : null,
-                'user_role' => $user ? $user->role : null,
-                'user_level_id' => $user ? $user->level_id : null,
-                'level_filter' => $levelFilter
-            ]);
-
             $studentsQuery = Student::query();
 
-            if ($levelFilter !== null) {
+            if ($user->role === 'faculty_officer') {
+                $studentsQuery->whereHas('level', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
+            } elseif ($levelFilter !== null) {
                 $studentsQuery->where('level_id', $levelFilter);
             }
 
             $students = $studentsQuery->orderBy('created_at', 'desc')->get();
 
             // Get the active exam to fetch ticket numbers
-            // Filter exams based on user level to get the relevant one
             $examQuery = Exam::query();
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $examQuery->where('level_id', $user->level_id);
+            } elseif ($user && $user->role === 'faculty_officer') {
+                $examQuery->whereHas('level', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
             }
 
             // Try to find active exam first
             $activeExam = (clone $examQuery)->where('activated', 'yes')->latest()->first();
 
-            // If no active exam, find the latest exam (terminated or pending) to show recent status
             if (!$activeExam) {
                 $activeExam = $examQuery->latest()->first();
             }
 
-            // Add ticket information to each student
             if ($activeExam) {
                 foreach ($students as $student) {
                     $candidate = Candidate::where('student_id', $student->id)
@@ -1769,18 +1896,12 @@ class Admin extends Controller
                     $student->time_extension = $candidate ? $candidate->time_extension : 0;
                 }
             } else {
-                // If no active exam, set ticket_no to null for all students
                 foreach ($students as $student) {
                     $student->ticket_no = null;
                     $student->candidate_id = null;
                     $student->time_extension = 0;
                 }
             }
-
-            \Log::info('Students returned', [
-                'count' => $students->count(),
-                'students' => $students->pluck('id', 'full_name')->toArray()
-            ]);
 
             return response()->json($students);
         } catch (Exception $e) {
@@ -1797,11 +1918,21 @@ class Admin extends Controller
     public function getExamsByLevel(Request $request)
     {
         try {
+            $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
 
             $examsQuery = Exam::with('user', 'level');
 
-            if ($levelFilter !== null) {
+            if ($user->role === 'faculty_officer') {
+                $examsQuery->where(function($q) use ($user) {
+                    $q->whereHas('course.semester.acdSession', function($subQ) use ($user) {
+                        $subQ->where('faculty_id', $user->faculty_id);
+                    })
+                    ->orWhereHas('level', function($subQ) use ($user) {
+                        $subQ->where('faculty_id', $user->faculty_id);
+                    });
+                });
+            } elseif ($levelFilter !== null) {
                 $examsQuery->where('level_id', $levelFilter);
             }
 
@@ -1892,8 +2023,17 @@ class Admin extends Controller
     public function getAdmins(Request $request)
     {
         try {
-            $query = User::whereIn('role', ['super_admin', 'level_admin', 'admin'])
+            $user = $request->user();
+            $query = User::whereIn('role', ['super_admin', 'level_admin', 'admin', 'faculty_officer'])
                          ->with('level');
+
+            // Apply role-based filtering
+            if ($user->role === 'faculty_officer') {
+                $query->where('faculty_id', $user->faculty_id)
+                      ->where('role', 'level_admin'); // Faculty Officers manage Dept Officers
+            } elseif ($user->role === 'level_admin') {
+                $query->where('level_id', $user->level_id);
+            }
 
             // Search functionality
             if ($request->has('search') && !empty($request->search)) {
@@ -1923,11 +2063,16 @@ class Admin extends Controller
     public function getUsersByLevel(Request $request)
     {
         try {
+            $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
 
             $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator']);
 
-            if ($levelFilter !== null) {
+            if ($user->role === 'faculty_officer') {
+                $usersQuery->whereHas('level', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
+            } elseif ($levelFilter !== null) {
                 $usersQuery->where('level_id', $levelFilter);
             }
 

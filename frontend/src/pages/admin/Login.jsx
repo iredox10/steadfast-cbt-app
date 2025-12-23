@@ -35,9 +35,7 @@ const AdminLogin = () => {
             // Role-based navigation
             if (user.role === "admin") {
                 navigate(`/dashboard/${user.id}`);
-            } else if (user.role === "super_admin") {
-                navigate(`/admin-dashboard/${user.id}`);
-            } else if (user.role === "level_admin") {
+            } else if (user.role === "super_admin" || user.role === "level_admin" || user.role === "faculty_officer") {
                 navigate(`/admin-dashboard/${user.id}`);
             } else if (user.role === "lecturer") {
                 navigate(`/instructor/${user.id}`);

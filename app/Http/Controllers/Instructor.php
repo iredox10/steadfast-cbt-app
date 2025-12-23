@@ -35,6 +35,11 @@ class Instructor extends Controller
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 // Level admins can only see instructors in their level
                 $usersQuery->where('level_id', $user->level_id);
+            } elseif ($user && $user->role === 'faculty_officer') {
+                // Faculty officers see instructors in all departments of their faculty
+                $usersQuery->whereHas('level', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
             } elseif ($request->has('level_id') && $request->level_id) {
                 // Super admins can filter by specific level
                 $usersQuery->where('level_id', $request->level_id);

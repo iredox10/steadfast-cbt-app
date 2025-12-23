@@ -17,6 +17,7 @@ const SuperAdminDashboard = () => {
     const { userId } = useParams();
     const [currentUser, setCurrentUser] = useState(null);
     const [stats, setStats] = useState({
+        totalFaculties: 0,
         totalStudents: 0,
         totalInstructors: 0,
         totalExams: 0,
@@ -74,21 +75,14 @@ const SuperAdminDashboard = () => {
 
             // Fetch overall statistics with individual error handling
             try {
-                const studentsRes = await axios.get(`${path}/students-by-level`, { headers });
-                console.log('Students response:', studentsRes.data);
-
-                const usersRes = await axios.get(`${path}/users-by-level`, { headers });
-                console.log('Users response:', usersRes.data);
-
-                const examsRes = await axios.get(`${path}/exams-by-level`, { headers });
-                console.log('Exams response:', examsRes.data);
-
-                const sessionsRes = await axios.get(`${path}/get-acd-sessions`);
-                console.log('Sessions response:', sessionsRes.data);
-
-                // Fetch departments
-                const departmentsRes = await axios.get(`${path}/departments`, { headers });
-                console.log('Departments response:', departmentsRes.data);
+                const [studentsRes, usersRes, examsRes, sessionsRes, departmentsRes, facultiesRes] = await Promise.all([
+                    axios.get(`${path}/students-by-level`, { headers }),
+                    axios.get(`${path}/users-by-level`, { headers }),
+                    axios.get(`${path}/exams-by-level`, { headers }),
+                    axios.get(`${path}/get-acd-sessions`, { headers }),
+                    axios.get(`${path}/departments`, { headers }),
+                    axios.get(`${path}/faculties`, { headers })
+                ]);
 
                 // Ensure we have arrays before calling .length or .filter
                 const studentsData = Array.isArray(studentsRes.data) ? studentsRes.data : [];
@@ -96,14 +90,16 @@ const SuperAdminDashboard = () => {
                 const examsData = Array.isArray(examsRes.data) ? examsRes.data : [];
                 const sessionsData = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
                 const departmentsData = Array.isArray(departmentsRes.data) ? departmentsRes.data : [];
+                const facultiesData = Array.isArray(facultiesRes.data) ? facultiesRes.data : [];
 
                 setStats({
+                    totalFaculties: facultiesData.length,
                     totalStudents: studentsData.length,
                     totalInstructors: usersData.filter(u => u.role === 'lecturer').length,
                     totalExams: examsData.length,
                     totalLevels: sessionsData.length,
                     totalDepartments: departmentsData.length,
-                    activeExams: examsData.filter(e => e.status === 'active').length,
+                    activeExams: examsData.filter(e => e.status === 'active' || e.activated === 'yes').length,
                     recentActivities: []
                 });
             } catch (apiError) {
@@ -246,10 +242,17 @@ const SuperAdminDashboard = () => {
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900 flex items-center">
                             {currentUser?.role === 'super_admin' && <FaCrown className="mr-3 text-yellow-500" />}
+                            {currentUser?.role === 'faculty_officer' && <FaBuilding className="mr-3 text-blue-500" />}
                             {currentUser?.role === 'level_admin' && <FaUserShield className="mr-3 text-blue-500" />}
-                            {currentUser?.role === 'super_admin' ? 'Super Admin Dashboard' : 'Level Admin Dashboard'}
+                            
+                            {currentUser?.role === 'super_admin' ? 'Super Admin Dashboard' : 
+                             currentUser?.role === 'faculty_officer' ? 'Faculty Officer Dashboard' : 
+                             'Department Officer Dashboard'}
                         </h2>
                         <p className="text-gray-500 mt-2">Welcome back, {currentUser?.full_name}</p>
+                        {currentUser?.role === 'faculty_officer' && currentUser?.faculty && (
+                            <p className="text-blue-600 text-sm font-bold">Faculty: {currentUser.faculty.name}</p>
+                        )}
                         {currentUser?.role === 'level_admin' && currentUser?.level?.title && (
                             <p className="text-blue-600 text-sm">Managing: {currentUser.level.title}</p>
                         )}
@@ -286,6 +289,24 @@ const SuperAdminDashboard = () => {
 
                     {/* Enhanced Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                        {currentUser?.role === 'super_admin' && (
+                            <StatCard
+                                icon={<FaBuilding />}
+                                title="Total Faculties"
+                                value={stats?.totalFaculties || 0}
+                                color="indigo"
+                                onClick={() => window.location.href = '/faculty-management'}
+                            />
+                        )}
+                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                            <StatCard
+                                icon={<FaBuilding />}
+                                title="Departments"
+                                value={stats?.totalDepartments || 0}
+                                color="orange"
+                                onClick={() => window.location.href = '/department-management'}
+                            />
+                        )}
                         <StatCard
                             icon={<FaUsers />}
                             title="Total Students"
@@ -313,49 +334,53 @@ const SuperAdminDashboard = () => {
                             trendUp={activeExams.length > 0}
                             onClick={() => window.location.href = `/admin-exam/${userId}`}
                         />
-                        {currentUser?.role === 'super_admin' && (
-                            <>
-                                <StatCard
-                                    icon={<FaBuilding />}
-                                    title="Departments"
-                                    value={stats?.totalDepartments || 0}
-                                    color="orange"
-                                    onClick={() => window.location.href = '/department-management'}
-                                />
-                                <StatCard
-                                    icon={<FaGraduationCap />}
-                                    title="Academic Levels"
-                                    value={stats?.totalLevels || 0}
-                                    color="yellow"
-                                    onClick={() => window.location.href = '/admin-sessions'}
-                                />
-                            </>
-                        )}
-                        {currentUser?.role === 'level_admin' && (
-                            <>
-                                <StatCard
-                                    icon={<FaPlay />}
-                                    title="Active Exams"
-                                    value={activeExams.length || 0}
-                                    color="red"
-                                    trend="Live"
-                                    trendUp={true}
-                                />
-                                <StatCard
-                                    icon={<FaTicketAlt />}
-                                    title="Exam Tickets"
-                                    value={stats?.activeExams > 0 ? stats.activeExams : 0}
-                                    color="indigo"
-                                    onClick={() => window.location.href = `/admin-tickets/${userId}`}
-                                />
-                            </>
-                        )}
                     </div>
 
                     {/* Quick Actions */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {currentUser?.role === 'super_admin' && (
+                                <Link 
+                                    to="/faculty-management"
+                                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    <FaBuilding className="mr-3 text-indigo-500" />
+                                    <div>
+                                        <div className="font-medium">Manage Faculties</div>
+                                        <div className="text-sm text-gray-600">Create and manage university faculties</div>
+                                    </div>
+                                </Link>
+                            )}
+
+                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                                <Link 
+                                    to="/department-management"
+                                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    <FaBuilding className="mr-3 text-orange-500" />
+                                    <div>
+                                        <div className="font-medium">Manage Departments</div>
+                                        <div className="text-sm text-gray-600">Create and manage departments</div>
+                                    </div>
+                                </Link>
+                            )}
+
+                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                                <Link 
+                                    to="/admin-management"
+                                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    <FaUserShield className="mr-3 text-red-500" />
+                                    <div>
+                                        <div className="font-medium">
+                                            {currentUser?.role === 'faculty_officer' ? 'Dept Officers' : 'Admin Management'}
+                                        </div>
+                                        <div className="text-sm text-gray-600">Manage administrators and officers</div>
+                                    </div>
+                                </Link>
+                            )}
+
                             <Link 
                                 to={`/admin-students/${userId}`}
                                 className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

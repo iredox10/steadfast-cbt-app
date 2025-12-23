@@ -43,6 +43,7 @@ import ExamResultsDetail from "./pages/instructor/ExamResultsDetail";
 import StudentResult from "./pages/StudentResult";
 import NotFound from "./pages/NotFound";
 import UserManual from "./pages/UserManual";
+import FacultyManagement from "./pages/admin/FacultyManagement";
 
 function App() {
     return (
@@ -134,6 +135,7 @@ function App() {
                     <Route path="/admin-management" element={<AdminManagement />} />
                     <Route path="/admin-dashboard/:userId" element={<SuperAdminDashboard />} />
                     <Route path="/department-management" element={<DepartmentManagement />} />
+                    <Route path="/faculty-management" element={<FacultyManagement />} />
                     <Route path="/global-session-management" element={<GlobalSessionManagement />} />
                     <Route path="/level-admin-courses" element={<LevelAdminCourseManagement />} />
                     <Route path="/student-enrollment/:courseId" element={<StudentEnrollment />} />

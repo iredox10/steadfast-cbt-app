@@ -24,10 +24,15 @@ class User extends Authenticatable
         'role',
         'status',
         'level_id',
+        'faculty_id',
     ];
 
     public function level(){
         return $this->belongsTo(Acd_session::class, 'level_id');
+    }
+
+    public function faculty(){
+        return $this->belongsTo(Faculty::class);
     }
 
     public function courses(){

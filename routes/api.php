@@ -132,6 +132,45 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
 
+// Debug route for exam visibility
+Route::get('/debug-exam-visibility', function (Request $request) {
+    $user = $request->user();
+    
+    $allExams = \App\Models\Exam::with(['course.semester.acdSession', 'user'])->get();
+    
+    $mappedExams = $allExams->map(function ($exam) {
+        return [
+            'id' => $exam->id,
+            'title' => $exam->title ?? 'N/A',
+            'status' => $exam->status,
+            'submission_status' => $exam->submission_status,
+            'activated' => $exam->activated,
+            'finished_time' => $exam->finished_time,
+            'course' => $exam->course ? $exam->course->title : 'No Course',
+            'course_id' => $exam->course_id,
+            'department' => $exam->course && $exam->course->semester && $exam->course->semester->acdSession 
+                ? $exam->course->semester->acdSession->title 
+                : 'N/A',
+            'department_id' => $exam->course && $exam->course->semester 
+                ? $exam->course->semester->acd_session_id 
+                : 'N/A',
+            'faculty_id' => $exam->course && $exam->course->semester && $exam->course->semester->acdSession 
+                ? $exam->course->semester->acdSession->faculty_id 
+                : 'NULL',
+        ];
+    });
+
+    return response()->json([
+        'user' => [
+            'id' => $user->id,
+            'role' => $user->role,
+            'faculty_id' => $user->faculty_id,
+            'level_id' => $user->level_id
+        ],
+        'all_exams' => $mappedExams
+    ]);
+})->middleware('auth:sanctum');
+
 Route::get('/get-exams', [Admin::class,'get_exams'])->middleware(['auth:sanctum']);
 
 Route::get('/exam-tickets/{exam_id}', [Admin::class,'get_exam_tickets'])->middleware(['auth:sanctum']);
@@ -230,6 +269,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get-semesters/{session_id}', [Admin::class, 'getSessionSemesters']);
     Route::post('/import-courses', [Admin::class, 'importCourses']);
     Route::get('/download-sample-course-import', [Admin::class, 'downloadSampleCourseImport']);
+    
+    // Faculty management
+    Route::apiResource('faculties', \App\Http\Controllers\FacultyController::class);
+    Route::get('faculties/{id}/officers', [\App\Http\Controllers\FacultyController::class, 'getFacultyOfficers']);
+    
+    Route::post('/create-faculty-officer', [Admin::class, 'createFacultyOfficer']);
     
     // System Settings (Super Admin)
     Route::get('/system-settings', [Admin::class, 'get_system_settings']);
