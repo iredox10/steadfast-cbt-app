@@ -61,8 +61,19 @@ const Tickets = () => {
         setShowTicketsModal(true);
     };
 
-    const getCourseName = (courseId) => {
-        const course = courses.find(c => c.id === parseInt(courseId));
+    const getCourseName = (exam) => {
+        if (!exam) return 'Unknown Course';
+        
+        // If course is already loaded in the exam object
+        if (exam.course) {
+            const code = exam.course.code || '';
+            const title = exam.course.title || '';
+            if (code && title) return `${code} - ${title}`;
+            if (title) return title;
+            if (code) return code;
+        }
+
+        const course = courses.find(c => c.id === parseInt(exam.course_id));
         if (!course) return 'Unknown Course';
         
         // Course model fields are: code, title, credit_unit
@@ -80,7 +91,7 @@ const Tickets = () => {
     };
 
     const filteredExams = exams.filter(exam => {
-        const courseName = getCourseName(exam.course_id).toLowerCase();
+        const courseName = getCourseName(exam).toLowerCase();
         const examTitle = (exam.title || '').toLowerCase();
         const search = searchTerm.toLowerCase();
         return courseName.includes(search) || 
@@ -164,7 +175,7 @@ const Tickets = () => {
                                         <div className="flex items-center gap-2">
                                             <FaBook className="text-xl" />
                                             <span className="font-semibold truncate">
-                                                {exam.title || getCourseName(exam.course_id) || `Exam #${exam.id}`}
+                                                {exam.title || getCourseName(exam) || `Exam #${exam.id}`}
                                             </span>
                                         </div>
                                         <span className="px-3 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium whitespace-nowrap ml-2">
@@ -177,7 +188,7 @@ const Tickets = () => {
                                 <div className="p-4">
                                     {/* Course Name */}
                                     <p className="font-bold text-gray-900 mb-4 line-clamp-2 text-base">
-                                        {getCourseName(exam.course_id)}
+                                        {getCourseName(exam)}
                                     </p>
                                     
                                     <div className="space-y-2 mb-4">
@@ -242,7 +253,7 @@ const Tickets = () => {
             {showTicketsModal && selectedExamForTickets && (
                 <ViewTicketsModal
                     examId={selectedExamForTickets.id}
-                    courseName={getCourseName(selectedExamForTickets.course_id)}
+                    courseName={getCourseName(selectedExamForTickets)}
                     onClose={() => {
                         setShowTicketsModal(false);
                         setSelectedExamForTickets(null);

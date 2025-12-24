@@ -34,8 +34,8 @@ const AcdSession = () => {
             });
             setCurrentUser(userRes.data);
 
-            // If level admin, only fetch the global active session
-            if (userRes.data.role === 'level_admin') {
+            // If level admin or faculty officer, only fetch the global active session
+            if (['level_admin', 'faculty_officer'].includes(userRes.data.role)) {
                 try {
                     const activeSessionRes = await axios.get(`${path}/get-global-session`, {
                         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -181,8 +181,8 @@ const AcdSession = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Level Admin View - Only Active Session */}
-                        {currentUser?.role === 'level_admin' && (
+                        {/* Level Admin and Faculty Officer View - Only Active Session */}
+                        {['level_admin', 'faculty_officer'].includes(currentUser?.role) && (
                             <div className="max-w-2xl">
                                 {activeSession ? (
                                     <div className="bg-green-50 border border-green-200 rounded-xl p-6">

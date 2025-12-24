@@ -32,7 +32,8 @@ class AdminsImport implements ToCollection
                 'full_name' => $row[0],
                 'email' => $row[1],
                 'role' => $row[2],
-                'level_id' => isset($row[3]) ? $row[3] : null,
+                'level_id' => isset($row[3]) && $row[3] !== '' ? $row[3] : null,
+                'faculty_id' => isset($row[4]) && $row[4] !== '' ? $row[4] : null,
                 'password' => Hash::make('password'), // Default password
                 'status' => 'active',
             ]);

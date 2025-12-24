@@ -52,8 +52,8 @@ class DepartmentController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'head_of_department' => 'required|string|max:255',
-                'contact_email' => 'required|email|max:255',
-                'contact_phone' => 'required|string|max:20',
+                'contact_email' => 'nullable|email|max:255',
+                'contact_phone' => 'nullable|string|max:20',
                 'faculty_id' => 'nullable|exists:faculties,id'
             ]);
 
@@ -98,7 +98,7 @@ class DepartmentController extends Controller
             $request->validate([
                 'title' => 'required|string|max:255|unique:acd_sessions,title,' . $id,
                 'description' => 'nullable|string',
-                'head_of_department' => 'nullable|string|max:255',
+                'head_of_department' => 'required|string|max:255',
                 'contact_email' => 'nullable|email|max:255',
                 'contact_phone' => 'nullable|string|max:20'
             ]);

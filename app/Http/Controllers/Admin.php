@@ -16,8 +16,10 @@ use App\Models\User;
 use App\Models\SystemConfig;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Collections\ExcelCollection;
 // use Maatwebsite\Excel\Excel;
@@ -272,11 +274,13 @@ class Admin extends Controller
         try {
             $acd_session = Acd_session::create($validate);
             return response()->json($acd_session, 201);
-        } catch (Exception $e) {
-            if ($e->errorInfo[0] == 23505) {
+        } catch (QueryException $e) {
+            if (isset($e->errorInfo[0]) && $e->errorInfo[0] == 23505) {
                 return response()->json('session already exist', 404);
             }
-            return response()->json($e->getMessage());
+            return response()->json($e->getMessage(), 500);
+        } catch (Exception $e) {
+            return response()->json($e->getMessage(), 500);
         }
     }
 
@@ -581,10 +585,10 @@ class Admin extends Controller
         }
     }
 
-    public function get_exams()
+    public function get_exams(Request $request)
     {
         try {
-            $user = auth()->user();
+            $user = $request->user();
             
             if (!$user) {
                 return response()->json(['error' => 'Unauthorized'], 401);
@@ -604,24 +608,39 @@ class Admin extends Controller
                         $subQ->where('created_by', $user->id);
                     });
                 });
-            } elseif ($user->role === 'faculty_officer') {
-                // Faculty officers see exams for courses in their faculty's departments
-                $query->where(function($q) use ($user) {
-                    $q->whereHas('course.semester.acdSession', function($subQ) use ($user) {
-                        $subQ->where('faculty_id', $user->faculty_id);
+            } elseif ($user->role === "faculty_officer") {
+                $faculty_id = $user->faculty_id;
+                $query->where(function($q) use ($faculty_id) {
+                    // 1. Exam belongs to a department in this faculty
+                    $q->whereIn("level_id", function($sub) use ($faculty_id) {
+                        $sub->select("id")->from("acd_sessions")->where("faculty_id", $faculty_id);
                     })
-                    ->orWhereHas('level', function($subQ) use ($user) {
-                        $subQ->where('faculty_id', $user->faculty_id);
+                    // 2. OR Exam was created by someone in this faculty
+                    ->orWhereIn("user_id", function($sub) use ($faculty_id) {
+                        $sub->select("id")->from("users")
+                            ->where("faculty_id", $faculty_id)
+                            ->orWhereIn("level_id", function($sub2) use ($faculty_id) {
+                                $sub2->select("id")->from("acd_sessions")->where("faculty_id", $faculty_id);
+                            });
+                    })
+                    // 3. OR the associated course belongs to this faculty
+                    ->orWhereHas("course", function($cq) use ($faculty_id) {
+                        $cq->whereIn("created_by", function($sub) use ($faculty_id) {
+                            $sub->select("id")->from("users")
+                                ->where("faculty_id", $faculty_id)
+                                ->orWhereIn("level_id", function($sub2) use ($faculty_id) {
+                                    $sub2->select("id")->from("acd_sessions")->where("faculty_id", $faculty_id);
+                                });
+                        });
                     });
                 });
             }
-            // Super admin sees all exams (no filtering)
 
-            $exams = $query->get();
+            $exams = $query->with("course")->get();
             
             return response()->json($exams);
         } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(["error" => $e->getMessage()], 500);
         }
     }
 
@@ -645,15 +664,16 @@ class Admin extends Controller
                         'is_used' => $ticket->is_used,
                         'status' => $ticket->is_used ? 'Used' : 'Available',
                         'assigned_to_student_id' => $ticket->assigned_to_student_id,
-                        'assigned_at' => $ticket->assigned_at ? $ticket->assigned_at->format('M d, Y g:i A') : null,
-                        'student' => $ticket->student ? [
-                            'id' => $ticket->student->id,
-                            'candidate_no' => $ticket->student->candidate_no,
-                            'full_name' => $ticket->student->full_name,
-                            'department' => $ticket->student->department,
-                            'programme' => $ticket->student->programme,
+                        "assigned_at" => $ticket->assigned_at ? $ticket->assigned_at->toIso8601String() : null,
+                        "student" => $ticket->student ? [
+                            "id" => $ticket->student->id,
+                            "candidate_no" => $ticket->student->candidate_no,
+                            "full_name" => $ticket->student->full_name,
+                            "department" => $ticket->student->department,
+                            "programme" => $ticket->student->programme,
                         ] : null,
-                        'created_at' => $ticket->created_at,
+                        "created_at" => $ticket->created_at ? $ticket->created_at->toIso8601String() : null,
+                        "updated_at" => $ticket->updated_at ? $ticket->updated_at->toIso8601String() : null,
                     ];
                 });
 
@@ -678,8 +698,8 @@ class Admin extends Controller
                 'tickets' => $tickets,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching exam tickets: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error fetching exam tickets: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'error' => 'Failed to load tickets: ' . $e->getMessage(),
                 'exam_id' => $exam_id
@@ -703,12 +723,18 @@ class Admin extends Controller
             $user = $request->user();
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $exam->level_id = $user->level_id;
-            } elseif ($user && $user->role === 'faculty_officer' && $exam->course && $exam->course->semester) {
-                // Assign to the department of the course
-                $exam->level_id = $exam->course->semester->acd_session_id;
-            } elseif ($user && $user->role === 'super_admin' && $exam->course && $exam->course->semester) {
-                // Super admin also sets it to course's department
-                $exam->level_id = $exam->course->semester->acd_session_id;
+            } elseif ($user && in_array($user->role, ["faculty_officer", "super_admin"])) {
+                // Assign to the actual department (level) of the exam creator
+                $examCreator = User::find($exam->user_id);
+                if ($examCreator && $examCreator->level_id) {
+                    $exam->level_id = $examCreator->level_id;
+                } else if ($exam->course) {
+                    // Fallback to course creator department
+                    $courseCreator = User::find($exam->course->created_by);
+                    if ($courseCreator && $courseCreator->level_id) {
+                        $exam->level_id = $courseCreator->level_id;
+                    }
+                }
             }
             
             $exam->save();
@@ -729,9 +755,18 @@ class Admin extends Controller
                         continue;
                     }
                     
-                    // Filter by level_id if exam has a level assigned
-                    if ($exam->level_id && $student->level_id != $exam->level_id) {
-                        continue;
+                    // Filter by level_id only if both are departments or both are sessions
+                    // If they are different types, we rely on course enrollment
+                    $examLevel = Acd_session::find($exam->level_id);
+                    $studentLevel = Acd_session::find($student->level_id);
+                    
+                    if ($examLevel && $studentLevel) {
+                        $examIsSession = str_contains($examLevel->title, "/");
+                        $studentIsSession = str_contains($studentLevel->title, "/");
+                        
+                        if ($examIsSession === $studentIsSession && $exam->level_id != $student->level_id) {
+                            continue;
+                        }
                     }
                     
                     $eligibleStudentCount++;
@@ -1274,7 +1309,7 @@ class Admin extends Controller
                         $q->where('faculty_id', $facultyId);
                     })->count();
                     
-                $academic_sessions = Acd_session::where('faculty_id', $facultyId)->count();
+                $academic_sessions = Acd_session::where('title', 'LIKE', '%/%')->where('status', 'active')->count();
                 
                 $stats = [
                     'total_students' => $total_students,
@@ -1302,15 +1337,18 @@ class Admin extends Controller
     {
         try {
             $user = $request->user();
-            $query = User::whereIn('role', ['regular', 'invigilator']);
+            $query = User::whereIn('role', ['technician']);
             
             // If user is level_admin, filter invigilators by their level_id
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $query->where('level_id', $user->level_id);
-            } elseif ($user && $user->role === 'faculty_officer') {
+            } elseif ($user && $user->role === "faculty_officer") {
                 // Faculty officers see invigilators in all departments of their faculty
-                $query->whereHas('level', function($q) use ($user) {
-                    $q->where('faculty_id', $user->faculty_id);
+                // OR those directly assigned to the faculty
+                $query->where(function($q) use ($user) {
+                    $q->whereHas("level", function($sq) use ($user) {
+                        $sq->where("faculty_id", $user->faculty_id);
+                    })->orWhere("faculty_id", $user->faculty_id);
                 });
             }
             // Super admins see all invigilators (no additional filtering)
@@ -1429,8 +1467,21 @@ class Admin extends Controller
             
             // If faculty_officer, filter by faculty
             if ($user->role === 'faculty_officer') {
-                $query->whereHas('exam.course.semester.acdSession', function($q) use ($user) {
-                    $q->where('faculty_id', $user->faculty_id);
+                $query->whereHas('exam', function($q) use ($user) {
+                    $q->where(function($sq) use ($user) {
+                        // Check via course -> semester -> session
+                        $sq->whereHas('course.semester.acdSession', function($ssq) use ($user) {
+                            $ssq->where('faculty_id', $user->faculty_id);
+                        })
+                        // Check via direct course -> session
+                        ->orWhereHas('course.acdSession', function($ssq) use ($user) {
+                            $ssq->where('faculty_id', $user->faculty_id);
+                        })
+                        // Check via direct exam -> level (session)
+                        ->orWhereHas('level', function($ssq) use ($user) {
+                            $ssq->where('faculty_id', $user->faculty_id);
+                        });
+                    });
                 });
             } elseif ($levelFilter !== null) {
                 // If there's a level filter (level admin), filter archives by exam level_id
@@ -1548,10 +1599,10 @@ class Admin extends Controller
     /**
      * Get exam submissions filtered by level admin's lecturers
      */
-    public function getExamSubmissions()
+    public function getExamSubmissions(Request $request)
     {
         try {
-            $user = auth()->user();
+            $user = $request->user();
             
             if (!$user) {
                 return response()->json(['error' => 'Unauthorized'], 401);
@@ -1777,10 +1828,11 @@ class Admin extends Controller
             'Content-Disposition' => 'attachment; filename="sample_admins_import.csv"',
         ];
 
-        $columns = ['Full Name', 'Email', 'Role', 'Level ID (Optional)'];
+        $columns = ['Full Name', 'Email', 'Role', 'Level ID (Optional)', 'Faculty ID (Optional)'];
         $sampleData = [
-            ['John Doe', 'john@example.com', 'level_admin', '1'],
-            ['Jane Smith', 'jane@example.com', 'super_admin', ''],
+            ['John Doe', 'john@example.com', 'level_admin', '1', ''],
+            ['Jane Smith', 'jane@example.com', 'super_admin', '', ''],
+            ['Alice Faculty', 'alice@example.com', 'faculty_officer', '', '1'],
         ];
 
         $callback = function () use ($columns, $sampleData) {
@@ -1958,32 +2010,35 @@ class Admin extends Controller
             $validate = $request->validate([
                 'full_name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $adminId,
-                'role' => 'required|in:super_admin,level_admin',
+                'role' => 'required|in:super_admin,level_admin,faculty_officer',
                 'level_id' => 'nullable|exists:acd_sessions,id',
+                'faculty_id' => 'nullable|exists:faculties,id',
                 'status' => 'required|in:active,inactive,suspended'
             ]);
 
             // If role is level_admin, level_id is required
-            if ($validate['role'] === 'level_admin' && !$validate['level_id']) {
+            if ($validate['role'] === 'level_admin' && empty($validate['level_id'])) {
                 return response()->json([
-                    'error' => 'Level ID is required for level admin'
+                    'error' => 'Level ID is required for department officer'
                 ], 400);
             }
 
-            // If role is super_admin, level_id should be null
-            if ($validate['role'] === 'super_admin') {
-                $validate['level_id'] = null;
+            // If role is faculty_officer, faculty_id is required
+            if ($validate['role'] === 'faculty_officer' && empty($validate['faculty_id'])) {
+                return response()->json([
+                    'error' => 'Faculty ID is required for faculty officer'
+                ], 400);
             }
 
             $admin->update($validate);
 
             return response()->json([
-                'message' => 'Admin updated successfully',
-                'admin' => $admin->fresh()
+                'message' => 'Administrator updated successfully',
+                'user' => $admin
             ]);
         } catch (Exception $e) {
             return response()->json([
-                'error' => 'Failed to update admin',
+                'error' => 'Failed to update administrator',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -1992,73 +2047,52 @@ class Admin extends Controller
     /**
      * Delete an admin user
      */
-    public function deleteAdmin(Request $request, $adminId)
+    public function deleteAdmin($adminId)
     {
         try {
             $admin = User::findOrFail($adminId);
-
-            // Don't allow deletion of the current user
-            if ($admin->id === $request->user()->id) {
-                return response()->json([
-                    'error' => 'You cannot delete your own account'
-                ], 400);
-            }
-
             $admin->delete();
 
             return response()->json([
-                'message' => 'Admin deleted successfully'
+                'message' => 'Administrator deleted successfully'
             ]);
         } catch (Exception $e) {
             return response()->json([
-                'error' => 'Failed to delete admin',
+                'error' => 'Failed to delete administrator',
                 'message' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Get all admin users with search and pagination
+     * Get list of all admin users
      */
     public function getAdmins(Request $request)
     {
         try {
             $user = $request->user();
+            
             $query = User::whereIn('role', ['super_admin', 'level_admin', 'admin', 'faculty_officer'])
-                         ->with('level');
+                         ->with(['level', 'faculty']);
 
             // Apply role-based filtering
             if ($user->role === 'faculty_officer') {
-                $query->where('faculty_id', $user->faculty_id)
-                      ->where('role', 'level_admin'); // Faculty Officers manage Dept Officers
-            } elseif ($user->role === 'level_admin') {
-                $query->where('level_id', $user->level_id);
+                // Faculty officers can only see admins from their faculty
+                $query->where('faculty_id', $user->faculty_id);
             }
 
-            // Search functionality
-            if ($request->has('search') && !empty($request->search)) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('full_name', 'LIKE', "%{$search}%")
-                      ->orWhere('email', 'LIKE', "%{$search}%");
-                });
-            }
-
-            // Pagination
-            $perPage = $request->input('per_page', 10);
-            $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
-
+            $admins = $query->orderBy('full_name')->get();
             return response()->json($admins);
         } catch (Exception $e) {
             return response()->json([
-                'error' => 'Failed to get admins',
+                'error' => 'Failed to get administrators',
                 'message' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Get filtered users (instructors/invigilators) based on admin level
+     * Get users by level
      */
     public function getUsersByLevel(Request $request)
     {
@@ -2066,7 +2100,7 @@ class Admin extends Controller
             $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
 
-            $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator']);
+            $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator', 'technician']);
 
             if ($user->role === 'faculty_officer') {
                 $usersQuery->whereHas('level', function($q) use ($user) {
@@ -2087,36 +2121,15 @@ class Admin extends Controller
     }
 
     /**
-     * Set global active session (Super Admin only)
+     * Set global active session
      */
     public function setGlobalActiveSession(Request $request, $sessionId)
     {
         try {
-            // Verify user is super admin
-            $user = $request->user();
-            if (!$user || $user->role !== 'super_admin') {
-                return response()->json(['error' => 'Only super admins can set global session'], 403);
-            }
-
-            // Validate session exists
-            $session = Acd_session::findOrFail($sessionId);
-
-            // Set as global active session
             SystemConfig::setGlobalActiveSession($sessionId);
-
-            // Optionally deactivate other sessions if needed
-            Acd_session::where('id', '!=', $sessionId)->update(['status' => 'inactive']);
-            $session->update(['status' => 'active']);
-
-            return response()->json([
-                'message' => 'Global active session set successfully',
-                'session' => $session
-            ]);
+            return response()->json(['message' => 'Global active session set successfully']);
         } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to set global active session',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -2126,254 +2139,203 @@ class Admin extends Controller
     public function getGlobalActiveSession()
     {
         try {
+            Log::info("getGlobalActiveSession called", ["session" => SystemConfig::getGlobalActiveSession()]);
             $session = SystemConfig::getGlobalActiveSession();
-
             if (!$session) {
-                return response()->json(['message' => 'No global active session set'], 404);
+                return response()->json(["error" => "No active session found"], 404);
             }
-
             return response()->json($session);
         } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to get global active session',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(["error" => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Add course to active session (Level Admin only)
-     */
-    public function addCourseToActiveSession(Request $request)
-    {
-        try {
-            $user = $request->user();
-
-            // Verify user is level admin or super admin
-            if (!$user || !in_array($user->role, ['level_admin', 'super_admin'])) {
-                return response()->json(['error' => 'Only level admins can add courses'], 403);
-            }
-
-            // Get global active session
-            $activeSession = SystemConfig::getGlobalActiveSession();
-            if (!$activeSession) {
-                return response()->json(['error' => 'No active session set. Please contact super admin.'], 400);
-            }
-
-            // Validate input
-            $request->validate([
-                'code' => 'required|string|max:255',
-                'title' => 'required|string|max:255',
-                'credit_unit' => 'required|integer|min:1|max:10',
-                'semester_id' => 'required|exists:semesters,id'
-            ]);
-
-            // Verify semester belongs to active session
-            $semester = Semester::where('id', $request->semester_id)
-                              ->where('acd_session_id', $activeSession->id)
-                              ->first();
-
-            if (!$semester) {
-                return response()->json(['error' => 'Invalid semester for active session'], 400);
-            }
-
-            // Create course
-            $course = Course::create([
-                'semester_id' => $request->semester_id,
-                'acd_session_id' => $activeSession->id, // Add this for direct association
-                'code' => $request->code,
-                'title' => $request->title,
-                'credit_unit' => $request->credit_unit,
-                'created_by' => $user->id
-            ]);
-
-            return response()->json([
-                'message' => 'Course added successfully',
-                'course' => $course->load('semester')
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to add course',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Assign course to lecturer (Level Admin only)
-     */
-    public function assignCourseToLecturer(Request $request)
-    {
-        try {
-            $user = $request->user();
-
-            // Verify user is level admin or super admin
-            if (!$user || !in_array($user->role, ['level_admin', 'super_admin'])) {
-                return response()->json(['error' => 'Only level admins can assign courses'], 403);
-            }
-
-            $request->validate([
-                'course_id' => 'required|exists:courses,id',
-                'lecturer_id' => 'required|exists:users,id'
-            ]);
-
-            // For level admins, verify lecturer is in the same level
-            if ($user->role === 'level_admin') {
-                $lecturer = User::where('id', $request->lecturer_id)
-                               ->where('role', 'lecturer')
-                               ->where('level_id', $user->level_id)
-                               ->first();
-
-                if (!$lecturer) {
-                    return response()->json(['error' => 'Lecturer not found in your level'], 404);
-                }
-            } else {
-                // For super admins, just verify lecturer exists and has correct role
-                $lecturer = User::where('id', $request->lecturer_id)
-                               ->where('role', 'lecturer')
-                               ->first();
-
-                if (!$lecturer) {
-                    return response()->json(['error' => 'Lecturer not found'], 404);
-                }
-            }
-
-            // Verify course belongs to active session
-            $course = Course::with('semester.acdSession')->find($request->course_id);
-            $activeSession = SystemConfig::getGlobalActiveSession();
-
-            if (!$activeSession || $course->semester->acd_session_id !== $activeSession->id) {
-                return response()->json(['error' => 'Course does not belong to active session'], 400);
-            }
-
-            // Check if assignment already exists
-            $existingAssignment = LecturerCourse::where('user_id', $request->lecturer_id)
-                                               ->where('course_id', $request->course_id)
-                                               ->first();
-
-            if ($existingAssignment) {
-                return response()->json(['error' => 'Course already assigned to this lecturer'], 400);
-            }
-
-            // Create assignment
-            $assignment = LecturerCourse::create([
-                'user_id' => $request->lecturer_id,
-                'course_id' => $request->course_id,
-                'title' => $course->title,
-                'code' => $course->code,
-                'credit_unit' => $course->credit_unit,
-                'status' => 'active'
-            ]);
-
-            return response()->json([
-                'message' => 'Course assigned successfully',
-                'assignment' => $assignment->load(['user', 'course'])
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to assign course',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get courses in the global active session
+     * Get courses for the current global active session
      */
     public function getActiveSessionCourses(Request $request)
     {
         try {
-            $activeSession = SystemConfig::getGlobalActiveSession();
-
-            if (!$activeSession) {
-                return response()->json([
-                    'session' => null,
-                    'courses' => []
-                ]);
+            $session = SystemConfig::getGlobalActiveSession();
+            if (!$session) {
+                Log::warning("getActiveSessionCourses: No global active session found in SystemConfig");
+                return response()->json(["error" => "No active global session set"], 404);
             }
 
-            // Get all semesters in this session
-            $semesters = Semester::where('acd_session_id', $activeSession->id)->get();
-            $semesterIds = $semesters->pluck('id');
-
-            // Get all courses in these semesters
-            // Filter by level admin if applicable (only show courses created by them)
             $user = $request->user();
-            $query = Course::whereIn('semester_id', $semesterIds)->with('semester');
-            
-            if ($user && $user->role === 'level_admin') {
-                $query->where('created_by', $user->id);
-            }
-            
-            $courses = $query->get();
+            $query = Course::whereHas("semester", function ($q) use ($session) {
+                $q->where("acd_session_id", $session->id);
+            });
 
-            // Check assignments for each course
-            foreach ($courses as $course) {
-                $assignment = LecturerCourse::where('course_id', $course->id)->first();
-                if ($assignment) {
-                    $lecturer = User::find($assignment->user_id);
-                    $course->assigned_to = $lecturer ? $lecturer->full_name : null;
-                } else {
-                    $course->assigned_to = null;
-                }
+            // Filter for level admin if applicable
+            if ($user->role === "level_admin") {
+                $query->where("created_by", $user->id);
             }
+
+            $courses = $query->with("semester")->get();
+            
+            Log::info("getActiveSessionCourses: Success", ["session_id" => $session->id, "course_count" => $courses->count()]);
 
             return response()->json([
-                'session' => $activeSession,
-                'courses' => $courses
+                "session" => $session,
+                "courses" => $courses
             ]);
         } catch (Exception $e) {
+            Log::error("getActiveSessionCourses error: " . $e->getMessage());
+            return response()->json(["error" => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Log an exam security violation
+     */
+    public function logViolation(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                'exam_id' => 'required|exists:exams,id',
+                'student_id' => 'required|exists:students,id',
+                'violation_type' => 'required|string',
+                'details' => 'nullable|string',
+                'severity' => 'required|in:low,medium,high,critical'
+            ]);
+
+            $violation = \App\Models\ExamViolation::create($validate);
+
+            // Check total violations for this student in this exam
+            $totalViolations = \App\Models\ExamViolation::where('exam_id', $validate['exam_id'])
+                ->where('student_id', $validate['student_id'])
+                ->count();
+
+            $exam = Exam::find($validate['exam_id']);
+            $maxViolations = $exam->max_violations ?? SystemConfig::get('max_violations', 3);
+
+            $autoSubmitted = false;
+            if ($totalViolations >= $maxViolations) {
+                // Potential auto-submit logic here
+                $autoSubmitted = true;
+            }
+
             return response()->json([
-                'error' => 'Failed to get active session courses',
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => 'Violation logged successfully',
+                'total_violations' => $totalViolations,
+                'max_allowed' => $maxViolations,
+                'auto_submitted' => $autoSubmitted
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get violations for an exam
+     */
+    public function getExamViolations($examId)
+    {
+        try {
+            $violations = \App\Models\ExamViolation::where('exam_id', $examId)
+                ->with('student')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            return response()->json($violations);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get violations for a student
+     */
+    public function getStudentViolations($studentId)
+    {
+        try {
+            $violations = \App\Models\ExamViolation::where('student_id', $studentId)
+                ->with('exam.course')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            return response()->json($violations);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update exam security settings
+     */
+    public function updateExamSecuritySettings(Request $request, $examId)
+    {
+        try {
+            $exam = Exam::findOrFail($examId);
+            $validate = $request->validate([
+                'enable_browser_lockdown' => 'boolean',
+                'enable_fullscreen' => 'boolean',
+                'enable_copy_paste_block' => 'boolean',
+                'enable_screenshot_block' => 'boolean',
+                'enable_tab_switch_detection' => 'boolean',
+                'enable_multiple_monitor_check' => 'boolean',
+                'max_violations' => 'integer|min:1|max:10'
+            ]);
+
+            $exam->update($validate);
+            return response()->json(['message' => 'Security settings updated successfully', 'exam' => $exam]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get exam security settings
+     */
+    public function getExamSecuritySettings($examId)
+    {
+        try {
+            $exam = Exam::findOrFail($examId);
+            return response()->json([
+                'enable_browser_lockdown' => (bool)$exam->enable_browser_lockdown,
+                'enable_fullscreen' => (bool)$exam->enable_fullscreen,
+                'enable_copy_paste_block' => (bool)$exam->enable_copy_paste_block,
+                'enable_screenshot_block' => (bool)$exam->enable_screenshot_block,
+                'enable_tab_switch_detection' => (bool)$exam->enable_tab_switch_detection,
+                'enable_multiple_monitor_check' => (bool)$exam->enable_multiple_monitor_check,
+                'max_violations' => (int)($exam->max_violations ?? SystemConfig::get('max_violations', 3))
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
      * Get semesters for a specific session
      */
-    public function getSessionSemesters($sessionId)
+    public function getSessionSemesters(Request $request, $session_id)
     {
         try {
-            $user = request()->user();
-
-            // Debug logging
-            \Log::info('getSessionSemesters called', [
-                'sessionId' => $sessionId,
-                'userId' => $user ? $user->id : 'null',
-                'userRole' => $user ? $user->role : 'null'
+            $user = $request->user();
+            Log::info('getSessionSemesters called', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'session_id' => $session_id
             ]);
 
-            // Check if user is authenticated
-            if (!$user) {
-                return response()->json(['error' => 'User not authenticated'], 401);
-            }
+            $query = Semester::where('acd_session_id', $session_id);
 
-            // Check if user has permission
-            if (!in_array($user->role, ['super_admin', 'level_admin'])) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-
-            $semestersQuery = Semester::where('acd_session_id', $sessionId);
-
-            // If user is level admin, only show their own semesters
+            // Apply role-based filtering
             if ($user->role === 'level_admin') {
-                $semestersQuery->where('created_by', $user->id);
+                $query->where('created_by', $user->id);
             }
 
-            $semesters = $semestersQuery->get();
+            $semesters = $query->orderBy('semester', 'asc')->get();
 
-            // Debug logging
-            \Log::info('getSessionSemesters result', [
-                'semestersCount' => $semesters->count(),
-                'semesters' => $semesters->toArray()
+            Log::info('getSessionSemesters result', [
+                'count' => $semesters->count()
             ]);
 
             return response()->json($semesters);
-
         } catch (Exception $e) {
-            return response()->json(['error' => 'Failed to fetch semesters: ' . $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'Failed to fetch semesters',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -2383,53 +2345,35 @@ class Admin extends Controller
     public function enrollStudents(Request $request)
     {
         try {
-            $validate = $request->validate([
+            $request->validate([
                 'course_id' => 'required|exists:courses,id',
                 'student_ids' => 'required|array',
                 'student_ids.*' => 'exists:students,id'
             ]);
 
-            $enrolled = [];
-            $alreadyEnrolled = [];
-            $errors = [];
+            $courseId = $request->course_id;
+            $studentIds = $request->student_ids;
+            $count = 0;
 
-            foreach ($validate['student_ids'] as $studentId) {
-                // Check if already enrolled
-                $existingEnrollment = StudentCourse::where('student_id', $studentId)
-                    ->where('course_id', $validate['course_id'])
-                    ->first();
+            foreach ($studentIds as $studentId) {
+                $exists = StudentCourse::where('course_id', $courseId)
+                    ->where('student_id', $studentId)
+                    ->exists();
 
-                if ($existingEnrollment) {
-                    $student = Student::find($studentId);
-                    $alreadyEnrolled[] = $student->full_name;
-                } else {
-                    try {
-                        StudentCourse::create([
-                            'student_id' => $studentId,
-                            'course_id' => $validate['course_id'],
-                        ]);
-                        $student = Student::find($studentId);
-                        $enrolled[] = $student->full_name;
-                    } catch (Exception $e) {
-                        $errors[] = "Failed to enroll student ID {$studentId}: " . $e->getMessage();
-                    }
+                if (!$exists) {
+                    StudentCourse::create([
+                        'course_id' => $courseId,
+                        'student_id' => $studentId
+                    ]);
+                    $count++;
                 }
             }
 
             return response()->json([
-                'message' => 'Enrollment process completed',
-                'enrolled' => $enrolled,
-                'enrolled_count' => count($enrolled),
-                'already_enrolled' => $alreadyEnrolled,
-                'already_enrolled_count' => count($alreadyEnrolled),
-                'errors' => $errors
-            ], 200);
-
+                'message' => "Successfully enrolled {$count} students"
+            ]);
         } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to enroll students',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -2439,134 +2383,124 @@ class Admin extends Controller
     public function unenrollStudent(Request $request)
     {
         try {
-            $validate = $request->validate([
+            $request->validate([
                 'course_id' => 'required|exists:courses,id',
                 'student_id' => 'required|exists:students,id'
             ]);
 
-            $enrollment = StudentCourse::where('student_id', $validate['student_id'])
-                ->where('course_id', $validate['course_id'])
-                ->first();
-
-            if (!$enrollment) {
-                return response()->json([
-                    'error' => 'Student is not enrolled in this course'
-                ], 404);
-            }
-
-            $enrollment->delete();
+            StudentCourse::where('course_id', $request->course_id)
+                ->where('student_id', $request->student_id)
+                ->delete();
 
             return response()->json([
-                'message' => 'Student successfully unenrolled from the course'
-            ], 200);
-
+                'message' => 'Student unenrolled successfully'
+            ]);
         } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to unenroll student',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
      * Get students not enrolled in a specific course
      */
-    public function getUnenrolledStudents(Request $request, $courseId)
+    public function getUnenrolledStudents(Request $request, $course_id)
     {
         try {
+            $user = $request->user();
             $levelFilter = $this->getAdminLevelFilter($request);
 
-            // Get all enrolled student IDs for this course
-            $enrolledStudentIds = StudentCourse::where('course_id', $courseId)
-                ->pluck('student_id')
-                ->toArray();
+            // Get IDs of students already enrolled
+            $enrolledIds = StudentCourse::where('course_id', $course_id)
+                ->pluck('student_id');
 
-            // Get students not enrolled in this course
-            $studentsQuery = Student::whereNotIn('id', $enrolledStudentIds);
+            $query = Student::whereNotIn('id', $enrolledIds);
 
-            // Apply level filter if applicable
-            if ($levelFilter !== null) {
-                $studentsQuery->where('level_id', $levelFilter);
+            // Apply hierarchy filtering
+            if ($user->role === 'faculty_officer') {
+                $query->whereHas('level', function($q) use ($user) {
+                    $q->where('faculty_id', $user->faculty_id);
+                });
+            } elseif ($levelFilter !== null) {
+                $query->where('level_id', $levelFilter);
             }
 
-            $students = $studentsQuery->orderBy('full_name', 'asc')->get();
+            $students = $query->orderBy('full_name')->get();
+            return response()->json($students);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 
-            return response()->json($students, 200);
+    /**
+     * Enroll all students of a specific level/department into a course
+     */
+    public function enrollStudentsByLevel(Request $request)
+    {
+        try {
+            $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'level_id' => 'required|exists:acd_sessions,id'
+            ]);
 
+            $courseId = $request->course_id;
+            $levelId = $request->level_id;
+
+            // Get all students in this level
+            $studentIds = Student::where('level_id', $levelId)->pluck('id');
+            $count = 0;
+
+            foreach ($studentIds as $studentId) {
+                $exists = StudentCourse::where('course_id', $courseId)
+                    ->where('student_id', $studentId)
+                    ->exists();
+
+                if (!$exists) {
+                    StudentCourse::create([
+                        'course_id' => $courseId,
+                        'student_id' => $studentId
+                    ]);
+                    $count++;
+                }
+            }
+
+            return response()->json([
+                'message' => "Successfully enrolled {$count} students from the department"
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Import courses from Excel
+     */
+    public function importCourses(Request $request)
+    {
+        try {
+            $request->validate([
+                'file' => 'required|mimes:xlsx,xls,csv',
+                'semester_id' => 'required|exists:semesters,id'
+            ]);
+
+            $semesterId = $request->semester_id;
+            $semester = Semester::find($semesterId);
+            
+            Excel::import(new CoursesImport($semesterId, $semester->acd_session_id), $request->file('file'));
+
+            return response()->json([
+                'message' => 'Courses imported successfully'
+            ]);
         } catch (Exception $e) {
             return response()->json([
-                'error' => 'Failed to get unenrolled students',
+                'error' => 'Failed to import courses',
                 'message' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Enroll all students from a specific level in a course
+     * Download sample import file for courses
      */
-    public function enrollStudentsByLevel(Request $request)
-    {
-        try {
-            $validate = $request->validate([
-                'course_id' => 'required|exists:courses,id',
-                'level_id' => 'required|exists:acd_sessions,id'
-            ]);
-
-            // Get all students from the specified level
-            $students = Student::where('level_id', $validate['level_id'])->get();
-
-            $enrolled = [];
-            $alreadyEnrolled = [];
-
-            foreach ($students as $student) {
-                // Check if already enrolled
-                $existingEnrollment = StudentCourse::where('student_id', $student->id)
-                    ->where('course_id', $validate['course_id'])
-                    ->first();
-
-                if ($existingEnrollment) {
-                    $alreadyEnrolled[] = $student->full_name;
-                } else {
-                    StudentCourse::create([
-                        'student_id' => $student->id,
-                        'course_id' => $validate['course_id'],
-                    ]);
-                    $enrolled[] = $student->full_name;
-                }
-            }
-
-            return response()->json([
-                'message' => "Enrolled all students from the selected level/department",
-                'enrolled' => $enrolled,
-                'enrolled_count' => count($enrolled),
-                'already_enrolled_count' => count($alreadyEnrolled)
-            ], 200);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'error' => 'Failed to enroll students by level',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function importCourses(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv',
-            'session_id' => 'required|exists:acd_sessions,id',
-            'semester_id' => 'nullable|exists:semesters,id'
-        ]);
-
-        try {
-            Excel::import(new CoursesImport($request->session_id, $request->semester_id), $request->file('file'));
-            return response()->json(['message' => 'Courses imported successfully']);
-        } catch (\Exception $e) {
-            Log::error('Course Import Error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to import courses: ' . $e->getMessage()], 500);
-        }
-    }
-
     public function downloadSampleCourseImport()
     {
         $headers = [
@@ -2574,175 +2508,23 @@ class Admin extends Controller
             'Content-Disposition' => 'attachment; filename="sample_courses_import.csv"',
         ];
 
-        $callback = function () {
+        $columns = ['Code', 'Title', 'Credit Unit'];
+        $sampleData = [
+            ['CSC101', 'Introduction to Computing', '3'],
+            ['MTH101', 'General Mathematics I', '3'],
+            ['GST101', 'Use of English', '2'],
+        ];
+
+        $callback = function () use ($columns, $sampleData) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Code', 'Title', 'Credit Unit', 'Semester']);
-            fputcsv($file, ['CSC101', 'Introduction to Computer Science', '3', 'First Semester']);
-            fputcsv($file, ['MTH101', 'General Mathematics I', '3', 'First Semester']);
-            fputcsv($file, ['PHY101', 'General Physics I', '2', 'First Semester']);
+            fputcsv($file, $columns);
+
+            foreach ($sampleData as $row) {
+                fputcsv($file, $row);
+            }
             fclose($file);
         };
 
-        
-
         return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Log an exam security violation
-     */
-    public function logViolation(Request $request)
-    {
-        try {
-            $request->validate([
-                'student_id' => 'required|exists:students,id',
-                'exam_id' => 'required|exists:exams,id',
-                'violation_type' => 'required|string',
-                'details' => 'nullable|array'
-            ]);
-
-            // Use DB facade to insert to avoid timestamp truncation issues
-            $violationId = \Illuminate\Support\Facades\DB::table('exam_violations')->insertGetId([
-                'student_id' => $request->student_id,
-                'exam_id' => $request->exam_id,
-                'violation_type' => $request->violation_type,
-                'details' => json_encode($request->details),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'created_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s'),
-                'updated_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s')
-            ]);
-
-            $violation = \App\Models\ExamViolation::find($violationId);
-
-            // Count total violations for this student/exam
-            $violationCount = \App\Models\ExamViolation::where('student_id', $request->student_id)
-                ->where('exam_id', $request->exam_id)
-                ->count();
-
-            // Get max violations setting (global default or exam specific)
-            // Priority: Global System Config
-            $maxViolations = SystemConfig::get('max_violations', 3);
-
-            return response()->json([
-                'message' => 'Violation logged',
-                'violation' => $violation,
-                'violation_count' => $violationCount,
-                'max_violations' => $maxViolations,
-                'should_auto_submit' => $violationCount >= $maxViolations
-            ]);
-        } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Get all violations for a specific exam
-     */
-    public function getExamViolations(Request $request, $examId)
-    {
-        try {
-            $violations = \App\Models\ExamViolation::where('exam_id', $examId)
-                ->with(['student', 'exam'])
-                ->orderBy('violated_at', 'desc')
-                ->get();
-
-            // Group by violation type for statistics
-            $stats = $violations->groupBy('violation_type')->map(function ($group) {
-                return $group->count();
-            });
-
-            return response()->json([
-                'violations' => $violations,
-                'statistics' => $stats,
-                'total_violations' => $violations->count()
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Get all violations for a specific student
-     */
-    public function getStudentViolations(Request $request, $studentId)
-    {
-        try {
-            $violations = \App\Models\ExamViolation::where('student_id', $studentId)
-                ->with(['student', 'exam'])
-                ->orderBy('violated_at', 'desc')
-                ->get();
-
-            return response()->json([
-                'violations' => $violations,
-                'total_violations' => $violations->count()
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Update security settings for a specific exam
-     */
-    public function updateExamSecuritySettings(Request $request, $examId)
-    {
-        try {
-            $user = $request->user();
-            
-            // Only super admins and level admins can update security settings
-            if (!in_array($user->role, ['super_admin', 'admin', 'level_admin'])) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-
-            $validated = $request->validate([
-                'enable_browser_lockdown' => 'sometimes|boolean',
-                'enable_fullscreen' => 'sometimes|boolean',
-                'enable_copy_paste_block' => 'sometimes|boolean',
-                'enable_screenshot_block' => 'sometimes|boolean',
-                'enable_tab_switch_detection' => 'sometimes|boolean',
-                'enable_multiple_monitor_check' => 'sometimes|boolean',
-                'max_violations' => 'sometimes|integer|min:1|max:10'
-            ]);
-
-            $exam = Exam::findOrFail($examId);
-            
-            // Level admins can only update exams they have access to
-            if ($user->role === 'level_admin' && $exam->level_id !== $user->level_id) {
-                return response()->json(['error' => 'Unauthorized to modify this exam'], 403);
-            }
-
-            $exam->update($validated);
-
-            return response()->json([
-                'message' => 'Security settings updated successfully',
-                'exam' => $exam
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Get security settings for a specific exam
-     */
-    public function getExamSecuritySettings($examId)
-    {
-        try {
-            $exam = Exam::findOrFail($examId);
-            
-            return response()->json([
-                'enable_browser_lockdown' => $exam->enable_browser_lockdown,
-                'enable_fullscreen' => $exam->enable_fullscreen,
-                'enable_copy_paste_block' => $exam->enable_copy_paste_block,
-                'enable_screenshot_block' => $exam->enable_screenshot_block,
-                'enable_tab_switch_detection' => $exam->enable_tab_switch_detection,
-                'enable_multiple_monitor_check' => $exam->enable_multiple_monitor_check,
-                'max_violations' => $exam->max_violations,
-                'enabled_features' => $exam->getEnabledSecurityFeatures()
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
     }
 }

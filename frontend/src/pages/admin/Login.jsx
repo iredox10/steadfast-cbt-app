@@ -39,7 +39,7 @@ const AdminLogin = () => {
                 navigate(`/admin-dashboard/${user.id}`);
             } else if (user.role === "lecturer") {
                 navigate(`/instructor/${user.id}`);
-            } else if (user.role === "invigilator") {
+            } else if (user.role === "invigilator" || user.role === "technician") {
                 navigate(`/invigilator/${user.id}`);
             } else {
                 setErr("Unknown user role. Please contact administrator.");

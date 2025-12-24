@@ -16,7 +16,8 @@ import {
     FaBook,
     FaRegClock,
     FaCalendarAlt,
-    FaMedal
+    FaMedal,
+    FaCog
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -281,7 +282,9 @@ const Invigilator = () => {
                         <div className="flex items-center space-x-4">
                             <img src={logo} alt="Logo" className="h-12 w-12" />
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">Invigilator Panel</h1>
+                                <h1 className="text-3xl font-bold text-gray-900">
+                                    {userData?.Invigilator?.role === 'technician' ? 'Technician Panel' : 'Invigilator Panel'}
+                                </h1>
                                 <p className="text-gray-600">
                                     Welcome, {userData?.Invigilator?.full_name}
                                 </p>
@@ -299,6 +302,13 @@ const Invigilator = () => {
                             >
                                 <FaBook className="mr-2" />
                                 Manual
+                            </Link>
+                            <Link
+                                to={`/invigilator-settings/${id}`}
+                                className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                <FaCog className="mr-2" />
+                                Settings
                             </Link>
                             <button
                                 onClick={fetchStudents}

@@ -76,8 +76,8 @@ const AdminDashboard = () => {
         }
     };
 
-    // Redirect to new hierarchical dashboard for super_admin and level_admin
-    if (!userLoading && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'level_admin')) {
+    // Redirect to new hierarchical dashboard for super_admin, level_admin and faculty_officer
+    if (!userLoading && currentUser && ['super_admin', 'level_admin', 'faculty_officer'].includes(currentUser.role)) {
         return <Navigate to={`/admin-dashboard/${userId}`} replace />;
     }
 

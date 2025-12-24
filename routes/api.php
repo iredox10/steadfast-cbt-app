@@ -249,7 +249,7 @@ Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'gene
 Route::post('/invigilator/regenerate-ticket', [InvigilatorController::class, 'regenerate_ticket']);
 Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, 'get_students'])->middleware(['auth:sanctum']);
 Route::post('/extend-time', [InvigilatorController::class, 'extend_time']);
-Route::post('/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam']);
+Route::post('/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam'])->middleware(['auth:sanctum']);
 
 // Student Enrollment routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -274,6 +274,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('faculties', \App\Http\Controllers\FacultyController::class);
     Route::get('faculties/{id}/officers', [\App\Http\Controllers\FacultyController::class, 'getFacultyOfficers']);
     
+    Route::post('/import-faculties', [\App\Http\Controllers\FacultyController::class, 'importFaculties']);
+    Route::get('/download-sample-faculties-import', [\App\Http\Controllers\FacultyController::class, 'downloadSampleImportFile']);
     Route::post('/create-faculty-officer', [Admin::class, 'createFacultyOfficer']);
     
     // System Settings (Super Admin)

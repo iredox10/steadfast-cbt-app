@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { FaPlus, FaTimes, FaEdit, FaTrash, FaUserShield, FaBuilding } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaEdit, FaTrash, FaUserShield, FaBuilding, FaFileUpload, FaDownload, FaUpload, FaKey } from 'react-icons/fa';
 import { path } from '../../../utils/path';
 import AdminSidebar from '../../components/AdminSidebar';
 
@@ -11,12 +11,17 @@ const FacultyManagement = () => {
     const [loading, setLoading] = useState(true);
     const [showFacultyModal, setShowFacultyModal] = useState(false);
     const [showOfficerModal, setShowOfficerModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importFile, setImportFile] = useState(null);
+    const [showOfficerEditModal, setShowOfficerEditModal] = useState(false);
+    const [editingOfficer, setEditingOfficer] = useState(null);
     const [currentFaculty, setCurrentFaculty] = useState(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
     const [facultyData, setFacultyData] = useState({ name: '', code: '', description: '' });
     const [officerData, setOfficerData] = useState({ full_name: '', email: '', password: 'password' });
+    const [officerEditData, setOfficerEditData] = useState({ full_name: '', email: '', status: 'active' });
 
     const fetchFaculties = async () => {
         setLoading(true);
@@ -77,6 +82,75 @@ const FacultyManagement = () => {
         }
     };
 
+    const handleOfficerUpdate = async (e) => {
+        e.preventDefault();
+        try {
+            await axios.put(`${path}/update-admin/${editingOfficer.id}`, {
+                ...officerEditData,
+                role: 'faculty_officer',
+                faculty_id: currentFaculty.id
+            }, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setSuccess('Officer updated successfully');
+            setShowOfficerEditModal(false);
+            fetchFaculties();
+        } catch (err) {
+            setError(err.response?.data?.message || 'Update failed');
+        }
+    };
+
+    const handleResetPassword = async (officerId) => {
+        if (!window.confirm('Are you sure you want to reset this officer\'s password to "password"?')) return;
+        try {
+            await axios.post(`${path}/reset-admin-password/${officerId}`, {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setSuccess('Password reset successfully');
+        } catch (err) {
+            setError('Failed to reset password');
+        }
+    };
+
+    const handleImportFaculties = async (e) => {
+        e.preventDefault();
+        if (!importFile) return;
+        const formData = new FormData();
+        formData.append('file', importFile);
+        try {
+            await axios.post(`${path}/import-faculties`, formData, {
+                headers: { 
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            setSuccess('Faculties imported successfully');
+            setShowImportModal(false);
+            setImportFile(null);
+            fetchFaculties();
+        } catch (err) {
+            setError('Import failed');
+        }
+    };
+
+    const handleDownloadSample = async () => {
+        try {
+            const res = await axios.get(`${path}/download-sample-faculties-import`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'sample_faculties_import.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            setError('Failed to download sample');
+        }
+    };
+
     const deleteFaculty = async (id) => {
         if (!window.confirm('Are you sure you want to delete this faculty? This will remove all associations.')) return;
         try {
@@ -100,12 +174,20 @@ const FacultyManagement = () => {
                         <h2 className="text-3xl font-bold text-gray-900">Faculty Management</h2>
                         <p className="text-gray-500">Manage university faculties and their designated officers.</p>
                     </div>
-                    <button 
-                        onClick={() => { setCurrentFaculty(null); setFacultyData({ name: '', code: '', description: '' }); setShowFacultyModal(true); }}
-                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all"
-                    >
-                        <FaPlus className="mr-2" /> Add Faculty
-                    </button>
+                    <div className="flex gap-3">
+                        <button 
+                            onClick={() => setShowImportModal(true)}
+                            className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm transition-all"
+                        >
+                            <FaFileUpload className="mr-2 text-green-600" /> Import
+                        </button>
+                        <button 
+                            onClick={() => { setCurrentFaculty(null); setFacultyData({ name: '', code: '', description: '' }); setShowFacultyModal(true); }}
+                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all"
+                        >
+                            <FaPlus className="mr-2" /> Add Faculty
+                        </button>
+                    </div>
                 </header>
 
                 {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>}
@@ -147,11 +229,34 @@ const FacultyManagement = () => {
                                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">{faculty.description || 'No description provided.'}</p>
                                     
                                     {officer && (
-                                        <div className="mb-4 p-2 bg-green-50 border border-green-100 rounded-lg flex items-center gap-2">
-                                            <FaUserShield className="text-green-600" />
-                                            <div>
-                                                <p className="text-xs text-gray-500 font-medium">Faculty Officer</p>
-                                                <p className="text-sm font-bold text-gray-800">{officer.full_name}</p>
+                                        <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FaUserShield className="text-green-600" />
+                                                <div>
+                                                    <p className="text-xs text-gray-500 font-medium">Faculty Officer</p>
+                                                    <p className="text-sm font-bold text-gray-800">{officer.full_name}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button 
+                                                    onClick={() => { 
+                                                        setCurrentFaculty(faculty);
+                                                        setEditingOfficer(officer);
+                                                        setOfficerEditData({ full_name: officer.full_name, email: officer.email, status: officer.status || 'active' });
+                                                        setShowOfficerEditModal(true);
+                                                    }}
+                                                    className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                                                    title="Edit Officer"
+                                                >
+                                                    <FaEdit size={14} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleResetPassword(officer.id)}
+                                                    className="p-1.5 text-gray-400 hover:text-yellow-600 transition-colors"
+                                                    title="Reset Password"
+                                                >
+                                                    <FaKey size={14} />
+                                                </button>
                                             </div>
                                         </div>
                                     )}
@@ -254,6 +359,94 @@ const FacultyManagement = () => {
                             <div className="flex justify-end gap-3 pt-2">
                                 <button type="button" onClick={() => setShowOfficerModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
                                 <button type="submit" className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Create Officer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Faculty Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gray-800 p-4 flex justify-between items-center">
+                            <h3 className="text-white font-bold">Import Faculties</h3>
+                            <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-white"><FaTimes /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                                <p className="text-sm text-blue-800 mb-2 font-medium">Instructions:</p>
+                                <p className="text-xs text-blue-600 mb-3">
+                                    Upload an Excel/CSV file with columns: Name, Code, Description.
+                                </p>
+                                <button onClick={handleDownloadSample} className="flex items-center text-xs font-bold text-blue-700 hover:text-blue-900">
+                                    <FaDownload className="mr-1" /> Download Template
+                                </button>
+                            </div>
+                            <form onSubmit={handleImportFaculties} className="space-y-4">
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
+                                    <input 
+                                        type="file" accept=".xlsx,.xls,.csv" required
+                                        onChange={(e) => setImportFile(e.target.files[0])}
+                                        className="hidden" id="faculty-import"
+                                    />
+                                    <label htmlFor="faculty-import" className="cursor-pointer">
+                                        <FaUpload className="mx-auto text-3xl text-gray-400 mb-2" />
+                                        <span className="text-sm text-gray-600">{importFile ? importFile.name : "Click to upload file"}</span>
+                                    </label>
+                                </div>
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                                    <button type="submit" disabled={!importFile} className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-400">Import</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Officer Edit Modal */}
+            {showOfficerEditModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="bg-gray-800 p-4 flex justify-between items-center">
+                            <h3 className="text-white font-bold">Edit Officer: {currentFaculty.name}</h3>
+                            <button onClick={() => setShowOfficerEditModal(false)} className="text-gray-400 hover:text-white"><FaTimes /></button>
+                        </div>
+                        <form onSubmit={handleOfficerUpdate} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input 
+                                    type="text" required
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={officerEditData.full_name}
+                                    onChange={e => setOfficerEditData({...officerEditData, full_name: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                <input 
+                                    type="email" required
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={officerEditData.email}
+                                    onChange={e => setOfficerEditData({...officerEditData, email: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select 
+                                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={officerEditData.status}
+                                    onChange={e => setOfficerEditData({...officerEditData, status: e.target.value})}
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="suspended">Suspended</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button type="button" onClick={() => setShowOfficerEditModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                                <button type="submit" className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Update Officer</button>
                             </div>
                         </form>
                     </div>

@@ -52,9 +52,9 @@ const ViewTicketsModal = ({ examId, courseName, onClose }) => {
         if (searchTerm) {
             const search = searchTerm.toLowerCase();
             return (
-                ticket.ticket_no.includes(search) ||
-                ticket.student?.full_name?.toLowerCase().includes(search) ||
-                ticket.student?.candidate_no?.toLowerCase().includes(search)
+                (ticket.ticket_no || '').toString().includes(search) ||
+                (ticket.student?.full_name || '').toLowerCase().includes(search) ||
+                (ticket.student?.candidate_no || '').toLowerCase().includes(search)
             );
         }
 
@@ -151,7 +151,7 @@ const ViewTicketsModal = ({ examId, courseName, onClose }) => {
                             spacing: { after: 200 }
                         }),
                         new Paragraph({
-                            text: `Total Tickets: ${data.total_tickets || 0} | Available: ${data.available_tickets || 0} | Used: ${data.used_tickets || 0}`,
+                            text: `Total Tickets: ${data.statistics.total || 0} | Available: ${data.statistics.available || 0} | Used: ${data.statistics.used || 0}`,
                             alignment: AlignmentType.CENTER,
                             spacing: { after: 400 }
                         }),

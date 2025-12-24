@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { path } from '../../../utils/path';
-import { FaPlus, FaUsers, FaUserShield, FaCrown, FaEdit, FaTrash, FaArrowAltCircleLeft, FaArrowLeft, FaKey, FaFileUpload, FaSearch, FaBuilding, FaGraduationCap, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaUsers, FaUserShield, FaCrown, FaEdit, FaTrash, FaArrowAltCircleLeft, FaArrowLeft, FaKey, FaFileUpload, FaSearch, FaBuilding, FaGraduationCap, FaTimes, FaDownload, FaUpload } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import AdminSidebar from '../../components/AdminSidebar';
 
@@ -33,24 +33,20 @@ const AdminManagement = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${path}/reset-admin-password/${adminToReset.id}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await axios.post(`${path}/reset-admin-password/${adminToReset.id}`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (response.status === 200) {
                 setShowResetPasswordModal(false);
                 setAdminToReset(null);
+                alert(`Password for ${adminToReset.full_name} reset successfully to "password"`);
             } else {
-                setErrMsg(data.message || 'Failed to reset password');
+                setErrMsg(response.data.message || 'Failed to reset password');
             }
         } catch (error) {
             console.error('Error resetting password:', error);
-            setErrMsg('An error occurred while resetting password');
+            setErrMsg(error.response?.data?.message || 'An error occurred while resetting password');
         } finally {
             setLoading(false);
         }
@@ -98,6 +94,7 @@ const AdminManagement = () => {
         email: '',
         role: '',
         level_id: '',
+        faculty_id: '',
         status: ''
     });
     const [errMsg, setErrMsg] = useState('');
@@ -214,35 +211,33 @@ const AdminManagement = () => {
             email: admin.email,
             role: admin.role,
             level_id: admin.level_id || '',
+            faculty_id: admin.faculty_id || '',
             status: admin.status || 'active'
         });
         setShowEditModal(true);
     };
 
-    const handleUpdateAdmin = async () => {
+    const handleUpdateAdmin = async (e) => {
+        e.preventDefault();
         setLoading(true);
         setErrMsg('');
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${path}/update-admin/${editAdmin.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    full_name: editAdmin.full_name,
-                    email: editAdmin.email,
-                    role: editAdmin.role,
-                    level_id: editAdmin.level_id || null,
-                    status: editAdmin.status
-                })
+            const payload = {
+                full_name: editAdmin.full_name,
+                email: editAdmin.email,
+                role: editAdmin.role,
+                status: editAdmin.status,
+                level_id: editAdmin.role === 'level_admin' ? editAdmin.level_id : null,
+                faculty_id: editAdmin.role === 'faculty_officer' ? editAdmin.faculty_id : null
+            };
+
+            const response = await axios.put(`${path}/update-admin/${editAdmin.id}`, payload, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (response.status === 200) {
                 fetchData();
                 setShowEditModal(false);
                 setEditingAdmin(null);
@@ -251,14 +246,15 @@ const AdminManagement = () => {
                     email: '',
                     role: '',
                     level_id: '',
+                    faculty_id: '',
                     status: ''
                 });
             } else {
-                setErrMsg(data.message || 'Failed to update admin');
+                setErrMsg(response.data.message || 'Failed to update admin');
             }
         } catch (error) {
             console.error('Error updating admin:', error);
-            setErrMsg('An error occurred while updating admin');
+            setErrMsg(error.response?.data?.message || 'An error occurred while updating admin');
         } finally {
             setLoading(false);
         }
@@ -274,16 +270,11 @@ const AdminManagement = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${path}/delete-admin/${adminId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            const response = await axios.delete(`${path}/delete-admin/${adminId}`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (response.status === 200) {
                 setAdmins(admins.filter(admin => admin.id !== adminId));
                 setTotalAdmins(prev => prev - 1);
                 if (admins.length === 1 && currentPage > 1) {
@@ -292,11 +283,11 @@ const AdminManagement = () => {
                     fetchData();
                 }
             } else {
-                setErrMsg(data.message || 'Failed to delete admin');
+                setErrMsg(response.data.message || 'Failed to delete admin');
             }
         } catch (error) {
             console.error('Error deleting admin:', error);
-            setErrMsg('An error occurred while deleting admin');
+            setErrMsg(error.response?.data?.message || 'An error occurred while deleting admin');
         } finally {
             setLoading(false);
         }
@@ -317,18 +308,14 @@ const AdminManagement = () => {
             if (newAdmin.role !== 'faculty_officer') delete payload.faculty_id;
             if (newAdmin.role !== 'level_admin') delete payload.level_id;
 
-            const response = await fetch(`${path}${endpoint}`, {
-                method: 'POST',
+            const response = await axios.post(`${path}${endpoint}`, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
+                }
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 fetchData();
                 setShowCreateModal(false);
                 setNewAdmin({
@@ -339,11 +326,11 @@ const AdminManagement = () => {
                     faculty_id: ''
                 });
             } else {
-                setErrMsg(data.message || 'Failed to create admin');
+                setErrMsg(response.data.message || 'Failed to create admin');
             }
         } catch (error) {
             console.error('Error creating admin:', error);
-            setErrMsg('An error occurred while creating admin');
+            setErrMsg(error.response?.data?.message || 'An error occurred while creating admin');
         } finally {
             setLoading(false);
         }
@@ -710,8 +697,210 @@ const AdminManagement = () => {
                         </div>
                     )}
 
-                    {/* Edit, Import, Reset Password Modals would follow similar structure */}
-                    {/* ... (Kept existing modal logic but can be styled similarly) ... */}
+                    {/* Edit Admin Modal */}
+                    {showEditModal && editingAdmin && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                                <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                                    <h3 className="font-bold text-gray-900">Edit Admin</h3>
+                                    <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
+                                </div>
+                                <form onSubmit={handleUpdateAdmin} className="p-6 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                        <input
+                                            type="text"
+                                            value={editAdmin.full_name}
+                                            onChange={(e) => setEditAdmin({ ...editAdmin, full_name: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                        <input
+                                            type="email"
+                                            value={editAdmin.email}
+                                            onChange={(e) => setEditAdmin({ ...editAdmin, email: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                        <select
+                                            value={editAdmin.role}
+                                            onChange={(e) => setEditAdmin({ ...editAdmin, role: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="level_admin">Department Officer</option>
+                                            <option value="super_admin">Super Admin</option>
+                                            <option value="faculty_officer">Faculty Officer</option>
+                                        </select>
+                                    </div>
+
+                                    {editAdmin.role === 'faculty_officer' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Faculty</label>
+                                            <select
+                                                value={editAdmin.faculty_id}
+                                                onChange={(e) => setEditAdmin({ ...editAdmin, faculty_id: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            >
+                                                <option value="">Select Faculty</option>
+                                                {faculties.map(faculty => (
+                                                    <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {editAdmin.role === 'level_admin' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                            <select
+                                                value={editAdmin.level_id}
+                                                onChange={(e) => setEditAdmin({ ...editAdmin, level_id: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">Select Department</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept.id} value={dept.id}>
+                                                        {dept.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                        <select
+                                            value={editAdmin.status}
+                                            onChange={(e) => setEditAdmin({ ...editAdmin, status: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                            <option value="suspended">Suspended</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEditModal(false)}
+                                            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            {loading ? 'Updating...' : 'Update Admin'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Import Admin Modal */}
+                    {
+                        showImportModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                                    <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+                                        <h3 className="font-bold text-gray-900">Import Admins</h3>
+                                        <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600"><FaTimes /></button>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                                            <p className="text-sm text-blue-800 mb-2 font-medium">Instructions:</p>
+                                            <p className="text-xs text-blue-600 mb-3">
+                                                Upload an Excel file (.xlsx) with columns: Full Name, Email, Role, Level ID, Faculty ID.
+                                            </p>
+                                            <button
+                                                onClick={handleDownloadSample}
+                                                className="flex items-center text-xs font-bold text-blue-700 hover:text-blue-900"
+                                            >
+                                                <FaDownload className="mr-1" /> Download Template
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handleImportAdmins} className="space-y-4">
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
+                                                <input
+                                                    type="file"
+                                                    accept=".xlsx,.xls,.csv"
+                                                    onChange={(e) => setImportFile(e.target.files[0])}
+                                                    className="hidden"
+                                                    id="file-upload"
+                                                    required
+                                                />
+                                                <label htmlFor="file-upload" className="cursor-pointer">
+                                                    <FaUpload className="mx-auto text-3xl text-gray-400 mb-2" />
+                                                    <span className="text-sm text-gray-600">{importFile ? importFile.name : "Click to upload Excel file"}</span>
+                                                </label>
+                                            </div>
+                                            <div className="flex justify-end gap-3 pt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setShowImportModal(false);
+                                                        setImportFile(null);
+                                                    }}
+                                                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="px-6 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors"
+                                                >
+                                                    Import
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
+                    {/* Reset Password Modal */}
+                    {
+                        showResetPasswordModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden text-center p-6">
+                                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <FaKey className="text-yellow-600 text-xl" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Reset Password?</h3>
+                                    <p className="text-sm text-gray-500 mb-6">
+                                        This will reset the password for <strong>{adminToReset?.full_name}</strong> to the default "password".
+                                    </p>
+                                    <div className="flex gap-3 justify-center">
+                                        <button
+                                            onClick={() => setShowResetPasswordModal(false)}
+                                            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleResetPassword}
+                                            className="px-4 py-2 bg-yellow-500 text-white font-medium rounded-lg hover:bg-yellow-600 transition-colors"
+                                        >
+                                            Confirm Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    }
                 </div>
             </div>
         </div>

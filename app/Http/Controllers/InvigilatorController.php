@@ -9,6 +9,9 @@ use App\Models\ExamTicket;
 use Exception;
 use Illuminate\Http\Request;
 use App\Models\Course;
+use App\Models\ExamArchive;
+use App\Models\Question;
+use App\Models\Answers;
 
 class InvigilatorController extends Controller
 {
@@ -300,20 +303,108 @@ class InvigilatorController extends Controller
                 return response()->json(['message' => 'No active exam found'], 404);
             }
 
-            // Reset all time extensions to 0 when terminating exam
-            Candidate::where('exam_id', $exam->id)
-                ->update([
-                    'time_extension' => 0,
-                    'is_logged_on' => false,
-                    'is_checkout' => true,
-                    'status' => 'completed'
-                ]);
+            $exam_id = $exam->id;
+            $course = Course::findOrFail($exam->course_id);
 
-            // Deactivate the exam
-            $exam->update(['activated' => 'no']);
+            // Get total questions and marks for this exam
+            $totalQuestions = Question::where('exam_id', $exam_id)->count();
+            $totalMarks = $exam->marks_per_question * $totalQuestions;
+
+            // Get all students who took this exam with their scores
+            $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
+                $query->where('exam_id', $exam_id);
+            })
+            ->with([
+                'candidates' => function($query) use ($exam_id) {
+                    $query->where('exam_id', $exam_id);
+                },
+                'examScores' => function($query) use ($exam) {
+                    $query->where('course_id', $exam->course_id);
+                }
+            ])
+            ->get()
+            ->map(function ($student) use ($exam) {
+                $candidate = $student->candidates->first();
+                $examScore = $student->examScores->first();
+                
+                $questionsAnswered = 0;
+                $correctAnswers = 0;
+                if ($candidate) {
+                    $questionsAnswered = Answers::where('course_id', $exam->course_id)
+                                               ->where('candidate_id', $student->id)
+                                               ->count();
+                    $correctAnswers = Answers::where('course_id', $exam->course_id)
+                                            ->where('candidate_id', $student->id)
+                                            ->where('is_correct', true)
+                                            ->count();
+                }
+                
+                return [
+                    'student_id' => $student->id,
+                    'candidate_no' => $student->candidate_no,
+                    'full_name' => $student->full_name,
+                    'department' => $student->department,
+                    'programme' => $student->programme,
+                    'level_id' => $student->level_id,
+                    'score' => $examScore ? $examScore->score : 0,
+                    'submission_time' => $candidate ? $candidate->created_at : null,
+                    'questions_answered' => $questionsAnswered,
+                    'correct_answers' => $correctAnswers,
+                ];
+            })
+            ->toArray();
+
+            // Create exam archive
+            ExamArchive::create([
+                'exam_id' => $exam_id,
+                'exam_title' => $exam->title ?? $course->title . ' Exam',
+                'course_title' => $course->title,
+                'exam_date' => $exam->activated_date,
+                'duration' => $exam->exam_duration,
+                'total_questions' => $totalQuestions,
+                'marks_per_question' => $exam->marks_per_question,
+                'total_marks' => $totalMarks,
+                'student_results' => $studentResults,
+            ]);
+
+            // Get list of student IDs
+            $studentIds = Candidate::where('exam_id', $exam_id)
+                ->pluck('student_id')
+                ->toArray();
+
+            // Reset student statuses
+            if (!empty($studentIds)) {
+                Student::whereIn('id', $studentIds)->update([
+                    'is_logged_on' => 'no',
+                    'checkin_time' => null,
+                    'checkout_time' => null,
+                    'is_checked_in' => false,
+                ]);
+            }
+
+            // Clear violations
+            \App\Models\ExamViolation::where('exam_id', $exam_id)->delete();
+
+            // Clear answers
+            $questionIds = Question::where('exam_id', $exam_id)->pluck('id');
+            if ($questionIds->isNotEmpty()) {
+                Answers::whereIn('question_id', $questionIds)->delete();
+            }
+
+            // Clear candidates
+            Candidate::where('exam_id', $exam_id)->delete();
+
+            // Delete tickets
+            ExamTicket::where('exam_id', $exam_id)->delete();
+
+            // Deactivate exam
+            $exam->activated = 'no';
+            $exam->invigilator = null;
+            $exam->finished_time = now();
+            $exam->save();
 
             return response()->json([
-                'message' => 'Exam terminated successfully and all time extensions cleared'
+                'message' => 'Exam terminated, archived, and all records cleared successfully'
             ], 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

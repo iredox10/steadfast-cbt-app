@@ -20,7 +20,7 @@ import {
 import AdminSidebar from "../../components/AdminSidebar";
 
 const AdminExam = () => {
-    const { userId } = useParams();
+    const { id: userId } = useParams();
 
     // State for invigilators data
     const [invigilators, setInvigilators] = useState([]);
@@ -181,9 +181,8 @@ const AdminExam = () => {
 
     // Filter visible exams based on search and status dropdown
     const filteredExams = visibleExams.filter((exam) => {
-        const courseName =
-            courses?.find((course) => course.id === exam.course_id)?.title ||
-            "";
+        const course = exam.course || courses?.find(c => c.id === exam.course_id);
+        const courseName = course?.title || "";
 
         // Apply search filter
         const matchesSearch =
@@ -344,7 +343,7 @@ const AdminExam = () => {
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 <div className="flex items-center">
                                                     <FaUsers className="mr-2" />
-                                                    Invigilator
+                                                    Technician
                                                 </div>
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -357,7 +356,7 @@ const AdminExam = () => {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {currentItems.map((exam) => {
-                                            const course = courses?.find(c => c.id === exam.course_id);
+                                            const course = exam.course || courses?.find(c => c.id === exam.course_id);
                                             return (
                                                 <tr key={exam.id} className="hover:bg-gray-50">
                                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -541,12 +540,12 @@ const AdminExam = () => {
                 </div>
             </main>
 
-            {/* Assign Invigilator Modal */}
+            {/* Assign Technician Modal */}
             {showAssignInvigilator && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl p-6 w-full max-w-md">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-900">Assign Invigilator</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Assign Technician</h2>
                             <button
                                 onClick={() => {
                                     SetshowAssignInvigilator(false);
@@ -560,7 +559,7 @@ const AdminExam = () => {
 
                         <div className="mb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Choose Invigilator
+                                Choose Technician
                             </label>
                             <select
                                 onChange={(e) => {
@@ -570,7 +569,7 @@ const AdminExam = () => {
                                 className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="" disabled selected>
-                                    Select Invigilator
+                                    Select Technician
                                 </option>
                                 {invigilators && invigilators.map((invigilator) => (
                                     <option key={invigilator.id} value={invigilator.email}>
@@ -650,7 +649,7 @@ const AdminExam = () => {
                                         Exam Details
                                     </h2>
                                     <p className="text-blue-100">
-                                        {courses?.find(c => c.id === selectedExam.course_id)?.title || "Course Information"}
+                                        {(selectedExam.course || courses?.find(c => c.id === selectedExam.course_id))?.title || "Course Information"}
                                     </p>
                                 </div>
                                 <button
@@ -692,10 +691,10 @@ const AdminExam = () => {
                                         <h3 className="text-sm font-semibold text-gray-700">Course</h3>
                                     </div>
                                     <p className="text-lg font-bold text-gray-900">
-                                        {courses?.find(c => c.id === selectedExam.course_id)?.code || "N/A"}
+                                        {(selectedExam.course || courses?.find(c => c.id === selectedExam.course_id))?.code || "N/A"}
                                     </p>
                                     <p className="text-sm text-gray-600">
-                                        {courses?.find(c => c.id === selectedExam.course_id)?.title || "Unknown Course"}
+                                        {(selectedExam.course || courses?.find(c => c.id === selectedExam.course_id))?.title || "Unknown Course"}
                                     </p>
                                 </div>
 
@@ -756,12 +755,12 @@ const AdminExam = () => {
                                 </div>
                             </div>
 
-                            {/* Invigilator Information */}
+                            {/* Technician Information */}
                             {selectedExam.invigilator && (
                                 <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-6">
                                     <div className="flex items-center mb-2">
                                         <FaUsers className="text-indigo-600 mr-2" />
-                                        <h3 className="text-sm font-semibold text-gray-700">Assigned Invigilator</h3>
+                                        <h3 className="text-sm font-semibold text-gray-700">Assigned Technician</h3>
                                     </div>
                                     <p className="text-lg font-bold text-gray-900">
                                         {selectedExam.invigilator}
@@ -834,7 +833,7 @@ const AdminExam = () => {
                                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-600 font-medium">Course Code:</span>
                                         <span className="font-semibold text-gray-900">
-                                            {courses?.find(c => c.id === selectedExam.course_id)?.code || "N/A"}
+                                            {(selectedExam.course || courses?.find(c => c.id === selectedExam.course_id))?.code || "N/A"}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center py-2 border-b border-gray-100">

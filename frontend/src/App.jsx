@@ -25,6 +25,7 @@ import AdminCourses from "./pages/admin/AdminCourses.jsx";
 import Dashboard from "./pages/admin/AdminDashboard.jsx";
 import ExamInstructions from "./pages/ExamInstructions.jsx";
 import Invigilator from "./pages/Invigilator.jsx";
+import InvigilatorSettings from "./pages/InvigilatorSettings.jsx";
 import NotCheckIn from "./pages/NotCheckIn.jsx";
 import QuestionBank from './pages/instructor/QuestionBank';
 import ExamArchives from "./pages/admin/ExamArchives";
@@ -123,6 +124,7 @@ function App() {
                     />
 
                     <Route path="/invigilator/:id" element={<Invigilator />} />
+                    <Route path="/invigilator-settings/:id" element={<InvigilatorSettings />} />
 
                     <Route path="/not-check-in" element={<NotCheckIn />} />
 
