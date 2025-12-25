@@ -92,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get-exam', [Instructor::class, 'get_exam']);
     Route::get('/get-students/{user_id}/{course_id}', [Instructor::class, 'get_students']);
     Route::get('/get-students-score/{course_id}', [Instructor::class, 'get_student_scores_for_course']);
+    Route::get('/get-archive-by-exam/{exam_id}', [Instructor::class, 'get_archive_by_exam']);
 });
 
 // Export student scores

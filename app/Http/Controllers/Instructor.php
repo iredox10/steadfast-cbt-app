@@ -13,11 +13,13 @@ use App\Models\Student;
 use App\Models\StudentCourse;
 use App\Models\StudentExamScore;
 use App\Models\User;
+use App\Models\ExamArchive;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class Instructor extends Controller
 {
@@ -57,7 +59,7 @@ class Instructor extends Controller
      */
     public function store(Request $request)
     {
-        \Log::info('Instructor store called with data:', $request->all());
+        Log::info('Instructor store called with data:', $request->all());
         
         $validate = request()->validate([
             'email' => 'required | email | string | max:255 | unique:users,email',
@@ -68,7 +70,7 @@ class Instructor extends Controller
             'level_id' => 'nullable|exists:acd_sessions,id'
         ]);
         
-        \Log::info('Validation passed, data:', $validate);
+        Log::info('Validation passed, data:', $validate);
         
         $validate['password'] = Hash::make($validate['password'] ?? 'password');
         
@@ -76,18 +78,18 @@ class Instructor extends Controller
         $currentUser = $request->user();
         if ($currentUser && $currentUser->role === 'level_admin' && $currentUser->level_id) {
             $validate['level_id'] = $currentUser->level_id;
-            \Log::info('Level admin detected, setting level_id', ['level_id' => $currentUser->level_id]);
+            Log::info('Level admin detected, setting level_id', ['level_id' => $currentUser->level_id]);
         }
         
         try {
             $user = User::create($validate);
-            \Log::info('User created successfully:', $user->toArray());
+            Log::info('User created successfully:', $user->toArray());
             return response()->json([
                 'message' => 'Instructor created successfully',
                 'user' => $user->load('level')
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('Error creating user:', $e->getMessage());
+            Log::error('Error creating user:', $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -194,10 +196,8 @@ class Instructor extends Controller
                 'exam_type' => $validate['exam_type'],
             ]);
 
-            // ! $question is not an error but a warning
-            $questions;
             for ($i = 0; $i < $exam->no_of_questions; $i++) {
-                $questions = Question::insert([
+                Question::create([
                     'exam_id' => $exam->id,
                     'user_id' => $user->id,
                     'serial_number' => $i + 1
@@ -255,8 +255,6 @@ class Instructor extends Controller
                 // Remove questions from the end (highest serial numbers)
                 $diff = $currentQuestionCount - $newQuestionCount;
                 
-                // Use CAST to ensure serial_number is treated as integer for sorting
-                // otherwise '10' comes before '2' in string sort
                 $idsToDelete = Question::where('exam_id', $exam->id)
                     ->orderByRaw('CAST(serial_number AS UNSIGNED) DESC')
                     ->limit($diff)
@@ -266,14 +264,12 @@ class Instructor extends Controller
             }
 
             // Re-sequence serial numbers to ensure continuity (1, 2, 3...)
-            // This fixes issues where reducing questions results in non-serial numbers (e.g., 1, 10, 11)
             $remainingQuestions = Question::where('exam_id', $exam->id)
                 ->orderByRaw('CAST(serial_number AS UNSIGNED) ASC')
                 ->get();
                 
             foreach ($remainingQuestions as $index => $question) {
                 $newSerial = $index + 1;
-                // Only update if different to avoid unnecessary DB writes
                 if ($question->serial_number != $newSerial) {
                     $question->serial_number = $newSerial;
                     $question->save();
@@ -314,12 +310,12 @@ class Instructor extends Controller
             'correct_answer' => 'string | required',
             'option_a' => 'string | required',
             'option_b' => 'string | required',
-            'option_c' => 'string | nullable',  // Made optional
-            'option_d' => 'string | nullable',  // Made optional
+            'option_c' => 'string | nullable',
+            'option_d' => 'string | nullable',
         ]);
         try {
-            $user = User::findOrFail($user_id);
-            $exam = Exam::findOrFail($exam_id);
+            User::findOrFail($user_id);
+            Exam::findOrFail($exam_id);
             $question = Question::findOrFail($question_id);
 
             $question->question = $validate['question'];
@@ -362,10 +358,6 @@ class Instructor extends Controller
         try {
             $exam = Exam::findOrFail($exam_id);
             
-            // Check if exam can be submitted
-            // Allow submission if:
-            // 1. Never submitted before (submission_status != 'submitted')
-            // 2. OR exam was terminated (finished_time is not null)
             $canSubmit = $exam->submission_status !== 'submitted' || $exam->finished_time !== null;
             
             if (!$canSubmit) {
@@ -374,15 +366,13 @@ class Instructor extends Controller
                 ], 400);
             }
             
-            // If resubmitting after termination, reset exam state
             if ($exam->finished_time !== null) {
-                $exam->finished_time = null; // Clear terminated status
-                $exam->activated = 'no'; // Reset to inactive
-                $exam->activated_date = null; // Clear activation date
-                $exam->invigilator = null; // Clear invigilator
+                $exam->finished_time = null;
+                $exam->activated = 'no';
+                $exam->activated_date = null;
+                $exam->invigilator = null;
             }
             
-            // Update submission status and increment count
             $exam->submission_status = 'submitted';
             $exam->submission_count = ($exam->submission_count ?? 0) + 1;
             $exam->submission_date = now();
@@ -400,28 +390,23 @@ class Instructor extends Controller
     public function recallExam(Request $request, $exam_id)
     {
         try {
-            \Illuminate\Support\Facades\Log::info('Attempting to recall exam (RAW SQL FIXED): ' . $exam_id);
+            Log::info('Attempting to recall exam (RAW SQL FIXED): ' . $exam_id);
             
             $exam = Exam::findOrFail($exam_id);
             
-            // Check if exam is activated
             if ($exam->activated === 'yes') {
                 return response()->json(['error' => 'Cannot recall an activated exam.'], 400);
             }
             
-            // Check if exam is actually submitted
             if ($exam->submission_status !== 'submitted') {
                 return response()->json(['error' => 'Exam is not currently submitted.'], 400);
             }
             
-            // Use RAW SQL update to bypass any Eloquent timestamp handling issues
-            // We format the time explicitly to standard MySQL DATETIME format to avoid microsecond truncation issues
-            // CORRECTED: Set submission_status to 'not_submitted' as per database ENUM definition
             \Illuminate\Support\Facades\DB::table('exams')
                 ->where('id', $exam_id)
                 ->update([
                     'submission_status' => 'not_submitted',
-                    'updated_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s')
+                    'updated_at' => Carbon::now()->format('Y-m-d H:i:s')
                 ]);
             
             return response()->json([
@@ -429,8 +414,8 @@ class Instructor extends Controller
                 'exam' => $exam->fresh()
             ]);
         } catch (Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error recalling exam: ' . $e->getMessage());
-            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
+            Log::error('Error recalling exam: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             return response()->json(['error' => 'Server Error: ' . $e->getMessage()], 500);
         }
     }
@@ -439,7 +424,7 @@ class Instructor extends Controller
         try {
             $exam = Exam::where('activated', 'yes')->get();
             return response()->json($exam, 200);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e);
         }
     }
@@ -449,7 +434,7 @@ class Instructor extends Controller
         try {
             $exam = Exam::findOrFail($exam_id);
             return response()->json($exam);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json($e);
         }
     }
@@ -457,9 +442,9 @@ class Instructor extends Controller
     public function delete_exam($exam_id)
     {
         try {
-            $exam = Exam::destroy($exam_id);
-            return response()->json($exam);
-        } catch (\Exception $e) {
+            Exam::destroy($exam_id);
+            return response()->json(['message' => 'Exam deleted successfully']);
+        } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -478,19 +463,16 @@ class Instructor extends Controller
     public function get_courses(Request $request, $user_id)
     {
         try {
-            // Get lecturer courses directly from LecturerCourse table
             $lecturerCourses = LecturerCourse::where('user_id', $user_id)->get();
             
-            // Log for debugging
-            \Log::info('get_courses called', [
+            Log::info('get_courses called', [
                 'user_id' => $user_id,
-                'courses_count' => $lecturerCourses->count(),
-                'courses' => $lecturerCourses->toArray()
+                'courses_count' => $lecturerCourses->count()
             ]);
             
             return response()->json($lecturerCourses);
-        } catch (\Exception $err) {
-            \Log::error('Error in get_courses', [
+        } catch (Exception $err) {
+            Log::error('Error in get_courses', [
                 'user_id' => $user_id,
                 'error' => $err->getMessage()
             ]);
@@ -498,95 +480,12 @@ class Instructor extends Controller
         }
     }
 
-
-    // public function get_students(Request $request, $user_id, $course_id)
-    // {
-    //     try {
-
-    //         $students_courses;
-    //         $courses;
-    //         $student;
-
-    //         $students = Student::all();
-
-    //         $instructor_courses = User::findOrFail($user_id)->courses;
-
-    //         foreach ($students as $course_id => $value) {
-    //             $students_courses = Student::findOrFail($value->id)->courses;
-    //             // $student = Student::findOrFail($value->id)->courses;
-    //         }
-    //         foreach ($students_courses as $std) {
-
-    //             return response()->json($std->course_id);
-    //         }
-    //         // foreach ($students_courses as $std) {
-    //         //     if ($std->student_id == $course_id) {
-    //         //         $student = Student::findOrFail($std->student_id);
-    //         //         return response()->json($student);
-    //         //     }
-    //         // }
-
-    //         $d;
-    //         $c;
-
-    //         foreach ($instructor_courses as $course) {
-    //             $c = $course->id;
-    //         }
-    //         // return response()->json($students_courses);
-    //     } catch (\Exception $err) {
-    //         return  response()->json($err->getMessage());
-    //     }
-    // }
-
-    //     public function get_students(Request $request, $user_id, $course_id)
-    // {
-    //     try {
-    //         // Find the instructor and their courses
-    //         $instructor_courses = User::findOrFail($user_id)->courses;
-
-    //         // Check if the course_id exists in the instructor's courses
-    //         $course = $instructor_courses->where('id', $course_id)->first();
-
-    //         $course_students = $course->students;
-
-    //         if (!$course) {
-    //             return response()->json(['message' => 'Course not found for this instructor'], 404);
-    //         }
-
-    //         // Retrieve students for the specific course
-    //         $students = $course->students; // Assuming the relationship is set up in your Course model
-
-    //         if (!$students) {
-    //             return response()->json(['message' => 'No students found for this course'], 404);
-    //         }
-
-    //         // Return the students in JSON format
-    //         return response()->json($course_students, 200);
-
-    //     } catch (\Exception $err) {
-    //         return response()->json(['error' => $err->getMessage()], 500);
-    //     }
-    // }
-
-
     public function get_students(Request $request, $user_id, $course_id)
     {
         try {
-            // Find the instructor
             $instructor = User::findOrFail($user_id);
+            Course::findOrFail($course_id);
             
-            // Find the instructor's courses
-            $instructor_courses = $instructor->courses;
-
-            // Check if the course_id exists in the instructor's courses
-            // $course = $instructor_courses->where('id', $course_id)->first();
-            $course = Course::findOrFail($course_id);
-
-            if (!$course) {
-                return response()->json(['message' => 'Course not found for this instructor'], 404);
-            }
-            
-            // Retrieve students for the specific course
             $students = Course::findOrFail($course_id)->studentCourses;
 
             $student_list = [];
@@ -594,19 +493,13 @@ class Instructor extends Controller
             foreach ($students as $student) {
                 $std = Student::find($student->student_id);
                 if ($std) {
-                    // Filter students by instructor's level_id (department)
-                    // Only show students from the same department as the instructor
                     if ($instructor->level_id && $std->level_id != $instructor->level_id) {
-                        continue; // Skip students not in the instructor's department
+                        continue;
                     }
                     
                     $student_list[] = $std;
                 }
             }
-
-            // if (empty($student_list)) {
-            //     return response()->json(['message' => 'No students found for this course'], 404);
-            // }
 
             return response()->json($student_list, 200);
         } catch (Exception $err) {
@@ -617,7 +510,6 @@ class Instructor extends Controller
     public function student_submit_exam($course_id, $candidate_id)
     {
         try {
-            // Get number of correct answers
             $correct_answers = Answers::where('course_id', $course_id)
                 ->where('candidate_id', $candidate_id)
                 ->where('is_correct', true)
@@ -625,12 +517,10 @@ class Instructor extends Controller
             
             $course = Course::findOrFail($course_id);
             
-            // Get the exam details to get marks_per_question
             $exam = Exam::where('course_id', $course_id)
                 ->where('submission_status', 'submitted')
                 ->first();
             
-            // Calculate total score (correct answers * marks per question)
             $total_score = $correct_answers * $exam->marks_per_question;
 
             $exam_score = StudentExamScore::updateOrCreate(
@@ -658,24 +548,27 @@ class Instructor extends Controller
     public function get_student_scores_for_course(Request $request, $course_id)
     {
         try {
-            // Get the authenticated instructor
             $instructor = $request->user();
             
             // Get student scores for this course
             $scores = StudentExamScore::where('course_id', $course_id)->get();
             
-            // Enhance the data with student information and filter by instructor's department
-            $enhancedScores = [];
+            // Get active exam for this course if any
+            $activeExam = Exam::where('course_id', $course_id)->where('activated', 'yes')->first();
+            
+            // Map scores to standard format
+            $results = [];
+            $seenStudentIds = [];
+
             foreach ($scores as $score) {
                 $student = Student::find($score->student_id);
                 if ($student) {
-                    // Filter students by instructor's level_id (department)
-                    // Only show scores for students from the same department as the instructor
                     if ($instructor && $instructor->level_id && $student->level_id != $instructor->level_id) {
-                        continue; // Skip students not in the instructor's department
+                        continue;
                     }
                     
-                    $enhancedScores[] = [
+                    $seenStudentIds[] = $student->id;
+                    $results[] = [
                         'id' => $score->id,
                         'student_id' => $student->id,
                         'student' => [
@@ -687,13 +580,47 @@ class Instructor extends Controller
                         ],
                         'course_name' => $score->course_name,
                         'score' => $score->score,
+                        'status' => 'submitted',
                         'submitted_at' => $score->created_at,
                         'updated_at' => $score->updated_at,
                     ];
                 }
             }
+
+            // If there's an active exam, also get candidates who haven't submitted yet
+            if ($activeExam) {
+                $candidates = Candidate::where('exam_id', $activeExam->id)
+                    ->whereNotIn('student_id', $seenStudentIds)
+                    ->get();
+
+                foreach ($candidates as $candidate) {
+                    $student = Student::find($candidate->student_id);
+                    if ($student) {
+                        if ($instructor && $instructor->level_id && $student->level_id != $instructor->level_id) {
+                            continue;
+                        }
+
+                        $results[] = [
+                            'id' => 'cand_' . $candidate->id,
+                            'student_id' => $student->id,
+                            'student' => [
+                                'id' => $student->id,
+                                'full_name' => $student->full_name,
+                                'candidate_no' => $student->candidate_no,
+                                'department' => $student->department,
+                                'programme' => $student->programme,
+                            ],
+                            'course_name' => $activeExam->course ? $activeExam->course->title : 'N/A',
+                            'score' => 0,
+                            'status' => 'in_progress',
+                            'submitted_at' => null,
+                            'updated_at' => $candidate->updated_at,
+                        ];
+                    }
+                }
+            }
             
-            return response()->json($enhancedScores);
+            return response()->json($results);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -702,16 +629,11 @@ class Instructor extends Controller
     public function export_student_scores($course_id)
     {
         try {
-            // Validate course exists
             $course = Course::findOrFail($course_id);
-            
-            // Get student scores for this course
             $scores = StudentExamScore::where('course_id', $course_id)->get();
             
-            // Create CSV content
             $csvContent = "Student ID,Candidate Number,Full Name,Department,Programme,Course Name,Score,Submitted At\n";
             
-            // Add data rows
             foreach ($scores as $score) {
                 $student = Student::find($score->student_id);
                 if ($student) {
@@ -729,7 +651,6 @@ class Instructor extends Controller
                 }
             }
             
-            // Set headers for download
             $filename = 'student_scores_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $course->code) . '_' . date('Y-m-d') . '.csv';
             $headers = [
                 'Content-Type' => 'text/csv',
@@ -763,10 +684,6 @@ class Instructor extends Controller
     {
         try {
             $questions = Course::findOrFail($course_id)->questionBanks;
-            // $questions = QuestionBank::where('user_id', $user_id)
-            //     ->with('exam')
-            //     ->orderBy('created_at', 'desc')
-            //     ->get();
             return response()->json($questions);
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 400);
@@ -776,14 +693,25 @@ class Instructor extends Controller
     public function getExamQuestionBank($user_id, $exam_id)
     {
         try {
-            $questions = Course::findOrFail($course_id)->questionBanks;
-            // $questions = QuestionBank::where('user_id', $user_id)
-            //     ->where('exam_id', $exam_id)
-            //     ->orderBy('created_at', 'desc')
-            //     ->get();
-            return response()->json($questions);
+            // Need to find course_id for this exam
+            $exam = Exam::findOrFail($exam_id);
+            $questions = Course::findOrFail($exam->course_id)->questionBanks;
+            return response()->json($questions, 200);
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 400);
+        }
+    }
+
+    public function get_archive_by_exam($exam_id)
+    {
+        try {
+            $archive = ExamArchive::where('exam_id', $exam_id)->orderBy('id', 'desc')->first();
+            if (!$archive) {
+                return response()->json(['error' => 'Archive not found'], 404);
+            }
+            return response()->json($archive);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }

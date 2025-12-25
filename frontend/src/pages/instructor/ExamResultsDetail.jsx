@@ -33,28 +33,55 @@ const ExamResultsDetail = () => {
 
             // Fetch exam details
             const examRes = await axios.get(`${path}/get-exam-by-id/${examId}`, { headers });
-            setExam(examRes.data);
+            const examData = examRes.data;
+            setExam(examData);
 
             // Fetch course details
             const courseRes = await axios.get(`${path}/get-course/${courseId}`, { headers });
             setCourse(courseRes.data);
 
-            // Fetch questions
+            // Try to fetch archive data for this exam first
+            try {
+                const archiveRes = await axios.get(`${path}/get-archive-by-exam/${examId}`, { headers });
+                const archiveData = archiveRes.data;
+                
+                if (archiveData && archiveData.student_results) {
+                    const mappedResults = archiveData.student_results.map(res => ({
+                        student_id: res.student_id,
+                        full_name: res.full_name || 'N/A',
+                        candidate_no: res.candidate_no || 'N/A',
+                        department: res.department || 'N/A',
+                        score: res.score || 0,
+                        questions_answered: res.questions_answered,
+                        correct_answers: res.correct_answers,
+                        submitted_at: res.submission_time,
+                        total_questions: archiveData.total_questions || examData.no_of_questions
+                    }));
+                    setResults(mappedResults);
+                    setLoading(false);
+                    return; // Exit early as we have the best data
+                }
+            } catch (archiveErr) {
+                console.log("No archive found, falling back to course scores");
+            }
+
+            // Fallback: Fetch student scores for this course (legacy/live logic)
             const questionsRes = await axios.get(`${path}/get-questions/${examId}`, { headers });
             const totalQuestions = questionsRes.data.length;
 
-            // Fetch student scores for this course
             const scoresRes = await axios.get(`${path}/get-students-score/${courseId}`, { headers });
             
-            // Map scores to include student info
             const resultsData = scoresRes.data.map(scoreData => ({
                 student_id: scoreData.student_id,
                 full_name: scoreData.student?.full_name || 'N/A',
                 candidate_no: scoreData.student?.candidate_no || 'N/A',
                 department: scoreData.student?.department || 'N/A',
                 score: scoreData.score || 0,
-                submitted_at: scoreData.updated_at,
-                total_questions: totalQuestions
+                status: scoreData.status || 'submitted',
+                submitted_at: scoreData.submitted_at || scoreData.updated_at,
+                total_questions: totalQuestions,
+                questions_answered: 'N/A', // Not available in legacy/live scores
+                correct_answers: 'N/A'
             }));
 
             setResults(resultsData);
@@ -111,7 +138,10 @@ const ExamResultsDetail = () => {
                 index + 1,
                 result.full_name || 'N/A',
                 result.candidate_no || 'N/A',
-                `${Math.round(result.score)} / ${result.total_questions || 'N/A'}`,
+                result.questions_answered !== undefined && result.questions_answered !== 'N/A'
+                    ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
+                    : 'N/A',
+                result.score,
                 `${percentage}%`,
                 result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
             ];
@@ -119,7 +149,7 @@ const ExamResultsDetail = () => {
 
         autoTable(doc, {
             startY: 58,
-            head: [['#', 'Student Name', 'Candidate Number', 'Score (Rounded)', 'Total Questions', 'Percentage', 'Submitted']],
+            head: [['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Percentage', 'Submitted']],
             body: tableData,
         });
 
@@ -140,7 +170,7 @@ const ExamResultsDetail = () => {
             ['Passed:', stats.passed],
             ['Failed:', stats.failed],
             [],
-            ['#', 'Student Name', 'Candidate Number', 'Score (Rounded)', 'Total Questions', 'Percentage', 'Submitted'],
+            ['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Percentage', 'Submitted'],
             ...filteredResults.map((result, index) => {
                 const percentage = exam.max_score > 0 
                     ? ((result.score / exam.max_score) * 100).toFixed(2)
@@ -150,7 +180,10 @@ const ExamResultsDetail = () => {
                     index + 1,
                     result.full_name || 'N/A',
                     result.candidate_no || 'N/A',
-                    `${Math.round(result.score)} / ${result.total_questions || 'N/A'}`,
+                    result.questions_answered !== undefined && result.questions_answered !== 'N/A'
+                        ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
+                        : 'N/A',
+                    result.score,
                     `${percentage}%`,
                     result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
                 ];
@@ -289,37 +322,58 @@ const ExamResultsDetail = () => {
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Number</th>
+                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions Answered</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredResults.map((result, index) => {
-                                    const percentage = exam?.max_score > 0 
-                                        ? (result.score / exam.max_score) * 100 
-                                        : 0;
-                                    const passed = percentage >= 50;
-                                    
-                                    return (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
-                                            <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
-                                            <td className="py-4 px-6 text-sm font-medium text-gray-900">{result.full_name}</td>
-                                            <td className="py-4 px-6 text-sm text-gray-600">{result.candidate_no}</td>
-                                            <td className="py-4 px-6 text-sm font-semibold text-gray-900">
-                                                {Math.round(result.score)} / {result.total_questions}
-                                            </td>
-                                            <td className="py-4 px-6 text-sm text-gray-600">{percentage.toFixed(2)}%</td>
-                                            <td className="py-4 px-6 text-sm">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                                }`}>
-                                                    {passed ? 'Pass' : 'Fail'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                {filteredResults.length > 0 ? (
+                                    filteredResults.map((result, index) => {
+                                        const percentage = exam?.max_score > 0 
+                                            ? (result.score / exam.max_score) * 100 
+                                            : 0;
+                                        const passed = percentage >= 50;
+                                        
+                                        return (
+                                            <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
+                                                <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
+                                                <td className="py-4 px-6 text-sm font-medium text-gray-900">{result.full_name}</td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">{result.candidate_no}</td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">
+                                                    {result.questions_answered !== undefined && result.questions_answered !== 'N/A'
+                                                        ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
+                                                        : 'N/A'}
+                                                </td>
+                                                <td className="py-4 px-6 text-sm">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                        {result.score}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">{percentage.toFixed(2)}%</td>
+                                                <td className="py-4 px-6 text-sm">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                        result.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                                                        passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                    }`}>
+                                                        {result.status === 'in_progress' ? 'In Progress' : passed ? 'Pass' : 'Fail'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="7" className="py-12 text-center text-gray-500">
+                                            <div className="flex flex-col items-center">
+                                                <FaUsers className="text-4xl mb-2 opacity-20" />
+                                                <p className="text-lg font-medium">No results found</p>
+                                                <p className="text-sm">There are no students recorded for this exam yet.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
