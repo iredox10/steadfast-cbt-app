@@ -48,6 +48,11 @@ class Course extends Model
         return $this->hasMany(QuestionBank::class);
     }
 
+    public function lecturerCourses()
+    {
+        return $this->hasMany(LecturerCourse::class);
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

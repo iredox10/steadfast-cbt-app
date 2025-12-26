@@ -332,12 +332,24 @@ const LevelAdminCourseManagement = () => {
                                                 {/* Assignment Status Row */}
                                                 <div className="text-sm">
                                                     {course.assigned_to ? (
-                                                        <div className="flex items-center text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
-                                                            <FaUserTie className="mr-2 flex-shrink-0 text-green-600" />
-                                                            <div className="flex flex-col overflow-hidden">
-                                                                <span className="text-[10px] uppercase text-green-600 font-semibold tracking-wider">Assigned to</span>
-                                                                <span className="truncate font-medium text-xs">{course.assigned_to}</span>
+                                                        <div className="flex items-center justify-between text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                                                            <div className="flex items-center overflow-hidden">
+                                                                <FaUserTie className="mr-2 flex-shrink-0 text-green-600" />
+                                                                <div className="flex flex-col overflow-hidden">
+                                                                    <span className="text-[10px] uppercase text-green-600 font-semibold tracking-wider">Assigned to</span>
+                                                                    <span className="truncate font-medium text-xs">{course.assigned_to}</span>
+                                                                </div>
                                                             </div>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedCourse(course);
+                                                                    setAssignForm({ lecturer_id: course.assigned_to_id || '' });
+                                                                    setShowAssignModal(true);
+                                                                }}
+                                                                className="text-[10px] bg-white border border-green-200 text-green-700 px-2 py-1 rounded hover:bg-green-100 transition-colors font-bold uppercase whitespace-nowrap ml-2"
+                                                            >
+                                                                Change
+                                                            </button>
                                                         </div>
                                                     ) : (
                                                         <button

@@ -1,8 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../public/assets/buk.png';
 import { FaSignOutAlt } from 'react-icons/fa';
 
 const Sidebar = ({ children }) => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/admin-login', { replace: true });
+    };
+
     return (
         <div className="w-64 bg-white flex-shrink-0 border-r border-gray-200 flex flex-col h-screen">
             <div className="flex flex-col items-center p-6 border-b border-gray-200">
@@ -16,14 +23,13 @@ const Sidebar = ({ children }) => {
                 </div>
 
                 <div className="p-6 border-t border-gray-200">
-                    <Link 
-                        to="/admin-login" 
-                        onClick={() => localStorage.removeItem('token')}
-                        className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 w-full rounded-lg transition-colors duration-200"
                     >
                         <FaSignOutAlt />
                         <span>Log out</span>
-                    </Link>
+                    </button>
                 </div>
             </div>
         </div>

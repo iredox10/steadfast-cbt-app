@@ -54,7 +54,7 @@ const AdminSidebar = ({ userId }) => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
-        navigate('/admin-login');
+        navigate('/admin-login', { replace: true });
     };
 
     const isActiveRoute = (route) => {

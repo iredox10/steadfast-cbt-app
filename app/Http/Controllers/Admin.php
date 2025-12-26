@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\SystemConfig;
 use Carbon\Carbon;
 use Exception;
+use Throwable;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -1999,6 +2000,79 @@ class Admin extends Controller
     }
 
     /**
+     * Add a course to the active global session
+     */
+    public function addCourseToActiveSession(Request $request)
+    {
+        try {
+            $validate = $request->validate([
+                "title" => "required|string",
+                "code" => "required|string|unique:courses,code",
+                "credit_unit" => "required|string",
+                "semester_id" => "required|exists:semesters,id"
+            ]);
+
+            $user = $request->user();
+            $semester = Semester::find($validate["semester_id"]);
+            
+            $course = Course::create([
+                "semester_id" => $validate["semester_id"],
+                "acd_session_id" => $semester ? $semester->acd_session_id : null,
+                "title" => $validate["title"],
+                "code" => $validate["code"],
+                "credit_unit" => $validate["credit_unit"],
+                "created_by" => $user->id
+            ]);
+
+            return response()->json($course, 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                "error" => "Validation failed",
+                "message" => $e->getMessage(),
+                "errors" => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json(["error" => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Assign a course to a lecturer
+     */
+    public function assignCourseToLecturer(Request $request)
+    {
+        try {
+            $request->validate([
+                "course_id" => "required|exists:courses,id",
+                "lecturer_id" => "required|exists:users,id"
+            ]);
+
+            $course = Course::findOrFail($request->course_id);
+            $lecturer = User::findOrFail($request->lecturer_id);
+            $user = $request->user();
+
+            // Re-assignment logic: delete existing assignments for this course first
+            LecturerCourse::where("course_id", $course->id)->delete();
+
+            $assignment = LecturerCourse::create([
+                "user_id" => $lecturer->id,
+                "course_id" => $course->id,
+                "title" => $course->title,
+                "code" => $course->code,
+                "credit_unit" => $course->credit_unit,
+                "status" => "active",
+                "created_by" => $user->id
+            ]);
+
+            return response()->json($assignment, 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(["error" => "Validation failed", "message" => $e->getMessage(), "errors" => $e->errors()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(["error" => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Update an existing admin user
      */
     public function updateAdmin(Request $request, $adminId)
@@ -2172,7 +2246,15 @@ class Admin extends Controller
                 $query->where("created_by", $user->id);
             }
 
-            $courses = $query->with("semester")->get();
+            $courses = $query->with(["semester", "lecturerCourses.user"])->get();
+            
+            // Add assigned_to name to each course for frontend convenience
+            $courses->map(function($course) {
+                $assignment = $course->lecturerCourses->first();
+                $course->assigned_to = $assignment && $assignment->user ? $assignment->user->full_name : null;
+                $course->assigned_to_id = $assignment ? $assignment->user_id : null;
+                return $course;
+            });
             
             Log::info("getActiveSessionCourses: Success", ["session_id" => $session->id, "course_count" => $courses->count()]);
 

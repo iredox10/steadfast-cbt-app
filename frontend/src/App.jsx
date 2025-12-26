@@ -45,11 +45,14 @@ import StudentResult from "./pages/StudentResult";
 import NotFound from "./pages/NotFound";
 import UserManual from "./pages/UserManual";
 import FacultyManagement from "./pages/admin/FacultyManagement";
+import SessionTimeout from "./components/SessionTimeout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
     return (
         <div className="">
             <Router>
+                <SessionTimeout timeoutInMinutes={30} />
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/student/:studentId" element={<Student />} />
@@ -62,87 +65,89 @@ function App() {
                     
                     <Route path="/manual/:role" element={<UserManual />} />
 
-                    <Route path="/instructor/:id" element={<Instructor />} />
-                    <Route path="/instructor/dashboard/:id" element={<InstructorDashboard />} />
-                    <Route path="/course-results/:userId/:courseId" element={<CourseResults />} />
-                    <Route path="/exam-results-detail/:userId/:courseId/:examId" element={<ExamResultsDetail />} />
+                    {/* Protected Instructor Routes */}
+                    <Route path="/instructor/:id" element={<ProtectedRoute><Instructor /></ProtectedRoute>} />
+                    <Route path="/instructor/dashboard/:id" element={<ProtectedRoute><InstructorDashboard /></ProtectedRoute>} />
+                    <Route path="/course-results/:userId/:courseId" element={<ProtectedRoute><CourseResults /></ProtectedRoute>} />
+                    <Route path="/exam-results-detail/:userId/:courseId/:examId" element={<ProtectedRoute><ExamResultsDetail /></ProtectedRoute>} />
                     <Route
                         path="/exams/:userId/:courseId"
-                        element={<Exams />}
+                        element={<ProtectedRoute><Exams /></ProtectedRoute>}
                     />
                     <Route
                         path="/exam-questions/:userId/:courseId/:examId"
-                        element={<CourseQuestions />}
+                        element={<ProtectedRoute><CourseQuestions /></ProtectedRoute>}
                     />
                     <Route
                         path="/add-question/:questionId/:userId/:courseId/:examId"
-                        element={<AddQuestion />}
+                        element={<ProtectedRoute><AddQuestion /></ProtectedRoute>}
                     />
                     <Route
                         path="/edit-question/:userId/:questionId"
-                        element={<EditQuestion />}
+                        element={<ProtectedRoute><EditQuestion /></ProtectedRoute>}
                     />
                     <Route
                         path="/instructor-student/:userId/:courseId"
-                        element={<InstructorStudents />}
+                        element={<ProtectedRoute><InstructorStudents /></ProtectedRoute>}
                     />
 
+                    {/* Protected Admin Routes */}
                     <Route
                         path="/admin-exam/:id"
-                        element={<AdminExam />}
+                        element={<ProtectedRoute><AdminExam /></ProtectedRoute>}
                     />
                     <Route path="/admin-login" element={<AdminLogin />} />
-                    <Route path="/admin-sessions" element={<AcdSession />} />
-                    <Route path="/session/:id" element={<Session />} />
-                    <Route path="/semester/:id" element={<Semester />} />
+                    <Route path="/admin-sessions" element={<ProtectedRoute><AcdSession /></ProtectedRoute>} />
+                    <Route path="/session/:id" element={<ProtectedRoute><Session /></ProtectedRoute>} />
+                    <Route path="/semester/:id" element={<ProtectedRoute><Semester /></ProtectedRoute>} />
                     <Route
                         path="/admin-students/:id"
-                        element={<AdminStudents />}
+                        element={<ProtectedRoute><AdminStudents /></ProtectedRoute>}
                     />
-                    {/* <Route path='/admin-courses/:id' element={<AdminCourses />} /> */}
-
-                    <Route path="/dashboard/:userId" element={<Dashboard />} />
+                    
+                    <Route path="/dashboard/:userId" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route
                         path="/admin-instructors/:userId"
-                        element={<AdminInstructors />}
+                        element={<ProtectedRoute><AdminInstructors /></ProtectedRoute>}
                     />
                     <Route
                         path="/admin-instructor-courses/:id"
-                        element={<InstructorsCourses />}
+                        element={<ProtectedRoute><InstructorsCourses /></ProtectedRoute>}
                     />
                     <Route
                         path="/assign-courses/:id"
-                        element={<InstructorsCourses />}
+                        element={<ProtectedRoute><InstructorsCourses /></ProtectedRoute>}
                     />
                     <Route
                         path="/add-student-to-course/:id"
-                        element={<CourseStudents />}
+                        element={<ProtectedRoute><CourseStudents /></ProtectedRoute>}
                     />
                     <Route
                         path="/exam-instructions/:studentId"
                         element={<ExamInstructions />}
                     />
 
-                    <Route path="/invigilator/:id" element={<Invigilator />} />
-                    <Route path="/invigilator-settings/:id" element={<InvigilatorSettings />} />
+                    {/* Protected Invigilator Routes */}
+                    <Route path="/invigilator/:id" element={<ProtectedRoute><Invigilator /></ProtectedRoute>} />
+                    <Route path="/invigilator-settings/:id" element={<ProtectedRoute><InvigilatorSettings /></ProtectedRoute>} />
 
                     <Route path="/not-check-in" element={<NotCheckIn />} />
 
-                    <Route path="/question-bank/:userId" element={<QuestionBank />} />
+                    <Route path="/question-bank/:userId" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
 
-                    <Route path="/exam-archives" element={<ExamArchives />} />
-                    <Route path="/exam-archives/:archiveId" element={<ExamArchiveDetail />} />
-                    <Route path="/exam-archive-detail/:userId/:archiveId" element={<ExamArchiveDetail />} />
+                    <Route path="/exam-archives" element={<ProtectedRoute><ExamArchives /></ProtectedRoute>} />
+                    <Route path="/exam-archives/:archiveId" element={<ProtectedRoute><ExamArchiveDetail /></ProtectedRoute>} />
+                    <Route path="/exam-archive-detail/:userId/:archiveId" element={<ProtectedRoute><ExamArchiveDetail /></ProtectedRoute>} />
 
-                    <Route path="/admin-management" element={<AdminManagement />} />
-                    <Route path="/admin-dashboard/:userId" element={<SuperAdminDashboard />} />
-                    <Route path="/department-management" element={<DepartmentManagement />} />
-                    <Route path="/faculty-management" element={<FacultyManagement />} />
-                    <Route path="/global-session-management" element={<GlobalSessionManagement />} />
-                    <Route path="/level-admin-courses" element={<LevelAdminCourseManagement />} />
-                    <Route path="/student-enrollment/:courseId" element={<StudentEnrollment />} />
-                    <Route path="/admin-tickets/:id" element={<Tickets />} />
-                    <Route path="/admin-settings/:userId" element={<Settings />} />
+                    <Route path="/admin-management" element={<ProtectedRoute><AdminManagement /></ProtectedRoute>} />
+                    <Route path="/admin-dashboard/:userId" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
+                    <Route path="/department-management" element={<ProtectedRoute><DepartmentManagement /></ProtectedRoute>} />
+                    <Route path="/faculty-management" element={<ProtectedRoute><FacultyManagement /></ProtectedRoute>} />
+                    <Route path="/global-session-management" element={<ProtectedRoute><GlobalSessionManagement /></ProtectedRoute>} />
+                    <Route path="/level-admin-courses" element={<ProtectedRoute><LevelAdminCourseManagement /></ProtectedRoute>} />
+                    <Route path="/student-enrollment/:courseId" element={<ProtectedRoute><StudentEnrollment /></ProtectedRoute>} />
+                    <Route path="/admin-tickets/:id" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
+                    <Route path="/admin-settings/:userId" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                     
                     {/* 404 - Catch all unmatched routes */}
                     <Route path="*" element={<NotFound />} />
