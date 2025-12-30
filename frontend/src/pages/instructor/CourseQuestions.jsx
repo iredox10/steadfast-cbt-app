@@ -162,6 +162,7 @@ const CourseQuestions = () => {
             await axios.patch(`${path}/edit-question/${questionId}`, {
                 question: bankQuestion.question,
                 correct_answer: bankQuestion.correct_answer,
+                option_a: bankQuestion.option_a || bankQuestion.correct_answer,
                 option_b: bankQuestion.option_b,
                 option_c: bankQuestion.option_c,
                 option_d: bankQuestion.option_d

@@ -12,28 +12,22 @@ use App\Models\Course;
 use App\Models\ExamArchive;
 use App\Models\Question;
 use App\Models\Answers;
+use Carbon\Carbon;
 
 class InvigilatorController extends Controller
 {
     public function generate_ticket(Request $request)
     {
-        // This method is deprecated - tickets are now assigned during student login
-        // Keeping for backwards compatibility but returning appropriate message
         return response()->json([
-            'error' => 'Ticket generation is no longer available. Tickets are automatically assigned when students login.',
-            'message' => 'Students should use the check-in process and then login with any available ticket number.'
+            'error' => 'Ticket generation is no longer available.',
+            'message' => 'Tickets are automatically assigned when students login.'
         ], 400);
     }
 
     public function regenerate_ticket(Request $request)
     {
-        $validate = $request->validate([
-            'student_id' => 'required|numeric',
-        ]);
-
-        // Regeneration is no longer allowed once tickets are pre-assigned
         return response()->json([
-            'error' => 'Ticket regeneration has been disabled. Please contact the super admin for ticket issues.'
+            'error' => 'Ticket regeneration has been disabled.'
         ], 403);
     }
 
@@ -45,60 +39,39 @@ class InvigilatorController extends Controller
                 'course_id' => 'required|numeric',
             ]);
 
-            \Log::info('Check-in request received', $validate);
-
             $student = Student::findOrFail($validate['student_id']);
-            \Log::info('Student found', ['student_id' => $student->id, 'name' => $student->full_name]);
-
             $active_exam = Exam::where('course_id', $validate['course_id'])
                 ->where('activated', 'yes')
                 ->first();
 
             if (!$active_exam) {
-                \Log::error('No active exam found', ['course_id' => $validate['course_id']]);
                 return response()->json(['error' => 'No active exam found for this course'], 404);
             }
 
-            \Log::info('Active exam found', ['exam_id' => $active_exam->id]);
-
-            // Check if student is enrolled in this course
-            $studentCourse = \App\Models\StudentCourse::where('student_id', $student->id)
+            // Check if student is enrolled
+            $isEnrolled = \App\Models\StudentCourse::where('student_id', $student->id)
                 ->where('course_id', $validate['course_id'])
-                ->first();
+                ->exists();
 
-            if (!$studentCourse) {
-                \Log::error('Student not enrolled in course', [
-                    'student_id' => $student->id,
-                    'course_id' => $validate['course_id']
-                ]);
+            if (!$isEnrolled) {
                 return response()->json(['error' => 'Student is not enrolled in this course'], 404);
             }
 
-            // Check if there are available tickets for this exam
+            // Check if there are available tickets
             $availableTicketsCount = ExamTicket::where('exam_id', $active_exam->id)
                 ->whereNull('assigned_to_student_id')
                 ->where('is_used', false)
                 ->count();
 
             if ($availableTicketsCount === 0) {
-                \Log::error('No available tickets for exam', [
-                    'exam_id' => $active_exam->id
-                ]);
-                return response()->json(['error' => 'No available tickets for this exam. Contact the administrator.'], 404);
+                return response()->json(['error' => 'No available tickets for this exam.'], 404);
             }
 
-            // Find or create candidate record (without ticket assignment)
             $candidate = Candidate::where('student_id', $student->id)
                 ->where('exam_id', $active_exam->id)
                 ->first();
 
             if (!$candidate) {
-                \Log::info('Candidate record not found, creating one', [
-                    'student_id' => $student->id,
-                    'exam_id' => $active_exam->id
-                ]);
-
-                // Create candidate record for this student (ticket will be assigned during login)
                 $candidate = Candidate::create([
                     'student_id' => $student->id,
                     'exam_id' => $active_exam->id,
@@ -109,51 +82,25 @@ class InvigilatorController extends Controller
                     'password' => $student->password,
                     'is_logged_on' => 0,
                     'is_checkout' => 0,
-                    'is_checked_in' => false,
-                    'checkin_time' => null,
-                    'checkout_time' => null,
-                    'ticket_no' => null, // No ticket assigned yet
+                    'is_checked_in' => true,
+                    'checkin_time' => now(),
                     'status' => 'pending',
                 ]);
-
-                \Log::info('Candidate record created', ['candidate_id' => $candidate->id]);
+            } else {
+                $candidate->update([
+                    'is_checked_in' => true,
+                    'checkin_time' => now(),
+                ]);
             }
 
-            \Log::info('Candidate found/created', ['candidate_id' => $candidate->id]);
-
-            // Mark student as checked in
-            $candidate->update([
-                'is_checked_in' => true,
-                'checkin_time' => now(),
-            ]);
-
-            \Log::info('Candidate updated with check-in status');
-
-            // Also update student record
-            $student->update([
-                'is_checked_in' => true,
-            ]);
-
-            \Log::info('Student record updated with check-in status');
+            $student->update(['is_checked_in' => true]);
 
             return response()->json([
-                'message' => 'Student checked in successfully. Student can now login with any available ticket.',
+                'message' => 'Student checked in successfully.',
                 'student' => $student,
-                'checkin_time' => $candidate->checkin_time,
-                'is_checked_in' => true,
-                'available_tickets' => $availableTicketsCount
+                'is_checked_in' => true
             ], 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Validation error', ['errors' => $e->errors()]);
-            return response()->json(['error' => 'Validation failed: ' . json_encode($e->errors())], 422);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            \Log::error('Model not found', ['message' => $e->getMessage()]);
-            return response()->json(['error' => 'Student or exam not found'], 404);
         } catch (Exception $e) {
-            \Log::error('Check-in error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -166,27 +113,30 @@ class InvigilatorController extends Controller
             $student_list = [];
 
             $active_exam = Exam::where('course_id', $course_id)->where('activated', 'yes')->first();
-            
-            // Fallback to latest exam if no active one found (to support viewing past/terminated exam data)
             if (!$active_exam) {
                 $active_exam = Exam::where('course_id', $course_id)->latest()->first();
             }
             
-            // Get the authenticated user (invigilator)
             $invigilator = $request->user();
+            $levelFilter = $request->query('level_id');
 
             foreach ($students as $student_course) {
-                $student = Student::findOrFail($student_course->student_id);
+                $student = Student::with('level')->find($student_course->student_id);
+                if (!$student) continue;
                 
-                // Filter students by the invigilator's level_id (department)
-                // This ensures invigilators only see students from their own department
-                if ($invigilator && $invigilator->level_id && $student->level_id != $invigilator->level_id) {
-                    continue; // Skip students not in the invigilator's department
+                // Filter by level_id query parameter if provided
+                if ($levelFilter && $levelFilter !== 'all' && $student->level_id != $levelFilter) {
+                    continue;
                 }
-                
-                // Also allow super admin filtering via query parameter
-                if ($request->has('level_id') && $request->level_id && $student->level_id != $request->level_id) {
-                    continue; // Skip students not in the specified level
+
+                // Role-based filtering
+                if ($invigilator->role === 'level_admin' && $student->level_id != $invigilator->level_id) {
+                    continue; 
+                } elseif ($invigilator->role === 'faculty_officer') {
+                    // Check if student belongs to a department in this faculty
+                    if (!$student->level || $student->level->faculty_id != $invigilator->faculty_id) {
+                        continue;
+                    }
                 }
                 
                 if ($active_exam) {
@@ -198,25 +148,7 @@ class InvigilatorController extends Controller
                         ->first();
 
                     $student->ticket_no = $ticketRecord ? $ticketRecord->ticket_no : ($candidate ? $candidate->ticket_no : null);
-                    $student->ticket_assigned = (bool) $ticketRecord;
-                    $student->ticket_used = $ticketRecord ? (bool) $ticketRecord->is_used : false;
-                    // Add candidate ID for potential future use
-                    $student->candidate_id = $candidate ? $candidate->id : null;
-                    // Add check-in status
-                    $student->is_checked_in = $candidate ? ($candidate->is_checked_in ?? false) : false;
-                    $student->checkin_time = $candidate ? $candidate->checkin_time : null;
-                    
-                    // Use candidate image if available, otherwise use student image
-                    if ($candidate && $candidate->image) {
-                        $student->image = $candidate->image;
-                    }
-                    
-                    // Add score if available
-                    $score_record = \App\Models\StudentExamScore::where('student_id', $student->id)
-                        ->where('course_id', $course_id)
-                        ->first();
-                    $student->score = $score_record ? $score_record->score : null;
-                    // Add time extension information
+                    $student->exam_id = $active_exam->id;
                     $student->time_extension = $candidate ? $candidate->time_extension : 0;
                 }
                 $student_list[] = $student;
@@ -230,55 +162,40 @@ class InvigilatorController extends Controller
 
     public function extend_time(Request $request)
     {
-        $validate = $request->validate([
-            'student_id' => 'required|numeric',
-            'exam_id' => 'required|numeric',
-            'extension_minutes' => 'required|numeric|min:1'
-        ]);
-
         try {
-            // Find the exam (active or inactive)
-            $active_exam = Exam::find($validate['exam_id']);
+            $validate = $request->validate([
+                'student_id' => 'required|numeric',
+                'exam_id' => 'required|numeric',
+                'extension_minutes' => 'required|numeric|min:1'
+            ]);
 
-            if (!$active_exam) {
-                return response()->json(['error' => 'Exam not found.'], 404);
-            }
-
-            // Find the student
+            $active_exam = Exam::findOrFail($validate['exam_id']);
             $student = Student::findOrFail($validate['student_id']);
-
-            // Find or create the candidate
-            $candidate = Candidate::where('student_id', $validate['student_id'])
+            $candidate = Candidate::where('student_id', $student->id)
                                 ->where('exam_id', $active_exam->id)
                                 ->first();
 
             if (!$candidate) {
-                // Create candidate record if it doesn't exist
-                $candidate = Candidate::create([
-                    'student_id' => $student->id,
-                    'exam_id' => $active_exam->id,
-                    'full_name' => $student->full_name,
-                    'programme' => $student->programme,
-                    'department' => $student->department,
-                    'password' => $student->password,
-                    'is_logged_on' => 0,
-                    'is_checkout' => 0,
-                    'checkin_time' => now(),
-                    'checkout_time' => '',
-                    'ticket_no' => null, // Will be generated when needed
-                    'status' => 'pending',
-                    'time_extension' => 0
-                ]);
+                return response()->json(['error' => 'Candidate record not found.'], 404);
             }
 
-            // Get current extension and add new extension
             $current_extension = (int)($candidate->time_extension ?? 0);
             $extension_minutes = (int)$validate['extension_minutes'];
             $new_extension = $current_extension + $extension_minutes;
+            
+            if ($candidate->start_time) {
+                $elapsed_seconds = now()->diffInSeconds(Carbon::parse($candidate->start_time));
+                $total_allowed_seconds = ($active_exam->exam_duration + $current_extension) * 60;
+                
+                if ($elapsed_seconds > $total_allowed_seconds) {
+                    $debt_minutes = (int)ceil(($elapsed_seconds - $total_allowed_seconds) / 60);
+                    $new_extension = $current_extension + $debt_minutes + $extension_minutes;
+                }
+            }
 
-            // Update the candidate's time extension
             $candidate->update([
-                'time_extension' => $new_extension
+                'time_extension' => $new_extension,
+                'status' => 'active'
             ]);
 
             return response()->json([
@@ -294,7 +211,6 @@ class InvigilatorController extends Controller
     public function terminate_exam($course_id)
     {
         try {
-            // Get the active exam
             $exam = Exam::where('course_id', $course_id)
                     ->where('activated', 'yes')
                     ->first();
@@ -305,39 +221,19 @@ class InvigilatorController extends Controller
 
             $exam_id = $exam->id;
             $course = Course::findOrFail($exam->course_id);
-
-            // Get total questions and marks for this exam
             $totalQuestions = Question::where('exam_id', $exam_id)->count();
             $totalMarks = $exam->marks_per_question * $totalQuestions;
 
-            // Get all students who took this exam with their scores
             $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
                 $query->where('exam_id', $exam_id);
             })
-            ->with([
-                'candidates' => function($query) use ($exam_id) {
-                    $query->where('exam_id', $exam_id);
-                },
-                'examScores' => function($query) use ($exam) {
-                    $query->where('course_id', $exam->course_id);
-                }
-            ])
+            ->with(['candidates' => fn($q) => $q->where('exam_id', $exam_id), 'examScores' => fn($q) => $q->where('course_id', $exam->course_id)])
             ->get()
             ->map(function ($student) use ($exam) {
                 $candidate = $student->candidates->first();
                 $examScore = $student->examScores->first();
-                
-                $questionsAnswered = 0;
-                $correctAnswers = 0;
-                if ($candidate) {
-                    $questionsAnswered = Answers::where('course_id', $exam->course_id)
-                                               ->where('candidate_id', $student->id)
-                                               ->count();
-                    $correctAnswers = Answers::where('course_id', $exam->course_id)
-                                            ->where('candidate_id', $student->id)
-                                            ->where('is_correct', true)
-                                            ->count();
-                }
+                $questionsAnswered = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->count() : 0;
+                $correctAnswers = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->where('is_correct', true)->count() : 0;
                 
                 return [
                     'student_id' => $student->id,
@@ -351,10 +247,8 @@ class InvigilatorController extends Controller
                     'questions_answered' => $questionsAnswered,
                     'correct_answers' => $correctAnswers,
                 ];
-            })
-            ->toArray();
+            })->toArray();
 
-            // Create exam archive
             ExamArchive::create([
                 'exam_id' => $exam_id,
                 'exam_title' => $exam->title ?? $course->title . ' Exam',
@@ -367,12 +261,7 @@ class InvigilatorController extends Controller
                 'student_results' => $studentResults,
             ]);
 
-            // Get list of student IDs
-            $studentIds = Candidate::where('exam_id', $exam_id)
-                ->pluck('student_id')
-                ->toArray();
-
-            // Reset student statuses
+            $studentIds = Candidate::where('exam_id', $exam_id)->pluck('student_id')->toArray();
             if (!empty($studentIds)) {
                 Student::whereIn('id', $studentIds)->update([
                     'is_logged_on' => 'no',
@@ -382,30 +271,18 @@ class InvigilatorController extends Controller
                 ]);
             }
 
-            // Clear violations
             \App\Models\ExamViolation::where('exam_id', $exam_id)->delete();
-
-            // Clear answers
             $questionIds = Question::where('exam_id', $exam_id)->pluck('id');
             if ($questionIds->isNotEmpty()) {
                 Answers::whereIn('question_id', $questionIds)->delete();
             }
 
-            // Clear candidates
             Candidate::where('exam_id', $exam_id)->delete();
-
-            // Delete tickets
             ExamTicket::where('exam_id', $exam_id)->delete();
 
-            // Deactivate exam
-            $exam->activated = 'no';
-            $exam->invigilator = null;
-            $exam->finished_time = now();
-            $exam->save();
+            $exam->update(['activated' => 'no', 'invigilator' => null, 'finished_time' => now()]);
 
-            return response()->json([
-                'message' => 'Exam terminated, archived, and all records cleared successfully'
-            ], 200);
+            return response()->json(['message' => 'Exam terminated successfully'], 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

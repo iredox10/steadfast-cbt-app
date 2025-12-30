@@ -8,7 +8,7 @@ import { parseDuration } from "../../utils/parseDuration";
 import Model from "../components/Model";
 import ExamSecurityProvider from "../components/ExamSecurityProvider";
 import Calculator from "../components/Calculator";
-import { FaTimes, FaTimesCircle, FaBook, FaUser, FaClock, FaGraduationCap, FaPaperPlane, FaExclamationTriangle, FaCalculator } from "react-icons/fa";
+import { FaTimes, FaTimesCircle, FaBook, FaUser, FaClock, FaGraduationCap, FaPaperPlane, FaExclamationTriangle, FaCalculator, FaSync } from "react-icons/fa";
 import logo from "../../public/assets/buk.png";
 
 // Simple test component to verify rendering
@@ -21,170 +21,109 @@ const TestComponent = () => {
 };
 
 const Student = () => {
-    console.log('Student component constructor called');
-
     const { studentId } = useParams();
     const { data, loading, err } = useFetch(`/get-student-exam/${studentId}`);
-    const [answers, setAnswers] = useState([]);
+    
+    // State for managing exam data refresh (for time extensions)
+    const [liveData, setLiveData] = useState(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
+    // Initial student data
     const { data: student } = useFetch(`/get-student/${studentId}`);
+
+    // Sync liveData with initial data
+    useEffect(() => {
+        if (data) setLiveData(data);
+    }, [data]);
+
+    const refreshExamData = async () => {
+        setIsRefreshing(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${path}/get-student-exam/${studentId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setLiveData(res.data);
+            console.log("Exam data refreshed (Time sync)");
+        } catch (error) {
+            console.error("Error refreshing exam data:", error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    // Auto-poll for time extensions every 60 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!loading && liveData) {
+                refreshExamData();
+            }
+        }, 60000); // Poll every minute
+
+        return () => clearInterval(interval);
+    }, [loading, liveData, studentId]);
+
+    const [answers, setAnswers] = useState([]);
     const [questionIndexToShow, setQuestionIndexToShow] = useState(0);
     const [clickedBtns, setClickedBtns] = useState([]);
     const [activeButton, setActiveButton] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
-    const [showModel, setShowModel] = useState(false);
     const [sumbitModel, setSubmitModel] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission loading
+    const [isSubmitting, setIsSubmitting] = useState(false); 
     const [showCalculator, setShowCalculator] = useState(false);
-
-    // Store shuffled options for each question to prevent reshuffling
     const [shuffledOptions, setShuffledOptions] = useState({});
-
-    // State for managing exam data refresh (for time extensions)
-    const [examData, setExamData] = useState(null);
 
     const navigate = useNavigate();
 
-    // Debug logging for all state variables
-    console.log('=== Student component render ===');
-    console.log('studentId:', studentId);
-    console.log('data:', data);
-    console.log('loading:', loading);
-    console.log('err:', err);
-    console.log('student:', student);
-
-    // Check for JavaScript errors
-    try {
-        // Get current question
-        const currentQuestion = data?.questions?.[questionIndexToShow];
-        console.log('currentQuestion:', currentQuestion);
-        console.log('questionIndexToShow:', questionIndexToShow);
-        console.log('Total questions:', data?.questions?.length);
-
-        // Generate a unique key for localStorage based on student and exam
-        const localStorageKey = `exam_answers_${studentId}_${data?.exam?.id || 'unknown'}`;
-        console.log('localStorageKey:', localStorageKey);
-    } catch (error) {
-        console.error('Error in component rendering:', error);
-    }
-
-    // Debug logging for all state variables
-    console.log('Student component state:', {
-        studentId,
-        data,
-        loading,
-        err,
-        student,
-        answers,
-        selectedAnswers,
-        questionIndexToShow,
-        activeButton
-    });
+    // Use liveData for the rest of the component
+    const activeData = liveData || data;
 
     // Get current question
-    const currentQuestion = data?.questions?.[questionIndexToShow];
-    console.log('Current question:', currentQuestion);
-    console.log('Question index to show:', questionIndexToShow);
-    console.log('Total questions:', data?.questions?.length);
-
-        // Generate a unique key for localStorage based on student and exam
-
-        const localStorageKey = `exam_answers_${studentId}_${data?.exam?.id || 'unknown'}`;
-
+    const currentQuestion = activeData?.questions?.[questionIndexToShow];
     
+    // Generate a unique key for localStorage based on student and exam
+    const localStorageKey = `exam_answers_${studentId}_${activeData?.exam?.id || 'unknown'}`;
 
-        // Load saved answers from localStorage on component mount (first instance)
-
-        useEffect(() => {
-
-            console.log('Checking for saved data with:', {
-
-                examId: data?.exam?.id,
-
-                studentId,
-
-                localStorageKey
-
-            });
-
-    
-
-            if (data?.exam?.id && studentId) {
-
-                const savedData = localStorage.getItem(localStorageKey);
-
-                console.log('Found saved data:', savedData);
-
-    
-
-                if (savedData) {
-
-                    try {
-
-                        const parsedData = JSON.parse(savedData);
-
-                        console.log('Parsed saved data:', parsedData);
-
-    
-
-                        // Only load saved data if it's for the same exam
-
-                        if (parsedData.examId === data?.exam?.id) {
-
-                            setAnswers(parsedData.answers || []);
-
-                            setSelectedAnswers(parsedData.selectedAnswers || {});
-
-                            setClickedBtns(parsedData.clickedBtns || []);
-
-                            setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
-
-                            setActiveButton(parsedData.activeButton || 0);
-
-                            setShuffledOptions(parsedData.shuffledOptions || {});
-
-                            console.log("Loaded saved exam data from localStorage");
-
-                        } else {
-
-                            console.log("Saved data is for a different exam, clearing it");
-
-                            localStorage.removeItem(localStorageKey);
-
-                        }
-
-                    } catch (error) {
-
-                        console.error("Error parsing saved exam data:", error);
-
-                        // Clear invalid data
-
-                        localStorage.removeItem(localStorageKey);
-
-                    }
-
-                }
-
-            }
-
-        }, [data?.exam?.id, studentId, localStorageKey]);
-
-        // Save answers to localStorage whenever they change
+    // Load saved answers from localStorage on component mount (first instance)
     useEffect(() => {
-        if (data?.exam?.id && studentId) {
+        if (activeData?.exam?.id && studentId) {
+            const savedData = localStorage.getItem(localStorageKey);
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    // Only load saved data if it's for the same exam
+                    if (parsedData.examId === activeData?.exam?.id) {
+                        setAnswers(parsedData.answers || []);
+                        setSelectedAnswers(parsedData.selectedAnswers || {});
+                        setClickedBtns(parsedData.clickedBtns || []);
+                        setQuestionIndexToShow(parsedData.questionIndexToShow || 0);
+                        setActiveButton(parsedData.activeButton || 0);
+                        setShuffledOptions(parsedData.shuffledOptions || {});
+                    } else {
+                        localStorage.removeItem(localStorageKey);
+                    }
+                } catch (error) {
+                    localStorage.removeItem(localStorageKey);
+                }
+            }
+        }
+    }, [activeData?.exam?.id, studentId, localStorageKey]);
+
+    useEffect(() => {
+        if (activeData?.exam?.id && studentId) {
             const examData = {
-                examId: data?.exam?.id,
+                examId: activeData?.exam?.id,
                 answers,
                 selectedAnswers,
                 clickedBtns,
                 questionIndexToShow,
                 activeButton,
                 shuffledOptions,
-                timestamp: new Date().toISOString()
+                lastSync: new Date().toISOString()
             };
             localStorage.setItem(localStorageKey, JSON.stringify(examData));
         }
-    }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, data?.exam?.id, studentId, localStorageKey]);
+    }, [answers, selectedAnswers, clickedBtns, questionIndexToShow, activeButton, shuffledOptions, activeData?.exam?.id, studentId, localStorageKey]);
 
     const shuffleArray = (array) => {
         const newArray = [...array];
@@ -275,17 +214,7 @@ const Student = () => {
         };
     }, [currentQuestion, questionIndexToShow, activeButton]);
 
-    // Function to handle answer selection
     const handleAnswer = async (optionType, questionId, question, answer) => {
-        // Log the selected answer details
-        console.log('Answer selected:', {
-            optionType,
-            questionId,
-            question,
-            answer,
-            courseId: data?.exam?.course_id
-        });
-
         // Update selected answers
         setSelectedAnswers((prev) => ({
             ...prev,
@@ -294,28 +223,10 @@ const Student = () => {
 
         try {
             // Make the API call to check if answer is correct
-            const response = await axios.post(`${path}/answer-question/${studentId}/${questionId}/${data?.exam?.course_id}`, {
+            await axios.post(`${path}/answer-question/${studentId}/${questionId}/${activeData?.exam?.course_id}`, {
                 selected_answer: answer,
                 question: question
             });
-
-            // Log the complete response for debugging
-            console.log('Answer submission response:', response.data);
-
-            // Log if answer was correct with more details
-            if (response.data.is_correct) {
-                console.log('%c ✓ Correct Answer!', 'color: green; font-weight: bold; font-size: 14px;', {
-                    questionId,
-                    selectedAnswer: answer,
-                    response: response.data
-                });
-            } else {
-                console.log('%c ✗ Incorrect Answer', 'color: red; font-weight: bold; font-size: 14px;', {
-                    questionId,
-                    selectedAnswer: answer,
-                    response: response.data
-                });
-            }
         } catch (error) {
             console.error('Error submitting answer:', error);
         }
@@ -331,17 +242,14 @@ const Student = () => {
             };
 
             if (existingAnswerIndex >= 0) {
-                // Update existing answer
                 const newAnswers = [...prev];
                 newAnswers[existingAnswerIndex] = newAnswer;
                 return newAnswers;
             } else {
-                // Add new answer
                 return [...prev, newAnswer];
             }
         });
 
-        // Add to clicked buttons if not already there
         if (!clickedBtns.includes(questionId)) {
             setClickedBtns(prev => [...prev, questionId]);
         }
@@ -352,25 +260,17 @@ const Student = () => {
         try {
             // First, submit each answer individually
             for (const answer of answers) {
-                console.log('Submitting answer:', {
-                    question_id: answer.question_id,
-                    selected_answer: answer.answer,
-                    course_id: data?.exam?.course_id
-                });
-
-                await axios.post(`${path}/answer-question/${studentId}/${answer.question_id}/${data?.exam?.course_id}`, {
+                await axios.post(`${path}/answer-question/${studentId}/${answer.question_id}/${activeData?.exam?.course_id}`, {
                     selected_answer: answer.answer,
                     question: answer.question
                 });
             }
 
             // Then submit the exam
-            const res = await axios.get(`${path}/submit-exam/${studentId}/${data?.exam?.course_id}`);
+            const res = await axios.get(`${path}/submit-exam/${studentId}/${activeData?.exam?.course_id}`);
 
             // Clear localStorage after successful submission
             localStorage.removeItem(localStorageKey);
-
-            // Clear timer data as well
             localStorage.removeItem("examTimeRemaining");
             localStorage.removeItem("examLastTimestamp");
 
@@ -381,7 +281,6 @@ const Student = () => {
             }
         } catch (err) {
             console.log("Error submitting exam:", err);
-            // Don't clear localStorage on error, so student can retry
             const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to submit exam. Please try again.";
             alert(`Error submitting exam: ${errorMessage}`);
         } finally {
@@ -395,7 +294,7 @@ const Student = () => {
     };
 
     const handleNext = (questionId, question) => {
-        if (questionIndexToShow < data?.questions?.length - 1) {
+        if (questionIndexToShow < activeData?.questions?.length - 1) {
             setQuestionIndexToShow((prev) => prev + 1);
             setActiveButton((prev) => prev + 1);
         }
@@ -408,8 +307,7 @@ const Student = () => {
         }
     };
 
-    if (loading) {
-        console.log('Component is loading...');
+    if (loading && !activeData) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
@@ -420,42 +318,32 @@ const Student = () => {
         );
     }
 
-    // Check if we have data
-    if (!data) {
-        console.log('No data available');
+    if (!activeData) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600">No exam data available.</p>
-                    {err && <p className="text-red-600 mt-2">Error: {typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>}
+                    {err && <p className="text-red-600 mt-2">Error: {err}</p>}
                 </div>
             </div>
         );
     }
 
-    console.log('Rendering main content with data:', data);
-
-    // Check if we have the required data structure
-    if (!data.exam || !data.questions || !Array.isArray(data.questions)) {
-        console.log('Incomplete data structure:', data);
+    if (!activeData.exam || !activeData.questions || !Array.isArray(activeData.questions)) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600">Incomplete exam data.</p>
-                    {err && <p className="text-red-600 mt-2">Error: {typeof err === 'object' ? err.error || err.message || 'An error occurred' : err}</p>}
                 </div>
             </div>
         );
     }
 
-    // Check if we have questions
-    if (data.questions.length === 0) {
-        console.log('No valid questions available');
+    if (activeData.questions.length === 0) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600">No valid questions available for this exam.</p>
-                    <p className="text-gray-500 text-sm mt-2">Please contact your instructor to add valid questions to the exam.</p>
                 </div>
             </div>
         );
@@ -464,16 +352,16 @@ const Student = () => {
     return (
         <ExamSecurityProvider
             studentId={studentId}
-            examId={data?.exam?.id}
+            examId={activeData?.exam?.id}
             securitySettings={{
-                enable_fullscreen: data?.exam?.enable_fullscreen ?? true,
-                enable_tab_switch_detection: data?.exam?.enable_tab_switch_detection ?? true,
-                enable_copy_paste_block: data?.exam?.enable_copy_paste_block ?? true,
-                enable_screenshot_block: data?.exam?.enable_screenshot_block ?? true,
-                enable_multiple_monitor_check: data?.exam?.enable_multiple_monitor_check ?? true,
-                max_violations: data?.exam?.max_violations ?? 3
+                enable_fullscreen: activeData?.exam?.enable_fullscreen ?? true,
+                enable_tab_switch_detection: activeData?.exam?.enable_tab_switch_detection ?? true,
+                enable_copy_paste_block: activeData?.exam?.enable_copy_paste_block ?? true,
+                enable_screenshot_block: activeData?.exam?.enable_screenshot_block ?? true,
+                enable_multiple_monitor_check: activeData?.exam?.enable_multiple_monitor_check ?? true,
+                max_violations: activeData?.exam?.max_violations ?? 3
             }}
-            enabled={data?.exam?.enable_browser_lockdown ?? true}
+            enabled={activeData?.exam?.enable_browser_lockdown ?? true}
             onAutoSubmit={() => handleSubmit(true)}
         >
             <div className="min-h-screen bg-gray-50">
@@ -522,10 +410,10 @@ const Student = () => {
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm font-medium text-gray-900">
-                                            {data?.exam?.course_title || "Loading..."}
+                                            {activeData?.exam?.course_title || "Loading..."}
                                         </p>
                                         <p className="text-xs text-gray-500">
-                                            {data?.questions?.length || 0} Questions
+                                            {activeData?.questions?.length || 0} Questions
                                         </p>
                                     </div>
                                 </div>
@@ -546,17 +434,28 @@ const Student = () => {
                                         <FaClock className="text-red-600" />
                                     </div>
                                     <div className="text-right">
-                                        {((examData || data)?.exam?.exam_duration > 0) && (
-                                            <Timer
-                                                initialTime={(examData || data)?.exam?.exam_duration || 0}
-                                                startTime={(examData || data)?.candidate?.start_time}
-                                                onTimeUp={handleSubmit}
-                                            />
+                                        {(activeData?.exam?.exam_duration > 0) && (
+                                            <div className="flex items-center gap-2">
+                                                <Timer
+                                                    initialTime={activeData?.exam?.exam_duration || 0}
+                                                    startTime={activeData?.candidate?.start_time}
+                                                    remainingSecondsServer={activeData?.exam?.remaining_seconds}
+                                                    onTimeUp={handleSubmit}
+                                                />
+                                                <button 
+                                                    onClick={refreshExamData}
+                                                    disabled={isRefreshing}
+                                                    className={`p-1.5 rounded-full hover:bg-gray-100 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                                                    title="Sync Time"
+                                                >
+                                                    <FaSync className="text-xs text-gray-400" />
+                                                </button>
+                                            </div>
                                         )}
                                         <p className="text-xs text-gray-500">Time Remaining</p>
-                                        {(examData || data)?.exam?.time_extension > 0 && (
+                                        {activeData?.exam?.time_extension > 0 && (
                                             <p className="text-xs text-green-600 font-medium">
-                                                +{(examData || data).exam.time_extension} min extended
+                                                +{activeData.exam.time_extension} min extended
                                             </p>
                                         )}
                                     </div>
@@ -576,7 +475,7 @@ const Student = () => {
                                     Question Navigator
                                 </h3>
                                 <div className="grid grid-cols-5 gap-2">
-                                    {data?.questions && data.questions.length > 0 ? data.questions.map((question, index) => (
+                                    {activeData?.questions && activeData.questions.length > 0 ? activeData.questions.map((question, index) => (
                                         <button
                                             key={index}
                                             onClick={() => handleClick(index)}
@@ -596,7 +495,7 @@ const Student = () => {
                                         </button>
                                     )) : (
                                         <div className="col-span-5 text-center py-4 text-gray-500">
-                                            {data?.questions ? "No questions available" : "Loading questions..."}
+                                            {activeData?.questions ? "No questions available" : "Loading questions..."}
                                         </div>
                                     )}
                                 </div>
@@ -605,13 +504,13 @@ const Student = () => {
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-600">Answered:</span>
                                         <span className="font-medium text-green-600">
-                                            {Object.keys(selectedAnswers).filter(id => data?.questions?.some(q => q.id.toString() === id)).length} / {data?.questions?.length || 0}
+                                            {Object.keys(selectedAnswers).filter(id => activeData?.questions?.some(q => q.id.toString() === id)).length} / {activeData?.questions?.length || 0}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm mt-1">
                                         <span className="text-gray-600">Not Answered:</span>
                                         <span className="font-medium text-gray-600">
-                                            {Math.max(0, (data?.questions?.length || 0) - Object.keys(selectedAnswers).filter(id => data?.questions?.some(q => q.id.toString() === id)).length)}
+                                            {Math.max(0, (activeData?.questions?.length || 0) - Object.keys(selectedAnswers).filter(id => activeData?.questions?.some(q => q.id.toString() === id)).length)}
                                         </span>
                                     </div>
                                 </div>
@@ -626,10 +525,10 @@ const Student = () => {
                                     <div className="flex flex-wrap items-center justify-between gap-4">
                                         <div>
                                             <h2 className="text-lg font-bold text-gray-900">
-                                                Question {questionIndexToShow + 1} of {data?.questions?.length || 0}
+                                                Question {questionIndexToShow + 1} of {activeData?.questions?.length || 0}
                                             </h2>
                                             <p className="text-sm text-gray-600">
-                                                {data?.exam?.marks_per_question || 0} marks
+                                                {activeData?.exam?.marks_per_question || 0} marks
                                             </p>
                                         </div>
                                         <div className="flex items-center space-x-2">
@@ -647,7 +546,7 @@ const Student = () => {
 
                                 {/* Question Content */}
                                 <div className="p-6">
-                                    {data?.questions && data.questions.length > 0 ? (
+                                    {activeData?.questions && activeData.questions.length > 0 ? (
                                         currentQuestion ? (
                                             <div className="space-y-6">
                                                 {/* Question Text */}
@@ -740,8 +639,8 @@ const Student = () => {
                                 </button>
                                 <button
                                     onClick={() => handleNext()}
-                                    disabled={questionIndexToShow === (data?.questions?.length || 0) - 1}
-                                    className={`px-6 py-3 rounded-xl font-medium text-base shadow-sm transition-all duration-200 ${questionIndexToShow === (data?.questions?.length || 0) - 1
+                                    disabled={questionIndexToShow === (activeData?.questions?.length || 0) - 1}
+                                    className={`px-6 py-3 rounded-xl font-medium text-base shadow-sm transition-all duration-200 ${questionIndexToShow === (activeData?.questions?.length || 0) - 1
                                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                         : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
                                         }`}

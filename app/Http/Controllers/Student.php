@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class Student extends Controller
 {
@@ -22,18 +23,18 @@ class Student extends Controller
      */
     public function login(Request $request)
     {
-        \Log::info('Student login attempt', [
+        Log::info('Student login attempt', [
             'candidate_no' => $request->input('candidate_no'),
             'ticket_no' => $request->input('ticket_no')
         ]);
 
         $student = \App\Models\Student::where('candidate_no', $request->input('candidate_no'))->first();
         if (!$student) {
-            \Log::warning('Student not found', ['candidate_no' => $request->input('candidate_no')]);
+            Log::warning('Student not found', ['candidate_no' => $request->input('candidate_no')]);
             return response()->json('user not found', 404);
         }
         
-        \Log::info('Student found', [
+        Log::info('Student found', [
             'id' => $student->id,
             'candidate_no' => $student->candidate_no,
             'is_checked_in' => $student->is_checked_in,
@@ -41,9 +42,8 @@ class Student extends Controller
         ]);
 
         // Check if student has been checked in by invigilator
-        // Cast to boolean to handle tinyint properly
         if (!$student->is_checked_in || $student->is_checked_in == 0) {
-            \Log::warning('Student not checked in - blocking login', [
+            Log::warning('Student not checked in - blocking login', [
                 'candidate_no' => $student->candidate_no,
                 'is_checked_in' => $student->is_checked_in
             ]);
@@ -54,33 +54,28 @@ class Student extends Controller
             ], 403);
         }
         
-        \Log::info('Student is checked in - proceeding with login', ['candidate_no' => $student->candidate_no]);
+        Log::info('Student is checked in - proceeding with login', ['candidate_no' => $student->candidate_no]);
         
-        // Check if using ticket number or password
         $ticketNo = $request->input('ticket_no');
         $password = $request->input('password');
         
         if ($ticketNo) {
-            // NEW FLOW: Find the ticket and assign it to this student if not already assigned
             $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)->first();
 
             if (!$ticketRecord) {
                 return response()->json('Invalid ticket number. Please check your ticket and try again.', 404);
             }
 
-            // Check if ticket is already used by another student
             if ($ticketRecord->is_used && $ticketRecord->assigned_to_student_id != $student->id) {
                 return response()->json('This ticket has already been used by another student.', 403);
             }
 
-            // Get the exam for this ticket
             $examForTicket = Exam::find($ticketRecord->exam_id);
 
             if (!$examForTicket || $examForTicket->activated !== 'yes') {
                 return response()->json('This ticket is not linked to an active exam.', 404);
             }
 
-            // Confirm student is enrolled in the course linked to the ticket's exam
             $isEnrolled = \App\Models\StudentCourse::where('student_id', $student->id)
                 ->where('course_id', $examForTicket->course_id)
                 ->exists();
@@ -89,7 +84,6 @@ class Student extends Controller
                 return response()->json('You are not enrolled in this exam\'s course', 403);
             }
 
-            // Ensure a candidate record exists for this student and exam
             $candidate = \App\Models\Candidate::firstOrCreate(
                 [
                     'student_id' => $student->id,
@@ -109,34 +103,29 @@ class Student extends Controller
                 ]
             );
 
-            // ASSIGN ticket to this student ONLY after successful candidate creation/retrieval
-            // and ONLY if we are sure we are proceeding.
             if (!$ticketRecord->assigned_to_student_id) {
                 $ticketRecord->assigned_to_student_id = $student->id;
                 $ticketRecord->assigned_at = now();
                 $ticketRecord->is_used = true;
                 $ticketRecord->save();
                 
-                \Log::info('Ticket assigned to student', [
+                Log::info('Ticket assigned to student', [
                     'ticket_no' => $ticketNo,
                     'student_id' => $student->id,
                     'exam_id' => $examForTicket->id
                 ]);
             } else if ($ticketRecord->assigned_to_student_id == $student->id) {
-                // Ticket already assigned to this student, ensure it's marked used
                 if (!$ticketRecord->is_used) {
                     $ticketRecord->is_used = true;
                     $ticketRecord->save();
                 }
             }
 
-            // Update candidate ticket if it differs
             if ($candidate->ticket_no !== $ticketNo) {
                 $candidate->ticket_no = $ticketNo;
                 $candidate->save();
             }
 
-            // Ensure student check-in time is recorded
             if (!$student->checkin_time && $student->is_checked_in) {
                 $student->checkin_time = $candidate->checkin_time ?? now();
                 $student->save();
@@ -144,11 +133,10 @@ class Student extends Controller
 
             $student->refresh();
 
-            \Log::info('Student login successful', ['candidate_no' => $student->candidate_no]);
+            Log::info('Student login successful', ['candidate_no' => $student->candidate_no]);
             return response()->json($student);
             
         } else if ($password) {
-            // Legacy password login (kept for backward compatibility)
             if (!Hash::check($password, $student->password)) {
                 return response()->json('wrong password!!', 404);
             }
@@ -168,20 +156,15 @@ class Student extends Controller
         $user = $request->user();
         $studentsQuery = \App\Models\Student::with('level');
         
-        // Apply level filtering based on user role
         if ($user && $user->role === 'level_admin' && $user->level_id) {
-            // Level admins can only see students in their level
             $studentsQuery->where('level_id', $user->level_id);
         } elseif ($user && $user->role === 'faculty_officer') {
-            // Faculty officers see students in all departments of their faculty
             $studentsQuery->whereHas('level', function($q) use ($user) {
                 $q->where('faculty_id', $user->faculty_id);
             });
         } elseif ($request->has('level_id') && $request->level_id) {
-            // Super admins can filter by specific level
             $studentsQuery->where('level_id', $request->level_id);
         }
-        // Super admins with no level filter see all students
         
         $students = $studentsQuery->orderBy('checkin_time')->get();
         return response()->json($students);
@@ -200,7 +183,6 @@ class Student extends Controller
             $student->is_logged_on = 'yes';
             $student->save();
             
-            // Find the active exam to update the candidate record
             $activeExam = Exam::where('activated', 'yes')->first();
             
             if ($activeExam) {
@@ -209,9 +191,8 @@ class Student extends Controller
                     ->first();
                     
                 if ($candidate) {
-                     // Only set start_time if it hasn't been set yet
                     if (is_null($candidate->start_time)) {
-                        $candidate->start_time = now();
+                        $candidate->start_time = now()->toIso8601String();
                         $candidate->save();
                     }
                 }
@@ -223,14 +204,9 @@ class Student extends Controller
         }
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
         try {
-
             $validate = $request->validate([
                 'candidate_no' => 'required | string | max:255',
                 'full_name' => 'required | string | max:255',
@@ -247,30 +223,6 @@ class Student extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
     public function exam()
     {
         try {
@@ -279,18 +231,13 @@ class Student extends Controller
                 return response()->json(['error' => 'No active exam found'], 404);
             }
 
-            // Get questions that are considered valid for the exam.
             $validQuestions = $exam->questions()
                 ->whereNotNull('question')
                 ->whereNotNull('correct_answer')
                 ->whereNotNull('option_b')
                 ->get();
 
-            // Shuffle the valid questions.
             $shuffledQuestions = $validQuestions->shuffle();
-            
-            // The original $exam object might still have the full (unfiltered) list of questions if they were loaded before.
-            // Let's create a clean response.
             $examResponse = $exam->toArray();
             
             $data = [
@@ -314,7 +261,6 @@ class Student extends Controller
                 $question = Question::inRandomOrder()->first();
             }
             
-            // Ensure all question properties are properly returned
             $questionData = [
                 'id' => $question->id,
                 'question' => $question->question,
@@ -358,38 +304,13 @@ class Student extends Controller
     public function answer_question($student_id, $question_Id, $course_id)
     {
         try {
-            \Illuminate\Support\Facades\Log::info('Answer Question Request', [
-                'student_id' => $student_id,
-                'question_id' => $question_Id,
-                'course_id' => $course_id,
-                'request_data' => request()->all()
-            ]);
-
             $question = Question::findOrFail($question_Id);
             $selected_answer = request('selected_answer');
 
-            // Clean and normalize both answers for comparison
             $correct_answer = $question->correct_answer;
-            $selected_answer_clean = $selected_answer;
+            $correct_answer_clean = trim(strtolower(html_entity_decode(strip_tags($correct_answer))));
+            $selected_answer_clean = trim(strtolower(html_entity_decode(strip_tags($selected_answer))));
 
-            // Remove HTML tags and decode entities for both answers
-            $correct_answer_clean = html_entity_decode(strip_tags($correct_answer));
-            $selected_answer_clean = html_entity_decode(strip_tags($selected_answer));
-
-            // Trim whitespace and convert to lowercase for comparison
-            $correct_answer_clean = trim(strtolower($correct_answer_clean));
-            $selected_answer_clean = trim(strtolower($selected_answer_clean));
-
-            // Log the comparison for debugging
-            \Illuminate\Support\Facades\Log::info('Answer Comparison', [
-                'question_id' => $question_Id,
-                'correct_answer_raw' => $correct_answer,
-                'selected_answer_raw' => $selected_answer,
-                'correct_answer_clean' => $correct_answer_clean,
-                'selected_answer_clean' => $selected_answer_clean
-            ]);
-
-            // Compare the cleaned answers
             $is_correct = $correct_answer_clean === $selected_answer_clean;
             
             $answer = Answers::updateOrCreate(
@@ -401,7 +322,7 @@ class Student extends Controller
                     'is_correct' => $is_correct,
                     'question' => request('question'),
                     'choice' => $selected_answer,
-                    'course_id' => $course_id,  // Use the URL parameter
+                    'course_id' => $course_id,
                     'answered' => true,
                 ]
             );
@@ -414,37 +335,30 @@ class Student extends Controller
     public function submit_exam($student_id, $course_id)
     {
         try {
-            // 1. Update student checkout time
             $student = \App\Models\Student::findOrFail($student_id);
-            // Disable auto timestamps to prevent truncation error on students table
             $student->timestamps = false;
             $student->checkout_time = now();
             $student->updated_at = \Carbon\Carbon::now()->format('Y-m-d H:i:s');
             $student->save();
 
-            // 2. Get the exam via Candidate record first (most accurate)
-            // This ensures we get the specific exam the student was taking, even if it's now deactivated
             $candidate = Candidate::where('student_id', $student_id)
                 ->whereHas('exam', function($q) use ($course_id) {
                     $q->where('course_id', $course_id);
                 })
-                ->with('exam') // Removed nested eager load of course to avoid potential relationship errors
-                ->latest() // Get the most recent candidacy
+                ->with('exam')
+                ->latest()
                 ->first();
 
             if ($candidate && $candidate->exam) {
                 $exam = $candidate->exam;
             } else {
-                // Fallback 1: try to find any active exam for this course
-                $exam = Exam::where('course_id', $course_id) // Removed with('course')
+                $exam = Exam::where('course_id', $course_id)
                     ->where('activated', 'yes')
                     ->latest()
                     ->first();
                 
-                // Fallback 2: If no active exam, find the most recent exam for this course (even if inactive/terminated)
-                // This allows late submissions to still be recorded
                 if (!$exam) {
-                    $exam = Exam::where('course_id', $course_id) // Removed with('course')
+                    $exam = Exam::where('course_id', $course_id)
                         ->latest()
                         ->first();
                 }
@@ -454,11 +368,9 @@ class Student extends Controller
                 throw new \Exception('No valid exam found for this submission');
             }
 
-            // Fetch course details manually to ensure we have the title
             $courseObj = \App\Models\Course::find($course_id);
             $courseTitle = $courseObj ? $courseObj->title : 'Unknown Course';
 
-            // 3. Get all answers and calculate score
             $answers = Answers::where('candidate_id', $student_id)
                 ->where('course_id', $course_id)
                 ->get();
@@ -467,18 +379,6 @@ class Student extends Controller
             $marks_per_question = floatval($exam->marks_per_question);
             $total_score = $correct_answers_count * $marks_per_question;
 
-            // 4. Log calculation details
-            \Illuminate\Support\Facades\Log::info('Exam Score Calculation', [
-                'student_id' => $student_id,
-                'course_id' => $course_id,
-                'total_questions' => $answers->count(),
-                'correct_answers' => $correct_answers_count,
-                'marks_per_question' => $marks_per_question,
-                'calculated_score' => $total_score,
-                'exam_id' => $exam->id
-            ]);
-
-            // 5. Save the score using firstOrNew to handle timestamps manually
             $score_record = \App\Models\StudentExamScore::firstOrNew([
                 'student_id' => $student_id,
                 'course_id' => $course_id
@@ -486,8 +386,6 @@ class Student extends Controller
             
             $score_record->score = $total_score;
             $score_record->course_name = $courseTitle;
-            
-            // Disable auto timestamps to prevent truncation error
             $score_record->timestamps = false;
             
             $now = \Carbon\Carbon::now()->format('Y-m-d H:i:s');
@@ -495,24 +393,14 @@ class Student extends Controller
                 $score_record->created_at = $now;
             }
             $score_record->updated_at = $now;
-            
             $score_record->save();
             
-            // Re-enable timestamps for the instance (good practice)
             $score_record->timestamps = true;
 
-            // 6. Log the saved score
-            \Illuminate\Support\Facades\Log::info('Score Saved', [
-                'score_record_id' => $score_record->id,
-                'final_score' => $score_record->score
-            ]);
-
-            // 7. Return success response
             $response = [
                 'message' => 'Exam submitted successfully',
             ];
 
-            // Check if students are allowed to see results
             $seeResult = \App\Models\SystemConfig::get('student_see_result', false);
             
             if ($seeResult) {
@@ -528,12 +416,6 @@ class Student extends Controller
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Exam Submission Error', [
-                'student_id' => $student_id,
-                'course_id' => $course_id,
-                'error' => $e->getMessage()
-            ]);
-
             return response()->json([
                 'error' => 'Failed to submit exam',
                 'message' => $e->getMessage()
@@ -566,8 +448,6 @@ class Student extends Controller
     public function get_student_exam($student_id)
     {
         try {
-            // Find the active exam(s) for this student via the Candidate table
-            // We prioritize the most recently updated candidate record that is linked to an active exam
             $candidate = Candidate::where('student_id', $student_id)
                 ->whereHas('exam', function($q) {
                     $q->where('activated', 'yes');
@@ -583,9 +463,21 @@ class Student extends Controller
             $exam = $candidate->exam;
 
             // Calculate total time (base duration + extension)
-            $base_duration = $exam->exam_duration;
-            $time_extension = $candidate ? ($candidate->time_extension ?? 0) : 0;
+            $base_duration = (int)$exam->exam_duration;
+            $time_extension = $candidate ? (int)($candidate->time_extension ?? 0) : 0;
             $total_duration = $base_duration + $time_extension;
+
+            // Calculate remaining seconds precisely on the server using UTC
+            $remaining_seconds = 0;
+            if ($candidate && $candidate->start_time) {
+                $startTime = Carbon::parse($candidate->start_time);
+                $elapsedSeconds = Carbon::now()->diffInSeconds($startTime, false);
+                // If elapsed is negative, it means startTime is in the future (sync issue), treat as 0
+                $elapsedSeconds = $elapsedSeconds > 0 ? $elapsedSeconds : 0;
+                $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+            } else {
+                $remaining_seconds = $total_duration * 60;
+            }
 
             // Get questions that are considered valid for the exam.
             $validQuestions = $exam->questions()
@@ -594,37 +486,28 @@ class Student extends Controller
                 ->whereNotNull('option_b')
                 ->get();
 
-            // Shuffle the valid questions.
             $shuffledQuestions = $validQuestions->shuffle();
             
-            // Limit the questions if actual_questions is set and greater than 0
             if ($exam->actual_questions > 0) {
                 $shuffledQuestions = $shuffledQuestions->take($exam->actual_questions);
             }
-            
-            // Create exam response with extended duration
+
             $examResponse = $exam->toArray();
             $examResponse['exam_duration'] = $total_duration;
             $examResponse['base_duration'] = $base_duration;
             $examResponse['time_extension'] = $time_extension;
+            $examResponse['remaining_seconds'] = (int)max(0, floor($remaining_seconds));
 
-            // Override exam's max_violations with global setting from SystemConfig
             $globalMaxViolations = SystemConfig::get('max_violations', 3);
             $examResponse['max_violations'] = $globalMaxViolations;
 
-            // Fetch course details
             $course = \App\Models\Course::find($exam->course_id);
             $examResponse['course_title'] = $course ? $course->title : 'Unknown Course';
             $examResponse['course_code'] = $course ? $course->code : '';
             
-            // Fetch existing answers for this student and course to restore progress
-            $existingAnswers = collect(); // Default to empty
-            // Only restore answers if time extension is given (implies continuing a session)
-            if ($time_extension > 0) {
-                $existingAnswers = Answers::where('candidate_id', $student_id)
-                    ->where('course_id', $exam->course_id)
-                    ->get();
-            }
+            $existingAnswers = Answers::where('candidate_id', $student_id)
+                ->where('course_id', $exam->course_id)
+                ->get();
             
             $data = [
                 'exam' => $examResponse,

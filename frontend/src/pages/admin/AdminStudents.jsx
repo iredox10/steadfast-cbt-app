@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload, FaEdit, FaUserGraduate, FaIdCard, FaBuilding, FaBookOpen, FaClock, FaTicketAlt } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSearch, FaUpload, FaUsers, FaDownload, FaEdit, FaUserGraduate, FaIdCard, FaBuilding, FaBookOpen, FaClock, FaTicketAlt, FaSyncAlt } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import LevelSelector from "../../components/LevelSelector";
 import AdminSidebar from "../../components/AdminSidebar";
@@ -14,7 +14,7 @@ const AdminStudents = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
-    const [newStudent, setNewStudent] = useState({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
+    const [newStudent, setNewStudent] = useState({ full_name: "", candidate_no: "", department: "", programme: "", image: null, level_id: "" });
     const [editingStudent, setEditingStudent] = useState(null);
     const [file, setFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
@@ -29,73 +29,85 @@ const AdminStudents = () => {
     const [activeExam, setActiveExam] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [selectedLevel, setSelectedLevel] = useState("");
+    const [departments, setDepartments] = useState([]);
     const studentsPerPage = 10;
+
+    const fetchDepartments = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${path}/departments`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setDepartments(res.data);
+        } catch (err) {
+            console.error("Error fetching departments:", err);
+        }
+    };
 
     const fetchStudents = async () => {
         setLoading(true);
         try {
+            const token = localStorage.getItem('token');
             const userRes = await axios.get(`${path}/user`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                headers: { Authorization: `Bearer ${token}` }
             });
-            setCurrentUser(userRes.data);
+            const userData = userRes.data;
+            setCurrentUser(userData);
 
+            const userRole = userData.role;
+            const userLevelId = userData.level_id;
+            
+            // For level_admin, always force their level_id if none selected
+            // For others, use selectedLevel
             let currentLevel = selectedLevel;
-            if (userRes.data.role === 'level_admin' && userRes.data.level_id) {
-                if (!selectedLevel) {
-                    currentLevel = userRes.data.level_id;
-                    setSelectedLevel(userRes.data.level_id);
-                }
+            if (userRole === 'level_admin' && !currentLevel) {
+                currentLevel = userLevelId;
             }
 
             let currentExam = null;
             try {
                 const examRes = await axios.get(`${path}/get-current-exam`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                    headers: { Authorization: `Bearer ${token}` }
                 });
                 currentExam = examRes.data;
                 setActiveExam(currentExam);
             } catch (examErr) {
-                if (examErr.response?.status === 404) {
-                    setActiveExam(null);
-                }
+                setActiveExam(null);
             }
 
-            if (!currentExam || !currentExam.course_id) {
-                let studentsUrl = `${path}/students-by-level`;
-                if (userRes.data.role === 'super_admin' && currentLevel) {
-                    studentsUrl += `?level_id=${currentLevel}`;
-                }
-                const res = await axios.get(studentsUrl, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                setStudents(res.data);
-                return;
+            let studentsUrl = "";
+            if (currentExam && currentExam.course_id) {
+                studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
+            } else {
+                studentsUrl = `${path}/students-by-level`;
             }
 
-            if (userRes.data.role === 'level_admin') {
-                const res = await axios.get(`${path}/students-by-level`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
-                setStudents(res.data.map(student => ({
-                    ...student,
-                    exam_id: currentExam.id
-                })));
-                return;
+            // Build query params
+            const params = new URLSearchParams();
+            if (currentLevel && currentLevel !== 'all') {
+                params.append('level_id', currentLevel);
             }
 
-            let studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
-            if (userRes.data.role === 'super_admin' && currentLevel) {
-                studentsUrl += `?level_id=${currentLevel}`;
-            }
-
-            const res = await axios.get(studentsUrl, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            const finalUrl = studentsUrl + (params.toString() ? `?${params.toString()}` : "");
+            
+            const res = await axios.get(finalUrl, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-            setStudents(res.data.map(student => ({
+
+            const studentData = Array.isArray(res.data) ? res.data : [];
+
+            setStudents(studentData.map(student => ({
                 ...student,
-                exam_id: currentExam.id,
+                exam_id: currentExam?.id || student.exam_id || null,
                 time_extension: student.time_extension || 0
             })));
+
+            // If we don't have a global active exam but students have exam_id, set context
+            if (!currentExam && studentData.length > 0 && studentData.some(s => s.exam_id)) {
+                const firstWithExam = studentData.find(s => s.exam_id);
+                setActiveExam({ id: firstWithExam.exam_id, title: 'Exam in Progress' });
+            }
+
         } catch (err) {
             console.error("Error fetching students:", err);
             setErrMsg(`Failed to load students: ${err.response?.data?.error || err.message}`);
@@ -105,31 +117,41 @@ const AdminStudents = () => {
     };
 
     useEffect(() => {
-        const loadStudents = async () => {
+        const loadInitialData = async () => {
+            // First fetch departments so selector is ready
+            await fetchDepartments();
+            // Then fetch students
             await fetchStudents();
         };
-        loadStudents();
+        loadInitialData();
     }, []);
 
     useEffect(() => {
-        if (selectedLevel && currentUser) {
-            const loadStudents = async () => {
-                await fetchStudents();
-            };
-            loadStudents();
+        if (currentUser) {
+            fetchStudents();
         }
     }, [selectedLevel]);
 
     const handleAddStudent = async (e) => {
         e.preventDefault();
+        
+        // Log state for debugging
+        console.log("Adding student. State:", newStudent);
+        console.log("Current user role:", currentUser?.role);
+
         if (!newStudent.full_name || !newStudent.candidate_no) {
             setErrMsg("Full name and candidate number are required.");
             return;
         }
 
         if (currentUser?.role === 'super_admin') {
-            if (!newStudent.department || !newStudent.programme || !selectedLevel) {
+            if (!newStudent.department || !newStudent.programme || !newStudent.level_id) {
                 setErrMsg("All fields including department, programme, and academic session are required.");
+                return;
+            }
+        } else if (currentUser?.role === 'faculty_officer') {
+            if (!newStudent.level_id || !newStudent.programme) {
+                setErrMsg("Please select a department and enter a programme.");
                 return;
             }
         }
@@ -150,30 +172,36 @@ const AdminStudents = () => {
                 formData.append('level_id', currentUser.level_id);
                 formData.append('department', currentUser.level?.title || "Department");
                 formData.append('programme', currentUser.level?.title || "Programme");
+            } else if (currentUser?.role === 'faculty_officer') {
+                const selectedDept = departments.find(d => d.id.toString() === newStudent.level_id.toString());
+                formData.append('level_id', newStudent.level_id);
+                formData.append('department', selectedDept?.title || "Department");
+                formData.append('programme', newStudent.programme);
             } else {
                 formData.append('department', newStudent.department);
                 formData.append('programme', newStudent.programme);
-                if (selectedLevel) {
-                    formData.append('level_id', selectedLevel);
-                }
+                formData.append('level_id', newStudent.level_id);
             }
 
-            await axios.post(`${path}/register-student/${userId}`, formData, {
+            const response = await axios.post(`${path}/register-student/${userId}`, formData, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
+            
+            console.log("Student registered successfully:", response.data);
 
             setShowAddModal(false);
-            setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "", image: null });
+            setNewStudent({ full_name: "", candidate_no: "", department: "", programme: "", image: null, level_id: "" });
             setImagePreview(null);
             setTimeout(() => {
                 fetchStudents();
             }, 500);
 
         } catch (err) {
-            setErrMsg(err.response?.data?.error || "Failed to add student.");
+            console.error("Error adding student:", err);
+            setErrMsg(err.response?.data?.error || err.response?.data?.message || "Failed to add student.");
         }
     };
 
@@ -255,12 +283,26 @@ const AdminStudents = () => {
             setErrMsg("Please select a file to upload.");
             return;
         }
+        
+        if ((currentUser?.role === 'faculty_officer' || currentUser?.role === 'super_admin') && !selectedLevel) {
+            setErrMsg("Please select a target Department/Session first.");
+            return;
+        }
+
         setIsUploading(true);
         setErrMsg("");
         const formData = new FormData();
         formData.append("excel_file", file);
+        if (selectedLevel) {
+            formData.append("level_id", selectedLevel);
+        }
         try {
-            await axios.post(`${path}/upload-excel`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+            await axios.post(`${path}/upload-excel`, formData, { 
+                headers: { 
+                    "Content-Type": "multipart/form-data",
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                } 
+            });
             setShowImportModal(false);
             setFile(null);
             fetchStudents();
@@ -303,6 +345,20 @@ const AdminStudents = () => {
             student.candidate_no.toLowerCase().includes(searchTerm.toLowerCase())
         ), [students, searchTerm]);
 
+    const handleResetLogin = async (studentId) => {
+        if (!window.confirm("Are you sure you want to reset this student's login status? This will allow them to login again if they were disconnected.")) return;
+        
+        try {
+            await axios.post(`${path}/reset-student-login/${studentId}`, {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            fetchStudents();
+            alert("Login status reset successfully!");
+        } catch (err) {
+            alert("Failed to reset login status: " + (err.response?.data?.error || err.message));
+        }
+    };
+
     const paginatedStudents = useMemo(() => {
         const startIndex = (currentPage - 1) * studentsPerPage;
         return filteredStudents.slice(startIndex, startIndex + studentsPerPage);
@@ -333,7 +389,7 @@ const AdminStudents = () => {
                     </div>
                     
                     <div className="flex gap-3">
-                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin') && (
+                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'level_admin' || currentUser?.role === 'faculty_officer') && (
                             <>
                                 <button onClick={() => setShowImportModal(true)} className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm transition-all">
                                     <FaUpload className="mr-2 text-green-600" /> Import
@@ -347,9 +403,9 @@ const AdminStudents = () => {
                 </header>
 
                 {/* Filters */}
-                {currentUser?.role === 'super_admin' && (
+                {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">Filter by Session</h3>
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wider">Filter by Department/Session</h3>
                         <LevelSelector
                             currentUser={currentUser}
                             selectedLevel={selectedLevel}
@@ -476,17 +532,30 @@ const AdminStudents = () => {
                                                     >
                                                         <FaEdit />
                                                     </button>
-                                                    {activeExam && student.ticket_no && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedStudent(student);
-                                                                setShowExtendTimeModal(true);
-                                                            }}
-                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-full transition-colors"
-                                                            title="Extend Time"
-                                                        >
-                                                            <FaClock />
-                                                        </button>
+                                                    {(activeExam || student.exam_id) && student.ticket_no && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedStudent(student);
+                                                                    // Ensure activeExam is set for handleExtendTime
+                                                                    if (!activeExam && student.exam_id) {
+                                                                        setActiveExam({ id: student.exam_id });
+                                                                    }
+                                                                    setShowExtendTimeModal(true);
+                                                                }}
+                                                                className="p-2 text-amber-600 hover:bg-amber-50 rounded-full transition-colors"
+                                                                title="Extend Time"
+                                                            >
+                                                                <FaClock />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleResetLogin(student.id)}
+                                                                className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                                                                title="Reset Login Status"
+                                                            >
+                                                                <FaSyncAlt />
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>
@@ -597,11 +666,29 @@ const AdminStudents = () => {
                                 </div>
                             </div>
 
-                            {/* Only show department and programme fields for super admins */}
-                            {currentUser?.role !== 'level_admin' && (
+                            {/* Department selection for super admin and faculty officer */}
+                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Department/Level</label>
+                                    <select
+                                        value={newStudent.level_id || ""}
+                                        onChange={e => setNewStudent({ ...newStudent, level_id: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        required
+                                    >
+                                        <option value="">-- Choose Department --</option>
+                                        {departments.map(dept => (
+                                            <option key={dept.id} value={dept.id}>{dept.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Only show department and programme text fields for super admins or if not using selector */}
+                            {currentUser?.role === 'super_admin' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Department Name (Text)</label>
                                         <input
                                             type="text"
                                             placeholder="e.g. Computer Science"
@@ -612,7 +699,7 @@ const AdminStudents = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Programme</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Programme Name (Text)</label>
                                         <input
                                             type="text"
                                             placeholder="e.g. BSc Computer Science"
@@ -623,6 +710,20 @@ const AdminStudents = () => {
                                         />
                                     </div>
                                 </>
+                            )}
+
+                            {currentUser?.role === 'faculty_officer' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Programme</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. BSc Computer Science"
+                                        value={newStudent.programme}
+                                        onChange={e => setNewStudent({ ...newStudent, programme: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        required
+                                    />
+                                </div>
                             )}
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
@@ -656,6 +757,25 @@ const AdminStudents = () => {
                                     <FaDownload className="mr-1" /> Download Template
                                 </button>
                             </div>
+
+                            {/* Level selection for import */}
+                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Select Target Department/Session</label>
+                                    <select
+                                        value={selectedLevel}
+                                        onChange={e => setSelectedLevel(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                                        required
+                                    >
+                                        <option value="">-- Choose Target --</option>
+                                        {departments.map(dept => (
+                                            <option key={dept.id} value={dept.id}>{dept.title}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-gray-500 italic">Students will be imported into this specific department/session record.</p>
+                                </div>
+                            )}
 
                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
                                 <input type="file" onChange={e => setFile(e.target.files[0])} accept=".xlsx, .xls" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />

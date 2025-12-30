@@ -1,140 +1,92 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
-const Timer = ({ initialTime, startTime, onTimeUp }) => {
-    const [timeRemaining, setTimeRemaining] = useState(() => {
-        // If we have a server-side start time, calculate remaining time based on it
-        // This is the most robust method as it persists across devices and cache clears
-        if (startTime) {
-            const startTimestamp = new Date(startTime).getTime();
-            const totalDurationInSeconds = initialTime * 60;
-            const now = Date.now();
-            const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
-            const remaining = totalDurationInSeconds - elapsedSeconds;
-            
-            console.log("Timer sync with server:", {
-                start: startTime,
-                total: totalDurationInSeconds,
-                elapsed: elapsedSeconds,
-                remaining: remaining
-            });
-
-            // Save to local storage just for the interval tick backup
-            localStorage.setItem("examTimeRemaining", remaining.toString());
-            localStorage.setItem("examTotalTime", totalDurationInSeconds.toString());
-            
-            return Math.max(0, remaining);
+const Timer = ({ initialTime, startTime, onTimeUp, remainingSecondsServer }) => {
+    // Helper to calculate remaining time from server
+    const calculateRemaining = useCallback(() => {
+        // Priority 1: Direct remaining seconds from server (most accurate)
+        if (remainingSecondsServer !== undefined && remainingSecondsServer !== null) {
+            console.log("Timer: Using remainingSecondsServer", remainingSecondsServer);
+            return remainingSecondsServer;
         }
 
-        // Fallback to localStorage logic (legacy)
-        const savedTime = localStorage.getItem("examTimeRemaining");
-        const savedTotalTime = localStorage.getItem("examTotalTime");
-        
-        if (savedTime && savedTotalTime) {
-            const parsedSavedTime = parseInt(savedTime);
-            const parsedSavedTotalTime = parseInt(savedTotalTime);
-            const currentTotalTimeInSeconds = initialTime * 60;
-            
-            // If the total time has increased (time extension), add the difference
-            if (currentTotalTimeInSeconds > parsedSavedTotalTime) {
-                const timeExtension = currentTotalTimeInSeconds - parsedSavedTotalTime;
-                const newTimeRemaining = parsedSavedTime + timeExtension;
-                
-                localStorage.setItem("examTotalTime", currentTotalTimeInSeconds.toString());
-                localStorage.setItem("examTimeRemaining", newTimeRemaining.toString());
-                
-                return newTimeRemaining;
-            }
-            
-            return parsedSavedTime;
-        }
-        
-        const initialTimeInSeconds = initialTime * 60;
-        localStorage.setItem("examTotalTime", initialTimeInSeconds.toString());
-        return initialTimeInSeconds;
-    });
-
-    const [isActive, setIsActive] = useState(true);
-
-    // Handle time extension (initialTime changes)
-    useEffect(() => {
+        // Priority 2: Calculate from startTime (server-side start time)
         if (startTime) {
-            // Recalculate based on static start time and new duration
-            const startTimestamp = new Date(startTime).getTime();
-            const totalDurationInSeconds = initialTime * 60;
-            const now = Date.now();
-            const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
-            const newRemaining = Math.max(0, totalDurationInSeconds - elapsedSeconds);
-            
-            setTimeRemaining(newRemaining);
-            localStorage.setItem("examTimeRemaining", newRemaining.toString());
-            localStorage.setItem("examTotalTime", totalDurationInSeconds.toString());
-        } else {
-            // Legacy localStorage update logic
-            const currentTotalTimeInSeconds = initialTime * 60;
-            const savedTotalTime = localStorage.getItem("examTotalTime");
-            
-            if (savedTotalTime && currentTotalTimeInSeconds > parseInt(savedTotalTime)) {
-                const timeExtension = currentTotalTimeInSeconds - parseInt(savedTotalTime);
-                setTimeRemaining(prevTime => {
-                    const newTime = prevTime + timeExtension;
-                    localStorage.setItem("examTimeRemaining", newTime.toString());
-                    localStorage.setItem("examTotalTime", currentTotalTimeInSeconds.toString());
-                    return newTime;
+            const start = new Date(startTime);
+            if (!isNaN(start.getTime())) {
+                const startTimestamp = start.getTime();
+                const totalDurationInSeconds = initialTime * 60;
+                const now = Date.now();
+                const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
+                const remaining = totalDurationInSeconds - elapsedSeconds;
+                
+                console.log("Timer: Calculated from startTime", {
+                    startTime,
+                    elapsedSeconds,
+                    remaining
                 });
+                return Math.max(0, remaining);
             }
         }
-    }, [initialTime, startTime]);
+
+        // Priority 3: Fallback to base duration
+        console.log("Timer: Fallback to initialTime", initialTime);
+        return initialTime * 60;
+    }, [initialTime, startTime, remainingSecondsServer]);
+
+    const [timeRemaining, setTimeRemaining] = useState(calculateRemaining);
+    const [isActive, setIsActive] = useState(true);
+    const [hasInitialized, setHasInitialized] = useState(false);
+
+    // Sync state when props change (especially for extensions)
+    useEffect(() => {
+        const correctRemaining = calculateRemaining();
+        
+        // If we just got an extension, add it to current remaining or reset to calculated
+        setTimeRemaining(correctRemaining);
+        setHasInitialized(true);
+        
+        localStorage.setItem("examTimeRemaining", correctRemaining.toString());
+        localStorage.setItem("examTotalTime", (initialTime * 60).toString());
+    }, [calculateRemaining, initialTime, startTime, remainingSecondsServer]);
 
     useEffect(() => {
-        // Sync with server start time on mount if available to correct any drift
-        if (startTime) {
-            const startTimestamp = new Date(startTime).getTime();
-            const totalDurationInSeconds = initialTime * 60;
-            const now = Date.now();
-            const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
-            const correctRemaining = Math.max(0, totalDurationInSeconds - elapsedSeconds);
-            
-            // Only update if significant drift (> 5 seconds) to avoid jitter
-            if (Math.abs(correctRemaining - timeRemaining) > 5) {
-                setTimeRemaining(correctRemaining);
-            }
-        }
+        if (!isActive) return;
 
         const interval = setInterval(() => {
             setTimeRemaining((prevTime) => {
-                // If using server time, we could recalculate 'now - start' every tick, 
-                // but decrementing is smoother UI. We rely on useEffect dependencies to re-sync if props change.
-                const newTime = prevTime - 1;
+                if (!hasInitialized) return prevTime;
 
-                // Save current time to localStorage as backup
-                localStorage.setItem("examTimeRemaining", newTime.toString());
-                localStorage.setItem("examLastTimestamp", Date.now().toString());
-
-                if (newTime <= 0) {
+                if (prevTime <= 0) {
+                    console.log("Timer: REACHED ZERO");
                     clearInterval(interval);
                     setIsActive(false);
                     onTimeUp(true);
-                    localStorage.removeItem("examTimeRemaining");
-                    localStorage.removeItem("examLastTimestamp");
-                    localStorage.removeItem("examTotalTime");
                     return 0;
                 }
+
+                const newTime = prevTime - 1;
+                
+                // Backup to localStorage every 5 seconds
+                if (newTime % 5 === 0) {
+                    localStorage.setItem("examTimeRemaining", newTime.toString());
+                    localStorage.setItem("examLastTimestamp", Date.now().toString());
+                }
+                
                 return newTime;
             });
         }, 1000);
 
-        return () => {
-            clearInterval(interval);
-        };
-    }, [initialTime, startTime, onTimeUp]);
+        return () => clearInterval(interval);
+    }, [onTimeUp, isActive, hasInitialized]);
 
     // ... existing formatTime and return ...
 
     // Format time as HH:MM:SS
     const formatTime = (seconds) => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const remainingSeconds = seconds % 60;
+        const totalSeconds = Math.max(0, Math.floor(seconds));
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const remainingSeconds = totalSeconds % 60;
 
         const pad = (num) => num.toString().padStart(2, "0");
 
@@ -144,10 +96,10 @@ const Timer = ({ initialTime, startTime, onTimeUp }) => {
     return (
         <div
             className={`font-mono text-lg bg-black p-2 rounded-xl text-white ${
-                timeRemaining < 300 ? "bg-red-400 text-white" : "text-gray-800"
+                timeRemaining < 300 && hasInitialized ? "bg-red-600 animate-pulse" : ""
             }`}
         >
-            {formatTime(timeRemaining)}
+            {hasInitialized ? formatTime(timeRemaining) : "--:--:--"}
         </div>
     );
 };

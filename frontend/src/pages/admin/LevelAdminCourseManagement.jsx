@@ -57,12 +57,20 @@ const LevelAdminCourseManagement = () => {
                 const semesterResponse = await axios.get(`${path}/get-semesters/${response.data.session.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setSemesters(semesterResponse.data);
                 
-                // Find and set active semester
-                const activeSem = semesterResponse.data.find(s => s.status === 'active');
-                if (activeSem) {
-                    setCourseForm(prev => ({ ...prev, semester_id: activeSem.id }));
+                const semesterData = semesterResponse.data;
+                setSemesters(semesterData);
+                
+                if (semesterData.length === 0) {
+                    setError('No semester found for this session. Please add a semester first.');
+                } else {
+                    // Find and set active semester
+                    const activeSem = semesterData.find(s => s.status === 'active');
+                    if (activeSem) {
+                        setCourseForm(prev => ({ ...prev, semester_id: activeSem.id }));
+                    } else if (semesterData.length > 0) {
+                        setCourseForm(prev => ({ ...prev, semester_id: semesterData[0].id }));
+                    }
                 }
             }
         } catch (err) {
@@ -264,6 +272,13 @@ const LevelAdminCourseManagement = () => {
                                         />
                                     </div>
                                     <div className="flex gap-2">
+                                        <Link
+                                            to="/admin-sessions"
+                                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                        >
+                                            <FaPlus />
+                                            Add Semester
+                                        </Link>
                                         <button
                                         onClick={() => setShowImportModal(true)}
                                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"

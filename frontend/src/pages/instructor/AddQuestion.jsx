@@ -230,14 +230,22 @@ const AddQuestion = () => {
     );
 
     // Function to populate form with selected question
-    const populateQuestion = (question) => {
-        setQuestion(question.question);
-        setOptions([
-            question.correct_answer,
-            question.option_b,
-            question.option_c,
-            question.option_d
-        ].filter(Boolean)); // Remove any null/undefined/empty options
+    const populateQuestion = (questionData) => {
+        setQuestion(questionData.question);
+        
+        // Construct options array properly
+        // In this system, option_a is always the correct answer
+        const newOptions = [];
+        
+        if (questionData.option_a || questionData.correct_answer) {
+            newOptions.push(questionData.option_a || questionData.correct_answer);
+        }
+        
+        if (questionData.option_b) newOptions.push(questionData.option_b);
+        if (questionData.option_c) newOptions.push(questionData.option_c);
+        if (questionData.option_d) newOptions.push(questionData.option_d);
+        
+        setOptions(newOptions);
         setShowQuestionBank(false);
     };
 
