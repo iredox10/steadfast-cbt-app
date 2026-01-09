@@ -23,7 +23,7 @@ const TestComponent = () => {
 const Student = () => {
     const { studentId } = useParams();
     const { data, loading, err } = useFetch(`/get-student-exam/${studentId}`);
-    
+
     // State for managing exam data refresh (for time extensions)
     const [liveData, setLiveData] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -69,7 +69,7 @@ const Student = () => {
     const [activeButton, setActiveButton] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [sumbitModel, setSubmitModel] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [showCalculator, setShowCalculator] = useState(false);
     const [shuffledOptions, setShuffledOptions] = useState({});
 
@@ -80,7 +80,7 @@ const Student = () => {
 
     // Get current question
     const currentQuestion = activeData?.questions?.[questionIndexToShow];
-    
+
     // Generate a unique key for localStorage based on student and exam
     const localStorageKey = `exam_answers_${studentId}_${activeData?.exam?.id || 'unknown'}`;
 
@@ -105,9 +105,23 @@ const Student = () => {
                 } catch (error) {
                     localStorage.removeItem(localStorageKey);
                 }
+            } else if (activeData?.existing_answers?.length > 0) {
+                // If no local storage but we have server answers, restore them
+                const serverAnswers = {};
+                const serverClickedBtns = [];
+
+                activeData.existing_answers.forEach(ans => {
+                    serverAnswers[ans.question_id] = ans.choice;
+                    if (!serverClickedBtns.includes(ans.question_id)) {
+                        serverClickedBtns.push(ans.question_id);
+                    }
+                });
+
+                setSelectedAnswers(serverAnswers);
+                setClickedBtns(serverClickedBtns);
             }
         }
-    }, [activeData?.exam?.id, studentId, localStorageKey]);
+    }, [activeData?.exam?.id, activeData?.existing_answers, studentId, localStorageKey]);
 
     useEffect(() => {
         if (activeData?.exam?.id && studentId) {
@@ -442,7 +456,7 @@ const Student = () => {
                                                     remainingSecondsServer={activeData?.exam?.remaining_seconds}
                                                     onTimeUp={handleSubmit}
                                                 />
-                                                <button 
+                                                <button
                                                     onClick={refreshExamData}
                                                     disabled={isRefreshing}
                                                     className={`p-1.5 rounded-full hover:bg-gray-100 transition-all ${isRefreshing ? 'animate-spin' : ''}`}
@@ -691,7 +705,7 @@ const Student = () => {
                     </Model>
                 )}
             </div>
-            
+
             {showCalculator && (
                 <Calculator onClose={() => setShowCalculator(false)} />
             )}

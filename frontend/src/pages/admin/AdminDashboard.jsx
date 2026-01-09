@@ -4,7 +4,9 @@ import {
     FaBook,
     FaBell,
     FaClock,
-    FaFileSignature
+    FaFileSignature,
+    FaChalkboardTeacher,
+    FaListAlt,
 } from "react-icons/fa";
 import { Link, useParams, Navigate } from "react-router-dom";
 import axios from "axios";

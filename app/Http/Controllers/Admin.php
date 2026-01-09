@@ -818,9 +818,31 @@ class Admin extends Controller
 
     public function resetStudentLogin($studentId)
     {
-        $s = Student::findOrFail($studentId);
-        $s->update(['is_logged_on' => 'no']);
-        return response()->json(['message' => 'Reset']);
+        try {
+            $student = Student::findOrFail($studentId);
+            $student->update([
+                'is_logged_on' => 'no',
+                'is_checked_in' => true, // Allow them to login again
+                'checkout_time' => null
+            ]);
+
+            // Also reset the candidate record if it exists for the current active exam
+            $activeExam = Exam::where('activated', 'yes')->latest()->first();
+            if ($activeExam) {
+                Candidate::where('student_id', $studentId)
+                    ->where('exam_id', $activeExam->id)
+                    ->update([
+                        'is_checkout' => 0,
+                        'status' => 'active',
+                        'checkout_time' => null,
+                        'is_checked_in' => true
+                    ]);
+            }
+
+            return response()->json(['message' => 'Student login status and check-in reset successfully']);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function extendStudentTime(Request $request)
@@ -835,6 +857,7 @@ class Admin extends Controller
             if ($elap > $allow) $ext += (int)ceil(($elap - $allow) / 60);
         }
         $c->update(['time_extension' => $ext, 'status' => 'active']);
+        Student::where('id', $v['student_id'])->update(['is_logged_on' => 'no']);
         return response()->json(['message' => 'Extended', 'total_extension' => $ext]);
     }
 

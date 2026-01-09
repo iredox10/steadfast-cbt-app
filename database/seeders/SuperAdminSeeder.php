@@ -13,20 +13,28 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = 'admin@buk.edu.ng';
-        
-        // Check if user exists to avoid duplicates if run multiple times
-        if (!User::where('email', $email)->exists()) {
+        $email = 'superadmin@buk.com';
+        $password = 'password';
+
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            $user->update([
+                'full_name' => 'Super Administrator',
+                'password' => Hash::make($password),
+                'role' => 'super_admin',
+                'status' => 'active',
+            ]);
+            $this->command->info('Super Admin updated successfully.');
+        } else {
             User::create([
                 'full_name' => 'Super Administrator',
                 'email' => $email,
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make($password),
                 'role' => 'super_admin',
                 'status' => 'active',
             ]);
             $this->command->info('Super Admin created successfully.');
-        } else {
-            $this->command->info('Super Admin already exists.');
         }
     }
 }

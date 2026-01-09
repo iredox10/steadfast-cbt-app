@@ -536,8 +536,8 @@ const Exams = () => {
                                             </td>
                                             <td className="py-4 px-6">
                                                 <div className="flex gap-3 items-center">
-                                                    {/* Edit Button - Always visible if not terminated */}
-                                                    {!exam.finished_time && (
+                                                    {/* Edit Button - only before submission and not terminated */}
+                                                    {!exam.finished_time && exam.submission_status !== "submitted" && (
                                                         <button
                                                             onClick={() => handleEditExam(exam)}
                                                             className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"

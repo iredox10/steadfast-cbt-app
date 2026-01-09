@@ -338,6 +338,8 @@ class Student extends Controller
             $student = \App\Models\Student::findOrFail($student_id);
             $student->timestamps = false;
             $student->checkout_time = now();
+            $student->is_logged_on = 'no';
+            $student->is_checked_in = false;
             $student->updated_at = \Carbon\Carbon::now()->format('Y-m-d H:i:s');
             $student->save();
 
@@ -351,6 +353,11 @@ class Student extends Controller
 
             if ($candidate && $candidate->exam) {
                 $exam = $candidate->exam;
+                $candidate->is_checkout = 1;
+                $candidate->is_checked_in = false;
+                $candidate->checkout_time = now();
+                $candidate->status = 'submitted';
+                $candidate->save();
             } else {
                 $exam = Exam::where('course_id', $course_id)
                     ->where('activated', 'yes')
@@ -486,7 +493,10 @@ class Student extends Controller
                 ->whereNotNull('option_b')
                 ->get();
 
-            $shuffledQuestions = $validQuestions->shuffle();
+            // Use a deterministic shuffle based on student_id so the order remains constant for that student
+            $shuffledQuestions = $validQuestions->sortBy(function($question) use ($student_id) {
+                return crc32($question->id . '_' . $student_id);
+            });
             
             if ($exam->actual_questions > 0) {
                 $shuffledQuestions = $shuffledQuestions->take($exam->actual_questions);
