@@ -46,17 +46,17 @@ const Instructor = () => {
                 console.log('Fetching courses for instructor ID:', id);
                 const coursesRes = await axios.get(`${path}/get-lecturer-courses/${id}`, { headers });
                 console.log('Instructor courses response:', coursesRes.data);
-                
+
                 // Ensure courses is always an array
                 const coursesData = Array.isArray(coursesRes.data) ? coursesRes.data : [];
                 setCourses(coursesData);
 
                 // Fetch statistics for assigned courses
                 await fetchInstructorStats(coursesData, headers);
-                
+
                 // Fetch individual course stats
                 await fetchCourseStats(coursesData, headers);
-                
+
                 setLoading(false);
 
             } catch (error) {
@@ -89,9 +89,9 @@ const Instructor = () => {
                     // Fetch exams for this course
                     const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
                     const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
-                    
+
                     // Count active exams (activated = 'yes')
-                    const activeExams = exams.filter(exam => 
+                    const activeExams = exams.filter(exam =>
                         exam.activated === 'yes'
                     );
                     totalActiveExams += activeExams.length;
@@ -139,9 +139,9 @@ const Instructor = () => {
                         // Fetch exams for this course
                         const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
                         const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
-                        
+
                         // Check for active exams (activated = 'yes')
-                        const hasActiveExam = exams.some(exam => 
+                        const hasActiveExam = exams.some(exam =>
                             exam.activated === 'yes'
                         );
 
@@ -174,7 +174,7 @@ const Instructor = () => {
                     }
                 })
             );
-            
+
             setCoursesWithStats(coursesWithStatsData);
         } catch (error) {
             console.error("Error fetching course stats:", error);
@@ -201,13 +201,6 @@ const Instructor = () => {
                     <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/instructor/${id}`}
-                    className="flex items-center gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
-                <Link
                     to="/manual/instructor"
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
@@ -215,7 +208,7 @@ const Instructor = () => {
                     <span>User Manual</span>
                 </Link>
             </Sidebar>
-            
+
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex justify-between items-center mb-8">
                     <div>
@@ -275,8 +268,8 @@ const Instructor = () => {
                         <div className="text-center py-8">
                             <i className="fas fa-exclamation-triangle text-yellow-500 text-2xl mb-2"></i>
                             <p className="text-gray-600">Error loading courses: {err}</p>
-                            <button 
-                                onClick={() => window.location.reload()} 
+                            <button
+                                onClick={() => window.location.reload()}
                                 className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                             >
                                 Retry
@@ -309,7 +302,7 @@ const Instructor = () => {
                                                 </span>
                                             </div>
                                         )}
-                                        
+
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
@@ -365,19 +358,17 @@ const Instructor = () => {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                         <div className="space-y-3">
-                            <Link 
+                            <Link
                                 to={courses && courses.length > 0 ? `/exams/${id}/${courses[0]?.course_id}` : "#"}
-                                className={`flex items-center gap-3 p-4 rounded-lg transition-colors ${
-                                    courses && courses.length > 0 
-                                        ? "bg-blue-50 hover:bg-blue-100" 
+                                className={`flex items-center gap-3 p-4 rounded-lg transition-colors ${courses && courses.length > 0
+                                        ? "bg-blue-50 hover:bg-blue-100"
                                         : "bg-gray-100 cursor-not-allowed"
-                                }`}
+                                    }`}
                             >
-                                <div className={`p-3 rounded-lg ${
-                                    courses && courses.length > 0 
-                                        ? "bg-blue-500 text-white" 
+                                <div className={`p-3 rounded-lg ${courses && courses.length > 0
+                                        ? "bg-blue-500 text-white"
                                         : "bg-gray-300 text-gray-500"
-                                }`}>
+                                    }`}>
                                     <FaFileAlt />
                                 </div>
                                 <div>
@@ -385,20 +376,18 @@ const Instructor = () => {
                                     <p className="text-sm text-gray-600">Create and manage course exams</p>
                                 </div>
                             </Link>
-                            
-                            <Link 
+
+                            <Link
                                 to={courses && courses.length > 0 ? `/question-bank/${id}/${courses[0]?.course_id}` : "#"}
-                                className={`flex items-center gap-3 p-4 rounded-lg transition-colors ${
-                                    courses && courses.length > 0 
-                                        ? "bg-green-50 hover:bg-green-100" 
+                                className={`flex items-center gap-3 p-4 rounded-lg transition-colors ${courses && courses.length > 0
+                                        ? "bg-green-50 hover:bg-green-100"
                                         : "bg-gray-100 cursor-not-allowed"
-                                }`}
+                                    }`}
                             >
-                                <div className={`p-3 rounded-lg ${
-                                    courses && courses.length > 0 
-                                        ? "bg-green-500 text-white" 
+                                <div className={`p-3 rounded-lg ${courses && courses.length > 0
+                                        ? "bg-green-500 text-white"
                                         : "bg-gray-300 text-gray-500"
-                                }`}>
+                                    }`}>
                                     <FaQuestionCircle />
                                 </div>
                                 <div>
@@ -408,7 +397,7 @@ const Instructor = () => {
                             </Link>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                         <div className="space-y-4">
@@ -422,7 +411,7 @@ const Instructor = () => {
                                     <p className="text-xs text-gray-500 mt-1">Today</p>
                                 </div>
                             </div>
-                            
+
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-green-100 text-green-500 rounded-full mt-1">
                                     <FaQuestionCircle className="text-sm" />

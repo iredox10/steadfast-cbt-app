@@ -8,7 +8,7 @@ import { path } from "../../../utils/path";
 
 const Dashboard = () => {
     const { id } = useParams();
-    
+
     const { data: user, loading: userLoading } = useFetch(`/get-user/${id}`);
     const { data: courses } = useFetch(`/get-lecturer-courses/${id}`);
     const [stats, setStats] = React.useState({
@@ -46,8 +46,8 @@ const Dashboard = () => {
                 try {
                     const examsRes = await axios.get(`${path}/get-exams/${id}/${course.course_id}`, { headers });
                     const exams = Array.isArray(examsRes.data) ? examsRes.data : [];
-                    
-                    const activeExams = exams.filter(exam => 
+
+                    const activeExams = exams.filter(exam =>
                         exam.activated === 'yes'
                     );
                     totalActiveExams += activeExams.length;
@@ -105,13 +105,6 @@ const Dashboard = () => {
                     <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/instructor/${id}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
-                <Link
                     to="/manual/instructor"
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
@@ -119,7 +112,7 @@ const Dashboard = () => {
                     <span>User Manual</span>
                 </Link>
             </Sidebar>
-            
+
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex justify-between items-center mb-8">
                     <div>
@@ -165,16 +158,13 @@ const Dashboard = () => {
                 {/* Courses Overview */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-gray-900">Your Courses</h2>
-                        <Link to={`/instructor/${id}`} className="text-blue-500 hover:text-blue-700 font-medium">
-                            View All Courses
-                        </Link>
+                        <h2 className="text-xl font-bold text-gray-900">Your Assigned Courses</h2>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {courses && courses.slice(0, 3).map((course) => (
-                            <Link 
-                                key={course.course_id} 
+                        {courses && courses.map((course) => (
+                            <Link
+                                key={course.course_id}
                                 to={`/exams/${id}/${course.course_id}`}
                                 className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer block"
                             >

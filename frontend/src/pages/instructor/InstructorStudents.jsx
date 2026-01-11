@@ -11,19 +11,19 @@ import { path } from "../../../utils/path";
 
 const InstructorStudents = () => {
     const { userId, courseId } = useParams();
-    
+
     const {
         data: scores,
         loading: scoresLoading,
         error: scoresError,
     } = useFetch(`/get-students-score/${courseId}`);
-    
+
     const {
         data: students,
         loading: studentsLoading,
         error: studentsError,
     } = useFetch(`/get-students/${userId}/${courseId}`);
-    
+
     const { data: course } = useFetch(`/get-course/${courseId}`);
 
     // Debug logging
@@ -42,7 +42,7 @@ const InstructorStudents = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
-    
+
     // Enrollment states
     const [canEnroll, setCanEnroll] = useState(false);
     const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -57,11 +57,11 @@ const InstructorStudents = () => {
             try {
                 const token = localStorage.getItem('token');
                 const headers = { Authorization: `Bearer ${token}` };
-                
+
                 // 1. Get user info
                 const userRes = await axios.get(`${path}/user`, { headers });
                 const user = userRes.data;
-                
+
                 console.log("User checking enrollment permission:", user);
 
                 // Instructors/Level Admins check session settings
@@ -100,7 +100,7 @@ const InstructorStudents = () => {
 
     const handleEnrollSubmit = async () => {
         if (selectedStudentsToEnroll.length === 0) return;
-        
+
         setEnrollLoading(true);
         try {
             const token = localStorage.getItem('token');
@@ -110,7 +110,7 @@ const InstructorStudents = () => {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             // Refresh list
             window.location.reload();
         } catch (err) {
@@ -136,7 +136,7 @@ const InstructorStudents = () => {
         const programme = student.programme?.toLowerCase() || "";
         const department = student.department?.toLowerCase() || "";
         const searchTermLower = searchTerm.toLowerCase();
-        
+
         return (
             fullName.includes(searchTermLower) ||
             candidateNo.includes(searchTermLower) ||
@@ -200,13 +200,6 @@ const InstructorStudents = () => {
                         <FaTachometerAlt />
                         <span>Dashboard</span>
                     </Link>
-                    <Link
-                        to={`/instructor/${userId}`}
-                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    >
-                        <FaBook />
-                        <span>Courses</span>
-                    </Link>
                 </Sidebar>
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
@@ -229,13 +222,6 @@ const InstructorStudents = () => {
                     >
                         <FaTachometerAlt />
                         <span>Dashboard</span>
-                    </Link>
-                    <Link
-                        to={`/instructor/${userId}`}
-                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    >
-                        <FaBook />
-                        <span>Courses</span>
                     </Link>
                 </Sidebar>
                 <div className="flex-1 flex items-center justify-center">
@@ -266,13 +252,6 @@ const InstructorStudents = () => {
                     <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/instructor/${userId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
-                <Link
                     to={`/instructor-student/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 bg-blue-500 text-white rounded-lg transition-colors duration-200"
                 >
@@ -287,7 +266,7 @@ const InstructorStudents = () => {
                     <span>Results</span>
                 </Link>
             </Sidebar>
-            
+
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex items-center justify-between mb-8">
                     <div>
@@ -316,7 +295,7 @@ const InstructorStudents = () => {
                             <FaFileExcel /> Excel
                         </button>
                         {canEnroll && (
-                            <button 
+                            <button
                                 onClick={fetchUnenrolledStudents}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700"
                             >
@@ -346,8 +325,8 @@ const InstructorStudents = () => {
                                             <td className="py-4 px-6 text-sm text-gray-600">{indexOfFirstItem + index + 1}</td>
                                             <td className="py-4 px-6">
                                                 {student.image ? (
-                                                    <img 
-                                                        src={`${path.replace('/api', '')}/${student.image}`} 
+                                                    <img
+                                                        src={`${path.replace('/api', '')}/${student.image}`}
                                                         alt={student.full_name}
                                                         className="w-10 h-10 rounded-full object-cover"
                                                     />
@@ -397,11 +376,10 @@ const InstructorStudents = () => {
                                     <button
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                            currentPage === 1
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                        }`}
+                                        className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === 1
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                                            }`}
                                     >
                                         Previous
                                     </button>
@@ -410,11 +388,10 @@ const InstructorStudents = () => {
                                         <button
                                             key={index + 1}
                                             onClick={() => paginate(index + 1)}
-                                            className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                                currentPage === index + 1
-                                                    ? "bg-blue-500 text-white"
-                                                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                            }`}
+                                            className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === index + 1
+                                                ? "bg-blue-500 text-white"
+                                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                                                }`}
                                         >
                                             {index + 1}
                                         </button>
@@ -423,11 +400,10 @@ const InstructorStudents = () => {
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages}
-                                        className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                            currentPage === totalPages
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                        }`}
+                                        className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === totalPages
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                                            }`}
                                     >
                                         Next
                                     </button>
@@ -447,7 +423,7 @@ const InstructorStudents = () => {
                                 ✕
                             </button>
                         </div>
-                        
+
                         {enrollError && (
                             <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{enrollError}</div>
                         )}
@@ -486,13 +462,13 @@ const InstructorStudents = () => {
                                     <div className="flex justify-between items-center pt-4">
                                         <span className="text-sm text-gray-600">{selectedStudentsToEnroll.length} selected</span>
                                         <div className="flex gap-3">
-                                            <button 
+                                            <button
                                                 onClick={() => setShowEnrollModal(false)}
                                                 className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                                             >
                                                 Cancel
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={handleEnrollSubmit}
                                                 disabled={selectedStudentsToEnroll.length === 0 || enrollLoading}
                                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"

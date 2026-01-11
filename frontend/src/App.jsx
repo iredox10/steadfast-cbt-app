@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useParams } from "react-router-dom";
 import { path } from "../utils/path";
 import Home from "../src/pages/Home.jsx";
 import axios from "axios";
@@ -62,11 +62,11 @@ function App() {
                     />
                     <Route path="/student-result/:studentId" element={<StudentResult />} />
                     <Route path="/logged-student" element={<LoggedStudent />} />
-                    
+
                     <Route path="/manual/:role" element={<UserManual />} />
 
                     {/* Protected Instructor Routes */}
-                    <Route path="/instructor/:id" element={<ProtectedRoute><Instructor /></ProtectedRoute>} />
+                    <Route path="/instructor/:id" element={<InstructorRedirect />} />
                     <Route path="/instructor/dashboard/:id" element={<ProtectedRoute><InstructorDashboard /></ProtectedRoute>} />
                     <Route path="/course-results/:userId/:courseId" element={<ProtectedRoute><CourseResults /></ProtectedRoute>} />
                     <Route path="/exam-results-detail/:userId/:courseId/:examId" element={<ProtectedRoute><ExamResultsDetail /></ProtectedRoute>} />
@@ -104,7 +104,7 @@ function App() {
                         path="/admin-students/:id"
                         element={<ProtectedRoute><AdminStudents /></ProtectedRoute>}
                     />
-                    
+
                     <Route path="/dashboard/:userId" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                     <Route
                         path="/admin-instructors/:userId"
@@ -148,7 +148,7 @@ function App() {
                     <Route path="/student-enrollment/:courseId" element={<ProtectedRoute><StudentEnrollment /></ProtectedRoute>} />
                     <Route path="/admin-tickets/:id" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
                     <Route path="/admin-settings/:userId" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                    
+
                     {/* 404 - Catch all unmatched routes */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
@@ -156,5 +156,10 @@ function App() {
         </div>
     );
 }
+
+const InstructorRedirect = () => {
+    const { id } = useParams();
+    return <Navigate to={`/instructor/dashboard/${id}`} replace />;
+};
 
 export default App;

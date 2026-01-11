@@ -241,7 +241,7 @@ const Exams = () => {
 
     const handleRecallExam = async (examId) => {
         if (!window.confirm("Are you sure you want to recall this exam? It will be removed from the admin's view.")) return;
-        
+
         try {
             setLoading(true);
             const headers = getAuthHeaders();
@@ -266,7 +266,7 @@ const Exams = () => {
         const examType = exam?.exam_type?.toLowerCase() || "";
         const examDuration = exam?.exam_duration?.toString() || "";
         const searchTermLower = searchTerm.toLowerCase();
-        
+
         return (
             courseTitle.includes(searchTermLower) ||
             examType.includes(searchTermLower) ||
@@ -373,13 +373,6 @@ const Exams = () => {
                     <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/instructor/${userId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
-                <Link
                     to={`/instructor-student/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
@@ -394,7 +387,7 @@ const Exams = () => {
                     <span>Results</span>
                 </Link>
             </Sidebar>
-            
+
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex items-center justify-between mb-8">
                     <div>
@@ -497,11 +490,10 @@ const Exams = () => {
                                             </td>
                                             <td className="py-4 px-6">
                                                 <span
-                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        exam.exam_type === "school"
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${exam.exam_type === "school"
                                                             ? "bg-blue-100 text-blue-800"
                                                             : "bg-purple-100 text-purple-800"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {exam.exam_type || "N/A"}
                                                 </span>
@@ -580,11 +572,10 @@ const Exams = () => {
                                                     ) : (
                                                         <button
                                                             onClick={() => handleShowSubmitModel(exam.id)}
-                                                            className={`text-sm font-medium ${
-                                                                exam.filled_questions_count < exam.no_of_questions 
-                                                                    ? "text-gray-400 cursor-not-allowed" 
+                                                            className={`text-sm font-medium ${exam.filled_questions_count < exam.no_of_questions
+                                                                    ? "text-gray-400 cursor-not-allowed"
                                                                     : "text-blue-600 hover:text-blue-800"
-                                                            }`}
+                                                                }`}
                                                             disabled={loading || exam.filled_questions_count < exam.no_of_questions}
                                                             title={exam.filled_questions_count < exam.no_of_questions ? `Complete all questions to submit (${exam.filled_questions_count}/${exam.no_of_questions} filled)` : "Submit Exam"}
                                                         >
@@ -621,11 +612,10 @@ const Exams = () => {
                                     <button
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1 || loading}
-                                        className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                            currentPage === 1 || loading
+                                        className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === 1 || loading
                                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                                 : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                        }`}
+                                            }`}
                                     >
                                         Previous
                                     </button>
@@ -635,11 +625,10 @@ const Exams = () => {
                                             key={index + 1}
                                             onClick={() => paginate(index + 1)}
                                             disabled={loading}
-                                            className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                                currentPage === index + 1
+                                            className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === index + 1
                                                     ? "bg-blue-500 text-white"
                                                     : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                            }`}
+                                                }`}
                                         >
                                             {index + 1}
                                         </button>
@@ -648,11 +637,10 @@ const Exams = () => {
                                     <button
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages || loading}
-                                        className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                            currentPage === totalPages || loading
+                                        className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === totalPages || loading
                                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                                 : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                                        }`}
+                                            }`}
                                     >
                                         Next
                                     </button>

@@ -208,13 +208,6 @@ const ExamResultsDetail = () => {
                     <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/instructor/${userId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
-                <Link
                     to={`/instructor-student/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >

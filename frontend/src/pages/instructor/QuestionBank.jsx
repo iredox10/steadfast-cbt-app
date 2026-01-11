@@ -58,13 +58,6 @@ const QuestionBank = () => {
                         <FaTachometerAlt />
                         <span>Dashboard</span>
                     </Link>
-                    <Link
-                        to={`/instructor/${userId}`}
-                        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    >
-                        <FaBook />
-                        <span>Courses</span>
-                    </Link>
                     {courseId && (
                         <>
                             <Link
@@ -104,13 +97,6 @@ const QuestionBank = () => {
                     <FaTachometerAlt />
                     <span>Dashboard</span>
                 </Link>
-                <Link
-                    to={`/instructor/${userId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
                 {courseId && (
                     <>
                         <Link
@@ -130,7 +116,7 @@ const QuestionBank = () => {
                     </>
                 )}
             </Sidebar>
-            
+
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex items-center justify-between mb-8">
                     <div>
@@ -166,7 +152,7 @@ const QuestionBank = () => {
                         <div className="p-12 text-center">
                             <i className="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-4"></i>
                             <p className="text-red-500 mb-4">{typeof error === 'object' ? error.error || error.message || 'An error occurred' : error}</p>
-                            <button 
+                            <button
                                 onClick={fetchQuestions}
                                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                             >
@@ -197,18 +183,18 @@ const QuestionBank = () => {
                                                         {course?.title || "Course"}
                                                     </span>
                                                 </div>
-                                                <p 
+                                                <p
                                                     className="text-gray-900 font-medium mb-4"
                                                     dangerouslySetInnerHTML={{ __html: question.question }}
                                                 ></p>
-                                                
+
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-2">
                                                         <div className="flex items-start gap-3">
                                                             <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-700 rounded-full text-sm font-medium mt-1">
                                                                 ✓
                                                             </span>
-                                                            <div 
+                                                            <div
                                                                 className="text-gray-700"
                                                                 dangerouslySetInnerHTML={{ __html: question.correct_answer }}
                                                             ></div>
@@ -217,7 +203,7 @@ const QuestionBank = () => {
                                                             <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium mt-1">
                                                                 B
                                                             </span>
-                                                            <div 
+                                                            <div
                                                                 className="text-gray-700"
                                                                 dangerouslySetInnerHTML={{ __html: question.option_b }}
                                                             ></div>
@@ -230,7 +216,7 @@ const QuestionBank = () => {
                                                                     <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium mt-1">
                                                                         C
                                                                     </span>
-                                                                    <div 
+                                                                    <div
                                                                         className="text-gray-700"
                                                                         dangerouslySetInnerHTML={{ __html: question.option_c }}
                                                                     ></div>
@@ -241,7 +227,7 @@ const QuestionBank = () => {
                                                                     <span className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full text-sm font-medium mt-1">
                                                                         D
                                                                     </span>
-                                                                    <div 
+                                                                    <div
                                                                         className="text-gray-700"
                                                                         dangerouslySetInnerHTML={{ __html: question.option_d }}
                                                                     ></div>
@@ -269,37 +255,34 @@ const QuestionBank = () => {
                                         <button
                                             onClick={() => setCurrentPage(currentPage - 1)}
                                             disabled={currentPage === 1}
-                                            className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                                currentPage === 1
+                                            className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === 1
                                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-                                            }`}
+                                                }`}
                                         >
                                             Previous
                                         </button>
-                                        
+
                                         {[...Array(totalPages)].map((_, index) => (
                                             <button
                                                 key={index + 1}
                                                 onClick={() => setCurrentPage(index + 1)}
-                                                className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                                    currentPage === index + 1
+                                                className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === index + 1
                                                         ? 'bg-blue-500 text-white'
                                                         : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-                                                }`}
+                                                    }`}
                                             >
                                                 {index + 1}
                                             </button>
                                         ))}
-                                        
+
                                         <button
                                             onClick={() => setCurrentPage(currentPage + 1)}
                                             disabled={currentPage === totalPages}
-                                            className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                                currentPage === totalPages
+                                            className={`px-3 py-1 text-sm font-medium rounded-md ${currentPage === totalPages
                                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-                                            }`}
+                                                }`}
                                         >
                                             Next
                                         </button>

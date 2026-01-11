@@ -13,20 +13,20 @@ const CourseQuestions = () => {
     const [showQuestionBank, setShowQuestionBank] = useState(false);
     const [questionBank, setQuestionBank] = useState([]);
     const [loading, setLoading] = useState(false);
-    
+
     // State for data that was previously fetched by useFetch
     const [questions, setQuestions] = useState([]);
     const [questionsLoading, setQuestionsLoading] = useState(true);
     const [questionsErr, setQuestionsErr] = useState(null);
-    
+
     const [exam, setExam] = useState(null);
     const [examLoading, setExamLoading] = useState(true);
     const [examErr, setExamErr] = useState(null);
-    
+
     const [user, setUser] = useState(null);
     const [userLoading, setUserLoading] = useState(true);
     const [userErr, setUserErr] = useState(null);
-    
+
     const [course, setCourse] = useState(null);
 
     // Pagination state for Question Bank
@@ -181,7 +181,7 @@ const CourseQuestions = () => {
     };
 
     // Filter and paginate question bank
-    const filteredBankQuestions = questionBank.filter(q => 
+    const filteredBankQuestions = questionBank.filter(q =>
         q.question.toLowerCase().includes(bankSearchTerm.toLowerCase()) ||
         q.correct_answer.toLowerCase().includes(bankSearchTerm.toLowerCase())
     );
@@ -203,15 +203,8 @@ const CourseQuestions = () => {
                     <FaTachometerAlt />
                     <span>Dashboard</span>
                 </Link>
-                <Link
-                    to={`/instructor/${userId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
             </Sidebar>
-            
+
             <main className="flex-1 p-8 overflow-y-auto">
                 <header className="flex items-center justify-between mb-8">
                     <div>
@@ -239,7 +232,7 @@ const CourseQuestions = () => {
                             <h2 className="text-xl font-bold text-gray-900">Exam Questions</h2>
                             {exam && (
                                 <p className="text-sm text-gray-500 mt-1">
-                                    Pool Size: <span className="font-semibold text-blue-600">{questions.length}</span> | 
+                                    Pool Size: <span className="font-semibold text-blue-600">{questions.length}</span> |
                                     Students Answer: <span className="font-semibold text-green-600">{exam.actual_questions}</span>
                                 </p>
                             )}
@@ -257,7 +250,7 @@ const CourseQuestions = () => {
                             <span>Open Question Bank</span>
                         </button>
                     </div>
-                    
+
                     {questionsLoading ? (
                         <div className="flex justify-center items-center h-32">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -302,7 +295,7 @@ const CourseQuestions = () => {
                         <div className="flex flex-col p-6 border-b border-gray-100 gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold text-gray-900">Question Bank ({filteredBankQuestions.length})</h2>
-                                <button 
+                                <button
                                     onClick={() => setShowQuestionBank(false)}
                                     className="text-gray-400 hover:text-gray-500 transition-colors"
                                 >
@@ -332,26 +325,26 @@ const CourseQuestions = () => {
                                         <div key={bankQuestion.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
                                             <div className="mb-3">
                                                 <h3 className="font-medium text-gray-900 mb-2">Question:</h3>
-                                                <div 
+                                                <div
                                                     className="text-gray-800 prose prose-sm max-w-none"
-                                                    dangerouslySetInnerHTML={{__html: bankQuestion.question}} 
+                                                    dangerouslySetInnerHTML={{ __html: bankQuestion.question }}
                                                 />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                                                 <div className="p-3 bg-green-50 border border-green-100 rounded-lg">
                                                     <strong className="text-green-800 text-sm">Correct Answer:</strong>
-                                                    <div 
+                                                    <div
                                                         className="mt-1 text-green-700 text-sm"
-                                                        dangerouslySetInnerHTML={{__html: bankQuestion.correct_answer}} 
+                                                        dangerouslySetInnerHTML={{ __html: bankQuestion.correct_answer }}
                                                     />
                                                 </div>
                                                 {/* Simplified options display for compactness */}
                                                 <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
                                                     <strong className="text-gray-800 text-sm">Other Options:</strong>
                                                     <div className="mt-1 text-gray-600 text-xs space-y-1">
-                                                        <div className="truncate" title="Option B" dangerouslySetInnerHTML={{__html: `B: ${bankQuestion.option_b}`}} />
-                                                        {bankQuestion.option_c && <div className="truncate" title="Option C" dangerouslySetInnerHTML={{__html: `C: ${bankQuestion.option_c}`}} />}
-                                                        {bankQuestion.option_d && <div className="truncate" title="Option D" dangerouslySetInnerHTML={{__html: `D: ${bankQuestion.option_d}`}} />}
+                                                        <div className="truncate" title="Option B" dangerouslySetInnerHTML={{ __html: `B: ${bankQuestion.option_b}` }} />
+                                                        {bankQuestion.option_c && <div className="truncate" title="Option C" dangerouslySetInnerHTML={{ __html: `C: ${bankQuestion.option_c}` }} />}
+                                                        {bankQuestion.option_d && <div className="truncate" title="Option D" dangerouslySetInnerHTML={{ __html: `D: ${bankQuestion.option_d}` }} />}
                                                     </div>
                                                 </div>
                                             </div>
@@ -414,7 +407,7 @@ const CourseQuestions = () => {
                         <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col">
                             <div className="flex items-center justify-between p-6 border-b border-gray-100">
                                 <h2 className="text-xl font-bold text-gray-900">Question Details</h2>
-                                <button 
+                                <button
                                     onClick={() => setShowModel(false)}
                                     className="text-gray-400 hover:text-gray-500 transition-colors"
                                 >
@@ -426,17 +419,17 @@ const CourseQuestions = () => {
                                 <div className="space-y-4">
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-700 mb-2">Question</h3>
-                                        <div 
+                                        <div
                                             className="p-4 bg-gray-50 rounded-lg text-gray-800"
-                                            dangerouslySetInnerHTML={{__html: question.question}}
+                                            dangerouslySetInnerHTML={{ __html: question.question }}
                                         />
                                     </div>
 
                                     <div>
                                         <h3 className="text-sm font-medium text-gray-700 mb-2">Correct Answer</h3>
-                                        <div 
+                                        <div
                                             className="p-4 bg-green-50 border border-green-100 rounded-lg text-green-800"
-                                            dangerouslySetInnerHTML={{__html: question.correct_answer}}
+                                            dangerouslySetInnerHTML={{ __html: question.correct_answer }}
                                         />
                                     </div>
 
@@ -449,9 +442,9 @@ const CourseQuestions = () => {
                                                     className="p-3 bg-gray-50 border border-gray-100 rounded-lg text-gray-800"
                                                 >
                                                     <strong className="capitalize">Option {option}:</strong>
-                                                    <div 
+                                                    <div
                                                         className="mt-1"
-                                                        dangerouslySetInnerHTML={{__html: question[`option_${option}`]}}
+                                                        dangerouslySetInnerHTML={{ __html: question[`option_${option}`] }}
                                                     />
                                                 </div>
                                             ))}

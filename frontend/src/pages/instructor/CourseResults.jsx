@@ -40,25 +40,25 @@ const CourseResults = () => {
         try {
             setLoading(true);
             const headers = getAuthHeaders();
-            
+
             // 1. Get exams for this course to get their IDs
             // We need to know which exams belong to this course to filter the archives
             const examsRes = await axios.get(`${path}/get-exams/${userId}/${courseId}`, { headers });
             const courseExamIds = examsRes.data.map(exam => exam.id);
-            
+
             console.log("Course Exam IDs:", courseExamIds);
 
             // 2. Get all exam archives
             const archivesRes = await axios.get(`${path}/exam-archives`, { headers });
-            
+
             // 3. Filter archives that belong to one of the course's exams
-            const courseArchives = archivesRes.data.filter(archive => 
+            const courseArchives = archivesRes.data.filter(archive =>
                 courseExamIds.includes(archive.exam_id)
             );
-            
+
             console.log("Filtered Course Archives:", courseArchives);
             setArchives(courseArchives);
-            
+
         } catch (err) {
             console.error("Error fetching archives:", err);
             setError("Failed to load exam archives");
@@ -92,13 +92,6 @@ const CourseResults = () => {
                     <span>Dashboard</span>
                 </Link>
                 <Link
-                    to={`/instructor/${userId}`}
-                    className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                    <FaBook />
-                    <span>Courses</span>
-                </Link>
-                <Link
                     to={`/instructor-student/${userId}/${courseId}`}
                     className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 >
@@ -122,10 +115,10 @@ const CourseResults = () => {
                             <p className="text-gray-600 mt-1">{course?.title || 'Loading...'} - {course?.code}</p>
                         </div>
                         <Link
-                            to={`/instructor/${userId}`}
+                            to={`/instructor/dashboard/${userId}`}
                             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                         >
-                            Back to Courses
+                            Back to Dashboard
                         </Link>
                     </div>
                 </header>
@@ -162,7 +155,7 @@ const CourseResults = () => {
                             <FaFileAlt className="text-gray-300 text-5xl mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">No Exam Archives Found</h3>
                             <p className="text-gray-600">
-                                {archives.length === 0 
+                                {archives.length === 0
                                     ? "There are no terminated exams for this course yet."
                                     : "No archives match your search criteria."
                                 }
@@ -203,17 +196,16 @@ const CourseResults = () => {
                                                 {archive.exam_title || 'N/A'}
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    archive.status === 'Active' 
-                                                        ? 'bg-green-100 text-green-700' 
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${archive.status === 'Active'
+                                                        ? 'bg-green-100 text-green-700'
                                                         : 'bg-blue-100 text-blue-700'
-                                                }`}>
+                                                    }`}>
                                                     {archive.exam_type || archive.exam?.exam_type || 'N/A'}
                                                     {archive.status ? ` (${archive.status})` : ''}
                                                 </span>
                                             </td>
                                             <td className="py-4 px-6 text-sm text-gray-600">
-                                                {archive.exam_date 
+                                                {archive.exam_date
                                                     ? format(new Date(archive.exam_date), 'MMM dd, yyyy')
                                                     : 'N/A'
                                                 }
