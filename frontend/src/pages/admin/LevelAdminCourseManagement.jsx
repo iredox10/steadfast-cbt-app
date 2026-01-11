@@ -38,8 +38,8 @@ const LevelAdminCourseManagement = () => {
         fetchLecturers();
     }, []);
 
-    const filteredCourses = Array.isArray(courses) ? courses.filter(course => 
-        (course.title || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+    const filteredCourses = Array.isArray(courses) ? courses.filter(course =>
+        (course.title || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
         (course.code || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     ) : [];
 
@@ -57,10 +57,10 @@ const LevelAdminCourseManagement = () => {
                 const semesterResponse = await axios.get(`${path}/get-semesters/${response.data.session.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
+
                 const semesterData = semesterResponse.data;
                 setSemesters(semesterData);
-                
+
                 if (semesterData.length === 0) {
                     setError('No semester found for this session. Please add a semester first.');
                 } else {
@@ -125,6 +125,7 @@ const LevelAdminCourseManagement = () => {
             setShowAssignModal(false);
             setAssignForm({ lecturer_id: '' });
             setSelectedCourse(null);
+            fetchActiveSessionData(); // Add this line to refresh the list
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to assign course');
         }
@@ -280,125 +281,125 @@ const LevelAdminCourseManagement = () => {
                                             Add Semester
                                         </Link>
                                         <button
-                                        onClick={() => setShowImportModal(true)}
-                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                                    >
-                                        <FaPlus />
-                                        Import Courses
-                                    </button>
-                                    <button
-                                        onClick={() => setShowAddCourseModal(true)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                                    >
-                                        <FaPlus />
-                                        Add Course
-                                    </button>
+                                            onClick={() => setShowImportModal(true)}
+                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                        >
+                                            <FaPlus />
+                                            Import Courses
+                                        </button>
+                                        <button
+                                            onClick={() => setShowAddCourseModal(true)}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                        >
+                                            <FaPlus />
+                                            Add Course
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="p-6">
-                            {courses.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <FaBook className="text-gray-300 text-5xl mb-4 mx-auto" />
-                                    <h3 className="text-xl font-medium text-gray-900 mb-2">No Courses Added</h3>
-                                    <p className="text-gray-600 mb-6">Add your first course to the active session.</p>
-                                    <button
-                                        onClick={() => setShowAddCourseModal(true)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                                    >
-                                        Add First Course
-                                    </button>
-                                </div>
-                            ) : filteredCourses.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500">
-                                    <p className="text-lg">No courses found matching "{searchTerm}"</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {filteredCourses.map((course) => (
-                                        <div key={course.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 flex flex-col h-full group">
-                                            {/* Header: Code & Semester */}
-                                            <div className="flex justify-between items-start mb-3">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-100 transition-colors">
-                                                    {course.code}
-                                                </span>
-                                                <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                                                    {course.semester?.semester || course.semester?.title || 'No Semester'}
-                                                </span>
-                                            </div>
+                            <div className="p-6">
+                                {courses.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <FaBook className="text-gray-300 text-5xl mb-4 mx-auto" />
+                                        <h3 className="text-xl font-medium text-gray-900 mb-2">No Courses Added</h3>
+                                        <p className="text-gray-600 mb-6">Add your first course to the active session.</p>
+                                        <button
+                                            onClick={() => setShowAddCourseModal(true)}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                                        >
+                                            Add First Course
+                                        </button>
+                                    </div>
+                                ) : filteredCourses.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <p className="text-lg">No courses found matching "{searchTerm}"</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredCourses.map((course) => (
+                                            <div key={course.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all duration-200 flex flex-col h-full group">
+                                                {/* Header: Code & Semester */}
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 group-hover:bg-blue-100 transition-colors">
+                                                        {course.code}
+                                                    </span>
+                                                    <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                        {course.semester?.semester || course.semester?.title || 'No Semester'}
+                                                    </span>
+                                                </div>
 
-                                            {/* Title */}
-                                            <h3 className="font-bold text-gray-900 text-lg mb-2 leading-tight line-clamp-2 min-h-[3.5rem]" title={course.title}>
-                                                {course.title}
-                                            </h3>
+                                                {/* Title */}
+                                                <h3 className="font-bold text-gray-900 text-lg mb-2 leading-tight line-clamp-2 min-h-[3.5rem]" title={course.title}>
+                                                    {course.title}
+                                                </h3>
 
-                                            {/* Metadata */}
-                                            <div className="mb-4">
-                                                <p className="text-sm text-gray-500">
-                                                    <span className="font-medium text-gray-700">{course.credit_unit}</span> Credit Unit{course.credit_unit > 1 ? 's' : ''}
-                                                </p>
-                                            </div>
+                                                {/* Metadata */}
+                                                <div className="mb-4">
+                                                    <p className="text-sm text-gray-500">
+                                                        <span className="font-medium text-gray-700">{course.credit_unit}</span> Credit Unit{course.credit_unit > 1 ? 's' : ''}
+                                                    </p>
+                                                </div>
 
-                                            {/* Spacer */}
-                                            <div className="flex-1"></div>
+                                                {/* Spacer */}
+                                                <div className="flex-1"></div>
 
-                                            {/* Footer Actions */}
-                                            <div className="pt-4 border-t border-gray-100 mt-auto space-y-3">
-                                                {/* Assignment Status Row */}
-                                                <div className="text-sm">
-                                                    {course.assigned_to ? (
-                                                        <div className="flex items-center justify-between text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
-                                                            <div className="flex items-center overflow-hidden">
-                                                                <FaUserTie className="mr-2 flex-shrink-0 text-green-600" />
-                                                                <div className="flex flex-col overflow-hidden">
-                                                                    <span className="text-[10px] uppercase text-green-600 font-semibold tracking-wider">Assigned to</span>
-                                                                    <span className="truncate font-medium text-xs">{course.assigned_to}</span>
+                                                {/* Footer Actions */}
+                                                <div className="pt-4 border-t border-gray-100 mt-auto space-y-3">
+                                                    {/* Assignment Status Row */}
+                                                    <div className="text-sm">
+                                                        {course.assigned_to ? (
+                                                            <div className="flex items-center justify-between text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                                                                <div className="flex items-center overflow-hidden">
+                                                                    <FaUserTie className="mr-2 flex-shrink-0 text-green-600" />
+                                                                    <div className="flex flex-col overflow-hidden">
+                                                                        <span className="text-[10px] uppercase text-green-600 font-semibold tracking-wider">Assigned to</span>
+                                                                        <span className="truncate font-medium text-xs">{course.assigned_to}</span>
+                                                                    </div>
                                                                 </div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedCourse(course);
+                                                                        setAssignForm({ lecturer_id: course.assigned_to_id || '' });
+                                                                        setShowAssignModal(true);
+                                                                    }}
+                                                                    className="text-[10px] bg-white border border-green-200 text-green-700 px-2 py-1 rounded hover:bg-green-100 transition-colors font-bold uppercase whitespace-nowrap ml-2"
+                                                                >
+                                                                    Change
+                                                                </button>
                                                             </div>
+                                                        ) : (
                                                             <button
                                                                 onClick={() => {
                                                                     setSelectedCourse(course);
-                                                                    setAssignForm({ lecturer_id: course.assigned_to_id || '' });
                                                                     setShowAssignModal(true);
                                                                 }}
-                                                                className="text-[10px] bg-white border border-green-200 text-green-700 px-2 py-1 rounded hover:bg-green-100 transition-colors font-bold uppercase whitespace-nowrap ml-2"
+                                                                className="flex items-center justify-center w-full text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition-colors text-xs font-medium border border-amber-100 group-hover:border-amber-200"
                                                             >
-                                                                Change
+                                                                <FaChalkboardTeacher className="mr-2" />
+                                                                Assign Lecturer
                                                             </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedCourse(course);
-                                                                setShowAssignModal(true);
-                                                            }}
-                                                            className="flex items-center justify-center w-full text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition-colors text-xs font-medium border border-amber-100 group-hover:border-amber-200"
-                                                        >
-                                                            <FaChalkboardTeacher className="mr-2" />
-                                                            Assign Lecturer
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                        )}
+                                                    </div>
 
-                                                {/* Enroll Action */}
-                                                <Link
-                                                    to={`/student-enrollment/${course.id}`}
-                                                    className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors gap-2 shadow-sm hover:shadow"
-                                                >
-                                                    <FaUsers />
-                                                    <span>Enroll Students</span>
-                                                </Link>
+                                                    {/* Enroll Action */}
+                                                    <Link
+                                                        to={`/student-enrollment/${course.id}`}
+                                                        className="flex items-center justify-center w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors gap-2 shadow-sm hover:shadow"
+                                                    >
+                                                        <FaUsers />
+                                                        <span>Enroll Students</span>
+                                                    </Link>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Add Course Modal */}
+                {/* Add Course Modal */}
                 {showAddCourseModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                         <div className="bg-white rounded-xl max-w-md w-full p-6">
@@ -459,9 +460,9 @@ const LevelAdminCourseManagement = () => {
                                         Semester
                                     </label>
                                     <div className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
-                                        {semesters.find(s => s.id === courseForm.semester_id)?.title || 
-                                         semesters.find(s => s.id === courseForm.semester_id)?.semester || 
-                                         "No active semester found"}
+                                        {semesters.find(s => s.id === courseForm.semester_id)?.title ||
+                                            semesters.find(s => s.id === courseForm.semester_id)?.semester ||
+                                            "No active semester found"}
                                     </div>
                                 </div>
 

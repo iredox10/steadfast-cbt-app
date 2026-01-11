@@ -44,7 +44,7 @@ const ExamResultsDetail = () => {
             try {
                 const archiveRes = await axios.get(`${path}/get-archive-by-exam/${examId}`, { headers });
                 const archiveData = archiveRes.data;
-                
+
                 if (archiveData && archiveData.student_results) {
                     const mappedResults = archiveData.student_results.map(res => ({
                         student_id: res.student_id,
@@ -70,7 +70,7 @@ const ExamResultsDetail = () => {
             const totalQuestions = questionsRes.data.length;
 
             const scoresRes = await axios.get(`${path}/get-students-score/${courseId}`, { headers });
-            
+
             const resultsData = scoresRes.data.map(scoreData => ({
                 student_id: scoreData.student_id,
                 full_name: scoreData.student?.full_name || 'N/A',
@@ -118,22 +118,18 @@ const ExamResultsDetail = () => {
 
     const exportToPDF = () => {
         const doc = new jsPDF();
-        
+
         doc.setFontSize(18);
         doc.text(`${course?.title || 'Course'} - Exam Results`, 14, 20);
         doc.setFontSize(12);
         doc.text(`Exam: ${exam?.exam_type || 'N/A'}`, 14, 30);
         doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 14, 36);
-        
+
         doc.setFontSize(10);
         doc.text(`Average: ${stats.average} | Highest: ${stats.highest} | Lowest: ${stats.lowest}`, 14, 45);
         doc.text(`Passed: ${stats.passed} | Failed: ${stats.failed}`, 14, 51);
 
         const tableData = filteredResults.map((result, index) => {
-            const percentage = exam.max_score > 0 
-                ? ((result.score / exam.max_score) * 100).toFixed(2)
-                : '0';
-            
             return [
                 index + 1,
                 result.full_name || 'N/A',
@@ -142,14 +138,13 @@ const ExamResultsDetail = () => {
                     ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
                     : 'N/A',
                 result.score,
-                `${percentage}%`,
                 result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
             ];
         });
 
         autoTable(doc, {
             startY: 58,
-            head: [['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Percentage', 'Submitted']],
+            head: [['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Submitted']],
             body: tableData,
         });
 
@@ -170,12 +165,8 @@ const ExamResultsDetail = () => {
             ['Passed:', stats.passed],
             ['Failed:', stats.failed],
             [],
-            ['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Percentage', 'Submitted'],
+            ['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Submitted'],
             ...filteredResults.map((result, index) => {
-                const percentage = exam.max_score > 0 
-                    ? ((result.score / exam.max_score) * 100).toFixed(2)
-                    : '0';
-                
                 return [
                     index + 1,
                     result.full_name || 'N/A',
@@ -184,7 +175,6 @@ const ExamResultsDetail = () => {
                         ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
                         : 'N/A',
                     result.score,
-                    `${percentage}%`,
                     result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
                 ];
             })
@@ -324,18 +314,17 @@ const ExamResultsDetail = () => {
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Number</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions Answered</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
-                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filteredResults.length > 0 ? (
                                     filteredResults.map((result, index) => {
-                                        const percentage = exam?.max_score > 0 
-                                            ? (result.score / exam.max_score) * 100 
+                                        const percentage = exam?.max_score > 0
+                                            ? (result.score / exam.max_score) * 100
                                             : 0;
                                         const passed = percentage >= 50;
-                                        
+
                                         return (
                                             <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
                                                 <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
@@ -351,12 +340,10 @@ const ExamResultsDetail = () => {
                                                         {result.score}
                                                     </span>
                                                 </td>
-                                                <td className="py-4 px-6 text-sm text-gray-600">{percentage.toFixed(2)}%</td>
                                                 <td className="py-4 px-6 text-sm">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                        result.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                                                        passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                                    }`}>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${result.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
+                                                            passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                        }`}>
                                                         {result.status === 'in_progress' ? 'In Progress' : passed ? 'Pass' : 'Fail'}
                                                     </span>
                                                 </td>
@@ -365,7 +352,7 @@ const ExamResultsDetail = () => {
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" className="py-12 text-center text-gray-500">
+                                        <td colSpan="6" className="py-12 text-center text-gray-500">
                                             <div className="flex flex-col items-center">
                                                 <FaUsers className="text-4xl mb-2 opacity-20" />
                                                 <p className="text-lg font-medium">No results found</p>

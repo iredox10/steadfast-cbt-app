@@ -27,7 +27,7 @@ class Instructor extends Controller
     {
         try {
             $user = $request->user();
-            $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator', 'technician'])->with('level');
+            $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator', 'technician'])->with(['level.faculty']);
             
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $usersQuery->where('level_id', $user->level_id);

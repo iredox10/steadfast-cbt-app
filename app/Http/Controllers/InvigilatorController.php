@@ -12,6 +12,8 @@ use App\Models\Course;
 use App\Models\ExamArchive;
 use App\Models\Question;
 use App\Models\Answers;
+use App\Models\StudentExamScore;
+use App\Models\ExamViolation;
 use Carbon\Carbon;
 
 class InvigilatorController extends Controller
@@ -57,6 +59,7 @@ class InvigilatorController extends Controller
                 return response()->json(['error' => 'Student is not enrolled in this course'], 404);
             }
 
+            /* 
             // Check if there are available tickets
             $availableTicketsCount = ExamTicket::where('exam_id', $active_exam->id)
                 ->whereNull('assigned_to_student_id')
@@ -66,6 +69,7 @@ class InvigilatorController extends Controller
             if ($availableTicketsCount === 0) {
                 return response()->json(['error' => 'No available tickets for this exam.'], 404);
             }
+            */
 
             $candidate = Candidate::where('student_id', $student->id)
                 ->where('exam_id', $active_exam->id)
@@ -147,7 +151,7 @@ class InvigilatorController extends Controller
                         ->where('assigned_to_student_id', $student->id)
                         ->first();
 
-                    $student->ticket_no = $ticketRecord ? $ticketRecord->ticket_no : ($candidate ? $candidate->ticket_no : null);
+                    // $student->ticket_no = $ticketRecord ? $ticketRecord->ticket_no : ($candidate ? $candidate->ticket_no : null);
                     $student->exam_id = $active_exam->id;
                     $student->time_extension = $candidate ? $candidate->time_extension : 0;
                 }
@@ -249,6 +253,9 @@ class InvigilatorController extends Controller
                 ];
             })->toArray();
 
+            $terminator = auth()->user();
+            $activator = $exam->activator;
+
             ExamArchive::create([
                 'exam_id' => $exam_id,
                 'exam_title' => $exam->title ?? $course->title . ' Exam',
@@ -259,6 +266,8 @@ class InvigilatorController extends Controller
                 'marks_per_question' => $exam->marks_per_question,
                 'total_marks' => $totalMarks,
                 'student_results' => $studentResults,
+                'activated_by_name' => $activator ? $activator->full_name : 'N/A',
+                'terminated_by_name' => $terminator ? $terminator->full_name : 'N/A'
             ]);
 
             $studentIds = Candidate::where('exam_id', $exam_id)->pluck('student_id')->toArray();
@@ -271,11 +280,9 @@ class InvigilatorController extends Controller
                 ]);
             }
 
-            \App\Models\ExamViolation::where('exam_id', $exam_id)->delete();
-            $questionIds = Question::where('exam_id', $exam_id)->pluck('id');
-            if ($questionIds->isNotEmpty()) {
-                Answers::whereIn('question_id', $questionIds)->delete();
-            }
+            ExamViolation::where('exam_id', $exam_id)->delete();
+            Answers::where('course_id', $exam->course_id)->delete();
+            StudentExamScore::where('course_id', $exam->course_id)->delete();
 
             Candidate::where('exam_id', $exam_id)->delete();
             ExamTicket::where('exam_id', $exam_id)->delete();

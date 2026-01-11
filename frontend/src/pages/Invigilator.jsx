@@ -44,7 +44,7 @@ const Invigilator = () => {
             if (userData?.exam?.course_id) {
                 const token = localStorage.getItem('token');
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                
+
                 const res = await axios.get(`${path}/invigilator/students/${userData.exam.course_id}`, { headers });
                 setStudents(res.data || []);
             } else {
@@ -66,11 +66,11 @@ const Invigilator = () => {
 
     const handleCheckIn = async (student) => {
         setCheckingIn(student.id);
-        
+
         try {
             const token = localStorage.getItem('token');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            
+
             // Just mark student as checked in - don't generate ticket
             const response = await axios.post(`${path}/invigilator/checkin-student`, {
                 student_id: student.id,
@@ -78,27 +78,22 @@ const Invigilator = () => {
             }, { headers });
 
             if (response.status === 200) {
-                const updatedRecord = response.data?.student;
-                const checkinTime = response.data?.checkin_time || updatedRecord?.checkin_time || new Date().toISOString();
-                const ticketNumber = response.data?.ticket_no || updatedRecord?.ticket_no || student.ticket_no;
-                
-                setStudents(prevStudents => 
-                    prevStudents.map(s => 
-                        s.id === student.id 
-                            ? { 
-                                ...s, 
-                                is_checked_in: true, 
-                                checkin_time: checkinTime,
-                                ticket_no: ticketNumber,
-                                ticket_assigned: true,
-                                ticket_used: true
+                const checkinTime = response.data?.checkin_time || response.data?.student?.checkin_time || new Date().toISOString();
+
+                setStudents(prevStudents =>
+                    prevStudents.map(s =>
+                        s.id === student.id
+                            ? {
+                                ...s,
+                                is_checked_in: true,
+                                checkin_time: checkinTime
                             }
                             : s
                     )
                 );
 
                 setShowSuccess(true);
-                
+
                 setTimeout(() => {
                     setShowSuccess(false);
                 }, 3000);
@@ -107,12 +102,12 @@ const Invigilator = () => {
             console.error("Check-in error:", err);
             console.error("Error response:", err.response);
             console.error("Error data:", err.response?.data);
-            
-            const errorMessage = err.response?.data?.error 
-                || err.response?.data?.message 
-                || err.message 
+
+            const errorMessage = err.response?.data?.error
+                || err.response?.data?.message
+                || err.message
                 || "Failed to check in student. Please try again.";
-            
+
             alert(`Check-in failed: ${errorMessage}`);
         } finally {
             setCheckingIn(null);
@@ -121,21 +116,21 @@ const Invigilator = () => {
 
     // Filter students
     const filteredStudents = students.filter(student => {
-        const matchesSearch = searchTerm === '' || 
+        const matchesSearch = searchTerm === '' ||
             student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             student.candidate_no.toString().includes(searchTerm);
-        
-        const matchesFilter = 
+
+        const matchesFilter =
             filterStatus === 'all' ||
             (filterStatus === 'pending' && !student.is_checked_in) ||
             (filterStatus === 'checked-in' && student.is_checked_in);
-        
+
         return matchesSearch && matchesFilter;
     }).sort((a, b) => {
         // Sort: Pending students first, then by name
         const aChecked = a.is_checked_in;
         const bChecked = b.is_checked_in;
-        
+
         if (!aChecked && bChecked) return -1;
         if (aChecked && !bChecked) return 1;
         return a.full_name.localeCompare(b.full_name);
@@ -159,9 +154,9 @@ const Invigilator = () => {
     }
 
     // Check for various "no exam" scenarios
-    if (!userData || 
-        userData === "no exam activated" || 
-        !userData.exam || 
+    if (!userData ||
+        userData === "no exam activated" ||
+        !userData.exam ||
         !userData.exam.course_id ||
         userData.examAssigned === false) {
         return (
@@ -171,16 +166,16 @@ const Invigilator = () => {
                         <FaExclamationTriangle className="text-7xl text-yellow-500 mx-auto mb-6" />
                         <h2 className="text-3xl font-bold text-gray-900 mb-4">No Exam Assigned</h2>
                         <p className="text-gray-600 text-lg mb-6">
-                            You currently don't have an active exam assigned to you. 
+                            You currently don't have an active exam assigned to you.
                             Please contact the administrator to assign an exam.
                         </p>
-                        
+
                         {/* Additional info box */}
                         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-left mb-6">
                             <p className="text-sm text-blue-800">
-                                <strong>What to do:</strong><br/>
-                                • Contact your administrator or exam coordinator<br/>
-                                • Ensure your invigilator account is properly set up<br/>
+                                <strong>What to do:</strong><br />
+                                • Contact your administrator or exam coordinator<br />
+                                • Ensure your invigilator account is properly set up<br />
                                 • Verify that an exam has been activated and assigned to you
                             </p>
                         </div>
@@ -225,7 +220,7 @@ const Invigilator = () => {
         <div className="min-h-screen bg-gray-100">
             {/* Photo Modal */}
             {showPhotoModal && selectedPhoto && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
                     onClick={() => setShowPhotoModal(false)}
                 >
@@ -361,7 +356,7 @@ const Invigilator = () => {
                                         <p className="text-blue-100 text-sm mb-1">Activated On</p>
                                         <p className="text-xl font-bold flex items-center">
                                             <FaCalendarAlt className="mr-2" />
-                                            {userData.exam.activated_date 
+                                            {userData.exam.activated_date
                                                 ? new Date(userData.exam.activated_date).toLocaleString()
                                                 : 'N/A'}
                                         </p>
@@ -408,13 +403,13 @@ const Invigilator = () => {
                         <FaCheckCircle className="text-blue-500 text-2xl mt-1 mr-4" />
                         <div>
                             <h3 className="text-lg font-bold text-blue-900 mb-2">Invigilator Responsibilities</h3>
-                                                            <p className="text-blue-800 space-y-2">
-                                                                Your primary role is to ensure the integrity of the examination process. This involves:
-                                                                <ul className="list-disc list-inside ml-4 mt-2">
-                                                                    <li><strong>Identity Confirmation:</strong> Physically verify each student's identity against their registration details.</li>
-                                                                </ul>
-                                                                Upon successful completion of this step and your approval, students will be officially checked in, enabling them to proceed with the exam.
-                                                            </p>                        </div>
+                            <p className="text-blue-800 space-y-2">
+                                Your primary role is to ensure the integrity of the examination process. This involves:
+                                <ul className="list-disc list-inside ml-4 mt-2">
+                                    <li><strong>Identity Confirmation:</strong> Physically verify each student's identity against their registration details.</li>
+                                </ul>
+                                Upon successful completion of this step and your approval, students will be officially checked in, enabling them to proceed with the exam.
+                            </p>                        </div>
                     </div>
                 </div>
 
@@ -429,7 +424,7 @@ const Invigilator = () => {
                             <FaUser className="text-5xl text-blue-500 opacity-20" />
                         </div>
                     </div>
-                    
+
                     <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
                         <div className="flex items-center justify-between">
                             <div>
@@ -439,7 +434,7 @@ const Invigilator = () => {
                             <FaTimesCircle className="text-5xl text-yellow-500 opacity-20" />
                         </div>
                     </div>
-                    
+
                     <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
                         <div className="flex items-center justify-between">
                             <div>
@@ -464,7 +459,7 @@ const Invigilator = () => {
                                 className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
                             />
                         </div>
-                        
+
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
@@ -483,8 +478,8 @@ const Invigilator = () => {
                         <FaGraduationCap className="text-6xl text-gray-300 mx-auto mb-4" />
                         <h3 className="text-xl font-bold text-gray-900 mb-2">No Students Found</h3>
                         <p className="text-gray-600">
-                            {searchTerm || filterStatus !== 'all' 
-                                ? 'Try adjusting your search or filter' 
+                            {searchTerm || filterStatus !== 'all'
+                                ? 'Try adjusting your search or filter'
                                 : 'No students enrolled in this exam'}
                         </p>
                     </div>
@@ -497,11 +492,10 @@ const Invigilator = () => {
                             return (
                                 <div
                                     key={student.id}
-                                    className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${
-                                        isCheckedIn 
-                                            ? 'border-4 border-green-400' 
-                                            : 'border-4 border-gray-200 hover:border-blue-400'
-                                    }`}
+                                    className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${isCheckedIn
+                                        ? 'border-4 border-green-400'
+                                        : 'border-4 border-gray-200 hover:border-blue-400'
+                                        }`}
                                 >
                                     {/* Student Photo - Large and Prominent */}
                                     <div className="relative group cursor-pointer">
@@ -524,7 +518,7 @@ const Invigilator = () => {
                                                 <FaGraduationCap className="text-white text-8xl opacity-50" />
                                             </div>
                                         )}
-                                        
+
                                         {/* Status Badge */}
                                         <div className="absolute top-4 right-4 z-10">
                                             {isCheckedIn ? (
@@ -544,7 +538,7 @@ const Invigilator = () => {
                                     {/* Student Information */}
                                     <div className="p-6">
                                         <h3 className="text-2xl font-bold text-gray-900 mb-3">{student.full_name}</h3>
-                                        
+
                                         <div className="space-y-2 mb-4 text-gray-700">
                                             <div className="flex justify-between">
                                                 <span className="font-semibold">Student ID:</span>
@@ -558,15 +552,9 @@ const Invigilator = () => {
                                                 <span className="font-semibold">Programme:</span>
                                                 <span className="text-right">{student.programme}</span>
                                             </div>
-                                            
-                                            {/* Always show ticket number if student has one */}
-                                            {student.ticket_no && student.ticket_no !== 'null' && (
-                                                <div className="flex justify-between">
-                                                    <span className="font-semibold">Ticket Number:</span>
-                                                    <span className="font-mono text-blue-600 font-bold text-lg">{student.ticket_no}</span>
-                                                </div>
-                                            )}
-                                            
+
+
+
                                             {isCheckedIn && (
                                                 <>
                                                     <div className="pt-2 border-t-2 border-gray-200 mt-3"></div>
@@ -585,11 +573,10 @@ const Invigilator = () => {
                                             <button
                                                 onClick={() => handleCheckIn(student)}
                                                 disabled={isProcessing}
-                                                className={`w-full py-4 rounded-lg font-bold text-lg transition-all duration-300 ${
-                                                    isProcessing
-                                                        ? 'bg-gray-400 cursor-not-allowed'
-                                                        : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-                                                } text-white shadow-lg`}
+                                                className={`w-full py-4 rounded-lg font-bold text-lg transition-all duration-300 ${isProcessing
+                                                    ? 'bg-gray-400 cursor-not-allowed'
+                                                    : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
+                                                    } text-white shadow-lg`}
                                             >
                                                 {isProcessing ? (
                                                     <span className="flex items-center justify-center">
@@ -607,7 +594,7 @@ const Invigilator = () => {
                                                 )}
                                             </button>
                                         )}
-                                        
+
                                         {isCheckedIn && (
                                             <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 text-center">
                                                 <p className="text-green-800 font-bold flex items-center justify-center">

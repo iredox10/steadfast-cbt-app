@@ -40,6 +40,7 @@ const Instructors = () => {
     const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
     const [editingInstructor, setEditingInstructor] = useState(null);
     const [instructorToReset, setInstructorToReset] = useState(null);
+    const [selectedDepartment, setSelectedDepartment] = useState('all');
     const [errMsg, setErrMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
@@ -269,10 +270,15 @@ const Instructors = () => {
         }
     };
 
-    const filteredInstructors = instructors.filter(instructor =>
-        instructor.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instructor.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredInstructors = instructors.filter(instructor => {
+        const matchesSearch = instructor.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            instructor.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesDepartment = selectedDepartment === 'all' ||
+            instructor.level_id?.toString() === selectedDepartment.toString();
+
+        return matchesSearch && matchesDepartment;
+    });
 
     const getRoleDisplay = (role) => {
         switch (role) {
@@ -365,6 +371,20 @@ const Instructors = () => {
                                 <FaSearch />
                             </div>
                         </div>
+                        {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
+                            <div className="flex-1">
+                                <select
+                                    value={selectedDepartment}
+                                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-600 bg-white"
+                                >
+                                    <option value="all">All Departments</option>
+                                    {departments.map((dept) => (
+                                        <option key={dept.id} value={dept.id}>{dept.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     {/* Instructors Table */}
@@ -374,6 +394,7 @@ const Instructors = () => {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Department</th>
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                         {currentUser?.role === 'level_admin' && (
@@ -405,6 +426,12 @@ const Instructors = () => {
                                                             <div className="text-sm text-gray-500">{instructor.email}</div>
                                                         </div>
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">{instructor.level?.title || 'No Department'}</div>
+                                                    {instructor.level?.faculty?.name && (
+                                                        <div className="text-xs text-gray-500">{instructor.level.faculty.name}</div>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -489,11 +516,10 @@ const Instructors = () => {
                                             <button
                                                 key={i + 1}
                                                 onClick={() => paginate(i + 1)}
-                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${
-                                                    currentPage === i + 1
+                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${currentPage === i + 1
                                                         ? 'bg-blue-600 text-white border-blue-600'
                                                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 {i + 1}
                                             </button>

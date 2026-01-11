@@ -23,11 +23,11 @@ const ExamArchiveDetail = () => {
             setLoading(true);
             try {
                 console.log('Fetching archive details for ID:', archiveId);
-                
+
                 // Get the auth token from localStorage
                 const token = localStorage.getItem('token');
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                
+
                 const res = await axios.get(`${path}/exam-archives/${archiveId}`, { headers });
                 console.log('Archive data received:', res.data);
                 console.log('Student results:', res.data.student_results);
@@ -43,7 +43,7 @@ const ExamArchiveDetail = () => {
 
     const sortedAndFilteredResults = useMemo(() => {
         if (!archive?.student_results) return [];
-        
+
         let results = [...archive.student_results]
             .filter(result =>
                 result.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -189,6 +189,14 @@ const ExamArchiveDetail = () => {
                                     <span className="text-sm text-gray-600">Total Students</span>
                                     <p className="font-semibold text-gray-900">{archive.student_results?.length || 0}</p>
                                 </div>
+                                <div className="p-4 bg-emerald-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Activated By</span>
+                                    <p className="font-semibold text-gray-900">{archive.activated_by_name || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-rose-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Terminated By</span>
+                                    <p className="font-semibold text-gray-900">{archive.terminated_by_name || 'N/A'}</p>
+                                </div>
                             </div>
                         </div>
 
@@ -224,8 +232,8 @@ const ExamArchiveDetail = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900">
-                                                    {result.questions_answered !== undefined && result.questions_answered !== null 
-                                                        ? `${result.questions_answered} / ${archive.total_questions || 'N/A'}` 
+                                                    {result.questions_answered !== undefined && result.questions_answered !== null
+                                                        ? `${result.questions_answered} / ${archive.total_questions || 'N/A'}`
                                                         : 'N/A'}
                                                 </div>
                                             </td>

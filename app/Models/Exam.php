@@ -35,7 +35,8 @@ class Exam extends Model
         'enable_screenshot_block',
         'enable_tab_switch_detection',
         'enable_multiple_monitor_check',
-        'max_violations'
+        'max_violations',
+        'activated_by'
     ];
 
     public function level()
@@ -50,6 +51,11 @@ class Exam extends Model
 
     public function user(){
         return $this->belongsTo(User::class);
+    }
+
+    public function activator()
+    {
+        return $this->belongsTo(User::class, 'activated_by');
     }
     public function student() {
         return $this->hasMany(Student::class);

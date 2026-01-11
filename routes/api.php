@@ -127,9 +127,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/activate-semester/{semester_id}', [Admin::class, 'activate_semester']);
     Route::get('/get-all-courses', [Admin::class, 'get_courses']);
     Route::get('/get-courses', [Admin::class, 'get_courses']);
-    Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
     Route::post('/add-lecturer-course/{user_id}/{course_id}', [Admin::class, 'add_lecturer_course']);
 });
+
+Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
 
 // Route::post('/add-lecturer-course/{user_id}', [Admin::class, 'add_lecturer_course']);
 

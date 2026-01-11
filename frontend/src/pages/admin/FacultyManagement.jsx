@@ -119,7 +119,7 @@ const FacultyManagement = () => {
         formData.append('file', importFile);
         try {
             await axios.post(`${path}/import-faculties`, formData, {
-                headers: { 
+                headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                     'Content-Type': 'multipart/form-data'
                 }
@@ -175,13 +175,13 @@ const FacultyManagement = () => {
                         <p className="text-gray-500">Manage university faculties and their designated officers.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button 
+                        <button
                             onClick={() => setShowImportModal(true)}
                             className="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 shadow-sm transition-all"
                         >
                             <FaFileUpload className="mr-2 text-green-600" /> Import
                         </button>
-                        <button 
+                        <button
                             onClick={() => { setCurrentFaculty(null); setFacultyData({ name: '', code: '', description: '' }); setShowFacultyModal(true); }}
                             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all"
                         >
@@ -197,86 +197,97 @@ const FacultyManagement = () => {
                     <div className="flex justify-center items-center h-64">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
-                ) : (
+                ) : faculties.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {faculties.map((faculty) => {
                             const officer = faculty.users?.find(u => u.role === 'faculty_officer');
-                            
+
                             return (
-                            <div key={faculty.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                                <div className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                                            <FaBuilding size={24} />
+                                <div key={faculty.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                                    <div className="p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                                                <FaBuilding size={24} />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => { setCurrentFaculty(faculty); setFacultyData({ name: faculty.name, code: faculty.code, description: faculty.description }); setShowFacultyModal(true); }}
+                                                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                                >
+                                                    <FaEdit />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteFaculty(faculty.id)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <button 
-                                                onClick={() => { setCurrentFaculty(faculty); setFacultyData({ name: faculty.name, code: faculty.code, description: faculty.description }); setShowFacultyModal(true); }}
-                                                className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                                            >
-                                                <FaEdit />
-                                            </button>
-                                            <button 
-                                                onClick={() => deleteFaculty(faculty.id)}
-                                                className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                                            >
-                                                <FaTrash />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900">{faculty.name}</h3>
-                                    <p className="text-sm font-mono text-blue-600 mb-2">{faculty.code}</p>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{faculty.description || 'No description provided.'}</p>
-                                    
-                                    {officer && (
-                                        <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <FaUserShield className="text-green-600" />
-                                                <div>
-                                                    <p className="text-xs text-gray-500 font-medium">Faculty Officer</p>
-                                                    <p className="text-sm font-bold text-gray-800">{officer.full_name}</p>
+                                        <h3 className="text-xl font-bold text-gray-900">{faculty.name}</h3>
+                                        <p className="text-sm font-mono text-blue-600 mb-2">{faculty.code}</p>
+                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{faculty.description || 'No description provided.'}</p>
+
+                                        {officer && (
+                                            <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <FaUserShield className="text-green-600" />
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 font-medium">Faculty Officer</p>
+                                                        <p className="text-sm font-bold text-gray-800">{officer.full_name}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            setCurrentFaculty(faculty);
+                                                            setEditingOfficer(officer);
+                                                            setOfficerEditData({ full_name: officer.full_name, email: officer.email, status: officer.status || 'active' });
+                                                            setShowOfficerEditModal(true);
+                                                        }}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="Edit Officer"
+                                                    >
+                                                        <FaEdit size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleResetPassword(officer.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-yellow-600 transition-colors"
+                                                        title="Reset Password"
+                                                    >
+                                                        <FaKey size={14} />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-1">
-                                                <button 
-                                                    onClick={() => { 
-                                                        setCurrentFaculty(faculty);
-                                                        setEditingOfficer(officer);
-                                                        setOfficerEditData({ full_name: officer.full_name, email: officer.email, status: officer.status || 'active' });
-                                                        setShowOfficerEditModal(true);
-                                                    }}
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                                                    title="Edit Officer"
-                                                >
-                                                    <FaEdit size={14} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleResetPassword(officer.id)}
-                                                    className="p-1.5 text-gray-400 hover:text-yellow-600 transition-colors"
-                                                    title="Reset Password"
-                                                >
-                                                    <FaKey size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                                        <div className="text-xs text-gray-500">
-                                            <span className="font-bold text-gray-700">{faculty.departments_count}</span> Departments
-                                        </div>
-                                        {!officer && (
-                                            <button 
-                                                onClick={() => { setCurrentFaculty(faculty); setShowOfficerModal(true); }}
-                                                className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
-                                            >
-                                                <FaUserShield className="mr-1" /> Add Officer
-                                            </button>
                                         )}
+
+                                        <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                            <div className="text-xs text-gray-500">
+                                                <span className="font-bold text-gray-700">{faculty.departments_count}</span> Departments
+                                            </div>
+                                            {!officer && (
+                                                <button
+                                                    onClick={() => { setCurrentFaculty(faculty); setShowOfficerModal(true); }}
+                                                    className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+                                                >
+                                                    <FaUserShield className="mr-1" /> Add Officer
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )})}
+                            )
+                        })}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-24 bg-white rounded-2xl border border-dashed border-gray-300 shadow-inner">
+                        <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+                            <FaBuilding className="text-5xl text-gray-200" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-400 mb-2">No Faculties Found</h3>
+                        <p className="text-gray-400 max-w-sm text-center px-4">
+                            The faculty list is currently empty. Click the <span className="text-blue-500 font-semibold">"Add Faculty"</span> button above to create your first faculty.
+                        </p>
                     </div>
                 )}
             </main>
@@ -292,31 +303,31 @@ const FacultyManagement = () => {
                         <form onSubmit={handleFacultySubmit} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Name</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={facultyData.name}
-                                    onChange={e => setFacultyData({...facultyData, name: e.target.value})}
+                                    onChange={e => setFacultyData({ ...facultyData, name: e.target.value })}
                                     placeholder="e.g. Faculty of Science"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Faculty Code</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={facultyData.code}
-                                    onChange={e => setFacultyData({...facultyData, code: e.target.value})}
+                                    onChange={e => setFacultyData({ ...facultyData, code: e.target.value })}
                                     placeholder="e.g. FASC"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <textarea 
+                                <textarea
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     rows="3"
                                     value={facultyData.description}
-                                    onChange={e => setFacultyData({...facultyData, description: e.target.value})}
+                                    onChange={e => setFacultyData({ ...facultyData, description: e.target.value })}
                                 ></textarea>
                             </div>
                             <div className="flex justify-end gap-3 pt-2">
@@ -339,20 +350,20 @@ const FacultyManagement = () => {
                         <form onSubmit={handleOfficerSubmit} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={officerData.full_name}
-                                    onChange={e => setOfficerData({...officerData, full_name: e.target.value})}
+                                    onChange={e => setOfficerData({ ...officerData, full_name: e.target.value })}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                <input 
+                                <input
                                     type="email" required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={officerData.email}
-                                    onChange={e => setOfficerData({...officerData, email: e.target.value})}
+                                    onChange={e => setOfficerData({ ...officerData, email: e.target.value })}
                                 />
                             </div>
                             <p className="text-xs text-gray-500 italic">Default password will be 'password'. The officer can change it after login.</p>
@@ -385,7 +396,7 @@ const FacultyManagement = () => {
                             </div>
                             <form onSubmit={handleImportFaculties} className="space-y-4">
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
-                                    <input 
+                                    <input
                                         type="file" accept=".xlsx,.xls,.csv" required
                                         onChange={(e) => setImportFile(e.target.files[0])}
                                         className="hidden" id="faculty-import"
@@ -416,28 +427,28 @@ const FacultyManagement = () => {
                         <form onSubmit={handleOfficerUpdate} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input 
+                                <input
                                     type="text" required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={officerEditData.full_name}
-                                    onChange={e => setOfficerEditData({...officerEditData, full_name: e.target.value})}
+                                    onChange={e => setOfficerEditData({ ...officerEditData, full_name: e.target.value })}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                                <input 
+                                <input
                                     type="email" required
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={officerEditData.email}
-                                    onChange={e => setOfficerEditData({...officerEditData, email: e.target.value})}
+                                    onChange={e => setOfficerEditData({ ...officerEditData, email: e.target.value })}
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select 
+                                <select
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={officerEditData.status}
-                                    onChange={e => setOfficerEditData({...officerEditData, status: e.target.value})}
+                                    onChange={e => setOfficerEditData({ ...officerEditData, status: e.target.value })}
                                 >
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>

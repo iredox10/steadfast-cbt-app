@@ -15,7 +15,9 @@ class ExamArchive extends Model
         'total_questions',
         'marks_per_question',
         'total_marks',
-        'student_results'
+        'student_results',
+        'activated_by_name',
+        'terminated_by_name'
     ];
 
     protected $casts = [

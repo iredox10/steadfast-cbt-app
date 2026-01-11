@@ -26,6 +26,8 @@ use App\Models\ExamArchive;
 use App\Models\Question;
 use App\Models\Answers;
 use App\Models\ExamTicket;
+use App\Models\StudentExamScore;
+use App\Models\ExamViolation;
 
 class Admin extends Controller
 {
@@ -429,8 +431,8 @@ class Admin extends Controller
     {
         try {
             $exam = Exam::with('course.semester')->findOrFail($exam_id);
-            $exam->update(['activated' => 'yes', 'activated_date' => now(), 'invigilator' => $request->invigilator]);
             $user = $request->user();
+            $exam->update(['activated' => 'yes', 'activated_date' => now(), 'invigilator' => $request->invigilator, 'activated_by' => $user->id]);
             if ($user->role === 'level_admin') $exam->update(['level_id' => $user->level_id]);
             elseif (in_array($user->role, ["faculty_officer", "super_admin"])) {
                 $creator = User::find($exam->user_id) ?? ($exam->course ? User::find($exam->course->created_by) : null);
@@ -466,12 +468,33 @@ class Admin extends Controller
                     'questions_answered' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id])->count(),
                     'correct_answers' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count(),
                 ])->toArray();
-            ExamArchive::create(['exam_id' => $exam_id, 'exam_title' => $exam->title ?? $course->title . ' Exam', 'course_title' => $course->title, 'exam_date' => $exam->activated_date, 'duration' => $exam->exam_duration, 'total_questions' => $totalQuestions, 'marks_per_question' => $exam->marks_per_question, 'total_marks' => $exam->marks_per_question * $totalQuestions, 'student_results' => $results]);
+            $terminator = auth()->user();
+            $activator = $exam->activator;
+            
+            ExamArchive::create([
+                'exam_id' => $exam_id, 
+                'exam_title' => $exam->title ?? $course->title . ' Exam', 
+                'course_title' => $course->title, 
+                'exam_date' => $exam->activated_date, 
+                'duration' => $exam->exam_duration, 
+                'total_questions' => $totalQuestions, 
+                'marks_per_question' => $exam->marks_per_question, 
+                'total_marks' => $exam->marks_per_question * $totalQuestions, 
+                'student_results' => $results,
+                'activated_by_name' => $activator ? $activator->full_name : 'N/A',
+                'terminated_by_name' => $terminator ? $terminator->full_name : 'N/A'
+            ]);
+
+            // Clear live exam data after archiving
+            Answers::where('course_id', $exam->course_id)->delete();
+            StudentExamScore::where('course_id', $exam->course_id)->delete();
+            ExamViolation::where('exam_id', $exam_id)->delete();
+
             $studentIds = Candidate::where('exam_id', $exam_id)->pluck('student_id')->toArray();
             if (!empty($studentIds)) Student::whereIn('id', $studentIds)->update(['is_logged_on' => 'no', 'is_checked_in' => false]);
             Candidate::where('exam_id', $exam_id)->delete();
             ExamTicket::where('exam_id', $exam_id)->delete();
-            $exam->update(['activated' => 'no', 'invigilator' => null, 'finished_time' => now()]);
+            $exam->update(['activated' => 'no', 'invigilator' => null, 'activated_by' => null, 'finished_time' => now()]);
             return response()->json(['message' => 'Terminated']);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -780,8 +803,11 @@ class Admin extends Controller
     {
         $user = $request->user();
         $query = ExamArchive::query();
-        if ($user->role === 'faculty_officer') $query->whereHas('exam', fn($q) => $q->whereHas('course.semester.acdSession', fn($sq) => $sq->where('faculty_id', $user->faculty_id)));
-        elseif ($lvl = $this->getAdminLevelFilter($request)) $query->whereHas('exam', fn($q) => $q->where('level_id', $lvl));
+        if ($user->role === 'faculty_officer') {
+            $query->whereHas('exam.level', fn($q) => $q->where('faculty_id', $user->faculty_id));
+        } elseif ($lvl = $this->getAdminLevelFilter($request)) {
+            $query->whereHas('exam', fn($q) => $q->where('level_id', $lvl));
+        }
         return response()->json($query->with('exam')->latest()->get());
     }
 

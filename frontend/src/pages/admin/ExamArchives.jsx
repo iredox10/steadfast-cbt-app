@@ -100,7 +100,8 @@ const ExamArchives = () => {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam Title</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activated By</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terminated By</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
@@ -111,7 +112,12 @@ const ExamArchives = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap">{archive.exam_title}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">{archive.course_title}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">{format(new Date(archive.exam_date), 'PPP')}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">{archive.duration} mins</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-medium text-gray-900">{archive.activated_by_name || 'N/A'}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-medium text-gray-900">{archive.terminated_by_name || 'N/A'}</span>
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <Link to={`/exam-archives/${archive.id}`} className="text-blue-500 hover:underline">View Details</Link>
                                                     </td>

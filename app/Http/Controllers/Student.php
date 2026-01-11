@@ -231,13 +231,12 @@ class Student extends Controller
                 return response()->json(['error' => 'No active exam found'], 404);
             }
 
-            $validQuestions = $exam->questions()
+            $shuffledQuestions = $exam->questions()
                 ->whereNotNull('question')
                 ->whereNotNull('correct_answer')
                 ->whereNotNull('option_b')
+                ->inRandomOrder()
                 ->get();
-
-            $shuffledQuestions = $validQuestions->shuffle();
             $examResponse = $exam->toArray();
             
             $data = [
@@ -486,21 +485,19 @@ class Student extends Controller
                 $remaining_seconds = $total_duration * 60;
             }
 
-            // Get questions that are considered valid for the exam.
-            $validQuestions = $exam->questions()
+            // Get questions that are considered valid for the exam and shuffle them deterministically per student
+            $query = $exam->questions()
                 ->whereNotNull('question')
                 ->whereNotNull('correct_answer')
                 ->whereNotNull('option_b')
-                ->get();
+                ->inRandomOrder($student_id);
 
-            // Use a deterministic shuffle based on student_id so the order remains constant for that student
-            $shuffledQuestions = $validQuestions->sortBy(function($question) use ($student_id) {
-                return crc32($question->id . '_' . $student_id);
-            });
-            
+            // Limit to actual questions if specified
             if ($exam->actual_questions > 0) {
-                $shuffledQuestions = $shuffledQuestions->take($exam->actual_questions);
+                $query->limit($exam->actual_questions);
             }
+
+            $shuffledQuestions = $query->get();
 
             $examResponse = $exam->toArray();
             $examResponse['exam_duration'] = $total_duration;
