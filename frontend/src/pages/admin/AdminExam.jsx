@@ -4,6 +4,7 @@ import { path } from "../../../utils/path";
 import axios from "axios";
 import {
     FaEye,
+    FaCheck,
     FaTimes,
     FaSearch,
     FaPlay,
@@ -59,6 +60,8 @@ const AdminExam = () => {
     const [selectedExam, setSelectedExam] = useState(null);
     const [examId, setexamId] = useState();
     const [invigilator, setInvigilator] = useState();
+    const [showLockModal, setShowLockModal] = useState(false);
+    const [lockMessage, setLockMessage] = useState("");
 
     const [courses, setCourses] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -138,14 +141,20 @@ const AdminExam = () => {
         try {
             const headers = getAuthHeaders();
             const res = await axios.post(`${path}/terminate-exam/${id}`, {}, { headers });
-            if (res.status == 200) {
+            if (res.status == 200 || res.status == 201) {
                 fetchExams();
                 setShowTerminateModel(false);
             }
         } catch (err) {
             console.error("Error terminating exam:", err);
-            if (err.response?.status === 401) {
+            if (err.response?.status === 403) {
+                setLockMessage(err.response.data.error || "Exam cannot be terminated yet.");
+                setShowLockModal(true);
+                setShowTerminateModel(false);
+            } else if (err.response?.status === 401) {
                 console.error("Authentication failed");
+            } else {
+                alert(err.response?.data?.error || err.response?.data?.message || "Error terminating exam");
             }
         }
     };
@@ -158,21 +167,21 @@ const AdminExam = () => {
     // Calculate stats based on VISIBLE exams (matching table logic)
     const getBaseVisibleExams = () => {
         if (!Array.isArray(exams)) return [];
-        
+
         console.log("Filtering Exams:", exams); // Debug log
 
         return exams.filter(exam => {
             // Always hide terminated exams (they belong in archives)
             if (exam.finished_time !== null) {
-                return false; 
+                return false;
             }
-            
+
             // Show if it's Active OR Submitted
             // If it's just 'not_submitted' (draft), hide it
             if (exam.activated === 'yes' || exam.submission_status === 'submitted') {
                 return true;
             }
-            
+
             return false;
         });
     };
@@ -420,8 +429,8 @@ const AdminExam = () => {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${exam.activated === "yes"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : "bg-red-100 text-red-800"
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-red-100 text-red-800"
                                                             }`}>
                                                             {exam.activated === "yes" ? "Active" : "Inactive"}
                                                         </span>
@@ -446,7 +455,7 @@ const AdminExam = () => {
                                                                     <FaStop className="mr-1" /> Terminate
                                                                 </button>
                                                             )}
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleViewExam(exam)}
                                                                 className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                                                             >
@@ -472,8 +481,8 @@ const AdminExam = () => {
                                         onClick={() => paginate(currentPage - 1)}
                                         disabled={currentPage === 1}
                                         className={`px-3 py-1 rounded-md text-sm ${currentPage === 1
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
                                             }`}
                                     >
                                         Previous
@@ -497,8 +506,8 @@ const AdminExam = () => {
                                                     key={pageNum}
                                                     onClick={() => paginate(pageNum)}
                                                     className={`w-8 h-8 rounded-md text-sm ${currentPage === pageNum
-                                                            ? "bg-blue-500 text-white"
-                                                            : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                                        ? "bg-blue-500 text-white"
+                                                        : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
                                                         }`}
                                                 >
                                                     {pageNum}
@@ -511,8 +520,8 @@ const AdminExam = () => {
                                         onClick={() => paginate(currentPage + 1)}
                                         disabled={currentPage === totalPages}
                                         className={`px-3 py-1 rounded-md text-sm ${currentPage === totalPages
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                            : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
                                             }`}
                                     >
                                         Next
@@ -592,8 +601,8 @@ const AdminExam = () => {
                                 }}
                                 disabled={!invigilator}
                                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${invigilator
-                                        ? "bg-blue-500 text-white hover:bg-blue-600"
-                                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
                                     }`}
                             >
                                 Assign & Activate
@@ -668,11 +677,10 @@ const AdminExam = () => {
                         <div className="p-6">
                             {/* Status Badge */}
                             <div className="mb-6 flex items-center gap-3">
-                                <span className={`px-4 py-2 inline-flex text-sm font-semibold rounded-full ${
-                                    selectedExam.activated === "yes"
-                                        ? "bg-green-100 text-green-800 border border-green-300"
-                                        : "bg-red-100 text-red-800 border border-red-300"
-                                }`}>
+                                <span className={`px-4 py-2 inline-flex text-sm font-semibold rounded-full ${selectedExam.activated === "yes"
+                                    ? "bg-green-100 text-green-800 border border-green-300"
+                                    : "bg-red-100 text-red-800 border border-red-300"
+                                    }`}>
                                     {selectedExam.activated === "yes" ? "✓ Active Exam" : "○ Inactive Exam"}
                                 </span>
                                 {selectedExam.activated_date && selectedExam.activated === "no" && !selectedExam.finished_time && (
@@ -845,10 +853,10 @@ const AdminExam = () => {
                                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-600 font-medium">Created At:</span>
                                         <span className="font-semibold text-gray-900">
-                                            {selectedExam.created_at 
-                                                ? new Date(selectedExam.created_at).toLocaleDateString('en-US', { 
-                                                    year: 'numeric', 
-                                                    month: 'short', 
+                                            {selectedExam.created_at
+                                                ? new Date(selectedExam.created_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
                                                     day: 'numeric',
                                                     hour: '2-digit',
                                                     minute: '2-digit'
@@ -860,9 +868,9 @@ const AdminExam = () => {
                                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                             <span className="text-gray-600 font-medium">Last Updated:</span>
                                             <span className="font-semibold text-gray-900">
-                                                {new Date(selectedExam.updated_at).toLocaleDateString('en-US', { 
-                                                    year: 'numeric', 
-                                                    month: 'short', 
+                                                {new Date(selectedExam.updated_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
                                                     day: 'numeric',
                                                     hour: '2-digit',
                                                     minute: '2-digit'
@@ -892,6 +900,39 @@ const AdminExam = () => {
                                 className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Termination Locked Modal */}
+            {showLockModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-65 flex items-center justify-center z-[70] p-4 backdrop-blur-md">
+                    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-amber-100 animate-in fade-in zoom-in duration-300">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-amber-50 mb-4 border-2 border-amber-200">
+                                <FaRegClock className="h-10 w-10 text-amber-600 animate-pulse" />
+                            </div>
+                            <h2 className="text-3xl font-black text-gray-900 mb-2">
+                                Terminate Locked
+                            </h2>
+                            <p className="text-gray-500 mb-6 font-medium">Exam session is still active</p>
+
+                            <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-5 mb-6 text-left shadow-inner">
+                                <p className="text-amber-900 font-bold leading-relaxed text-lg">
+                                    {lockMessage}
+                                </p>
+                            </div>
+
+                            <div className="text-sm text-gray-500 bg-gray-50 rounded-xl p-4 mb-8 text-left border border-gray-100 italic">
+                                <strong>Safety Policy:</strong> To ensure fairness and exam integrity, sessions cannot be manually terminated while any student is still within their officially allocated time (including extensions).
+                            </div>
+
+                            <button
+                                onClick={() => setShowLockModal(false)}
+                                className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-xl hover:bg-blue-700 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+                            >
+                                <FaCheck className="text-sm" /> I Understand
                             </button>
                         </div>
                     </div>

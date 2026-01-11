@@ -223,6 +223,34 @@ class InvigilatorController extends Controller
                 return response()->json(['message' => 'No active exam found'], 404);
             }
 
+            // Time Check: Prevent termination before duration has elapsed
+            if ($exam->activated === 'yes' && $exam->activated_date) {
+                $now = now();
+                $duration = (int) $exam->exam_duration;
+                $globalEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
+                
+                // Check all active candidates for latest possible end time
+                $latestCandidateEndTime = Candidate::where('exam_id', $exam->id)
+                    ->get()
+                    ->map(function($c) use ($duration) {
+                        if (!$c->start_time) return null;
+                        return Carbon::parse($c->start_time)->addMinutes($duration + (int)($c->time_extension ?? 0));
+                    })
+                    ->filter()
+                    ->max();
+
+                $lockEndTime = $latestCandidateEndTime ? $globalEndTime->max($latestCandidateEndTime) : $globalEndTime;
+
+                if ($now->lt($lockEndTime)) {
+                    $remainingMinutes = ceil($now->diffInMinutes($lockEndTime, false));
+                    return response()->json([
+                        'error' => "Exam cannot be terminated yet. Please wait for the allocated time to elapse ($remainingMinutes minutes remaining).",
+                        'remaining_minutes' => $remainingMinutes,
+                        'lock_end_time' => $lockEndTime->toDateTimeString()
+                    ], 403);
+                }
+            }
+
             $exam_id = $exam->id;
             $course = Course::findOrFail($exam->course_id);
             $totalQuestions = Question::where('exam_id', $exam_id)->count();

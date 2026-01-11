@@ -28,6 +28,8 @@ const AdminDashboard = () => {
     const [showAssignInvigilator, SetshowAssignInvigilator] = useState(false);
     const [examId, setexamId] = useState();
     const [invigilator, setInvigilator] = useState();
+    const [showLockModal, setShowLockModal] = useState(false);
+    const [lockMessage, setLockMessage] = useState("");
 
     const [courses, setCourses] = useState();
     const [searchTerm, setSearchTerm] = useState("");
@@ -86,13 +88,24 @@ const AdminDashboard = () => {
 
     const handleTerminateExam = async (id) => {
         try {
-            const res = await axios.post(`${path}/terminate-exam/${id}`);
-            if (res.status == 200) {
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await axios.post(`${path}/terminate-exam/${id}`, {}, { headers });
+            if (res.status == 200 || res.status == 201) {
                 fetchExams();
                 setShowTerminateModel(false);
             }
         } catch (err) {
-            console.log(err);
+            console.error("Error terminating exam:", err);
+            if (err.response?.status === 403) {
+                setLockMessage(err.response.data.error || "Exam cannot be terminated yet.");
+                setShowLockModal(true);
+                setShowTerminateModel(false);
+            } else if (err.response?.status === 401) {
+                alert("Authentication failed. Please log in again.");
+            } else {
+                alert(err.response?.data?.error || err.response?.data?.message || "Error terminating exam");
+            }
         }
     };
 
@@ -485,6 +498,39 @@ const AdminDashboard = () => {
                         setSelectedExamForTickets(null);
                     }}
                 />
+            )}
+            {/* Termination Locked Modal */}
+            {showLockModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-65 flex items-center justify-center z-[70] p-4 backdrop-blur-md">
+                    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-amber-100 animate-in fade-in zoom-in duration-300">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-amber-50 mb-4 border-2 border-amber-200">
+                                <FaClock className="h-10 w-10 text-amber-600 animate-pulse" />
+                            </div>
+                            <h2 className="text-3xl font-black text-gray-900 mb-2">
+                                Terminate Locked
+                            </h2>
+                            <p className="text-gray-600 mb-6 font-medium italic">Security enforced restriction</p>
+
+                            <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-5 mb-6 text-left shadow-inner">
+                                <p className="text-amber-900 font-bold leading-relaxed text-lg">
+                                    {lockMessage}
+                                </p>
+                            </div>
+
+                            <p className="text-sm text-gray-500 mb-8 px-2">
+                                Examination sessions are locked from manual termination until the scheduled time and all student extensions have been completed.
+                            </p>
+
+                            <button
+                                onClick={() => setShowLockModal(false)}
+                                className="w-full py-4 bg-gray-900 text-white text-xl font-bold rounded-xl hover:bg-black transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+                            >
+                                <FaCheck className="text-sm" /> I Understand
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

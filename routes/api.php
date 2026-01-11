@@ -252,7 +252,7 @@ Route::post('/invigilator/generate-ticket', [InvigilatorController::class, 'gene
 Route::post('/invigilator/regenerate-ticket', [InvigilatorController::class, 'regenerate_ticket']);
 Route::get('/invigilator/students/{course_id}', [InvigilatorController::class, 'get_students'])->middleware(['auth:sanctum']);
 Route::post('/extend-time', [InvigilatorController::class, 'extend_time']);
-Route::post('/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam'])->middleware(['auth:sanctum']);
+Route::post('/invigilator/terminate-exam/{course_id}', [InvigilatorController::class, 'terminate_exam'])->middleware(['auth:sanctum']);
 
 // Student Enrollment routes
 Route::middleware('auth:sanctum')->group(function () {
