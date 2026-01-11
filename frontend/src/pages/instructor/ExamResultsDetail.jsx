@@ -135,7 +135,7 @@ const ExamResultsDetail = () => {
                 result.full_name || 'N/A',
                 result.candidate_no || 'N/A',
                 result.questions_answered !== undefined && result.questions_answered !== 'N/A'
-                    ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
+                    ? `${result.correct_answers || 0} / ${(result.questions_answered || 0) - (result.correct_answers || 0)}`
                     : 'N/A',
                 result.score,
                 result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
@@ -144,7 +144,7 @@ const ExamResultsDetail = () => {
 
         autoTable(doc, {
             startY: 58,
-            head: [['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Submitted']],
+            head: [['#', 'Student Name', 'Candidate Number', 'Right/Wrong', 'Score', 'Submitted']],
             body: tableData,
         });
 
@@ -165,14 +165,14 @@ const ExamResultsDetail = () => {
             ['Passed:', stats.passed],
             ['Failed:', stats.failed],
             [],
-            ['#', 'Student Name', 'Candidate Number', 'Questions Answered', 'Score', 'Submitted'],
+            ['#', 'Student Name', 'Candidate Number', 'Right/Wrong', 'Score', 'Submitted'],
             ...filteredResults.map((result, index) => {
                 return [
                     index + 1,
                     result.full_name || 'N/A',
                     result.candidate_no || 'N/A',
                     result.questions_answered !== undefined && result.questions_answered !== 'N/A'
-                        ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
+                        ? `${result.correct_answers || 0} / ${(result.questions_answered || 0) - (result.correct_answers || 0)}`
                         : 'N/A',
                     result.score,
                     result.submitted_at ? format(new Date(result.submitted_at), 'dd/MM/yyyy HH:mm') : 'N/A'
@@ -256,12 +256,12 @@ const ExamResultsDetail = () => {
                         <p className="text-2xl font-bold text-blue-600">{stats.average}</p>
                     </div>
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                        <p className="text-sm text-gray-600 mb-1">Highest Score</p>
-                        <p className="text-2xl font-bold text-green-600">{stats.highest}</p>
+                        <p className="text-sm text-gray-600 mb-1">Pass Mark</p>
+                        <p className="text-2xl font-bold text-indigo-600">{exam?.max_score * 0.5}</p>
                     </div>
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                        <p className="text-sm text-gray-600 mb-1">Lowest Score</p>
-                        <p className="text-2xl font-bold text-red-600">{stats.lowest}</p>
+                        <p className="text-sm text-gray-600 mb-1">Mark Detail</p>
+                        <p className="text-2xl font-bold text-purple-600">{exam?.marks_per_question} / {exam?.max_score}</p>
                     </div>
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
                         <p className="text-sm text-gray-600 mb-1">Passed</p>
@@ -312,7 +312,7 @@ const ExamResultsDetail = () => {
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Number</th>
-                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Questions Answered</th>
+                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Right/Wrong</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
@@ -331,8 +331,8 @@ const ExamResultsDetail = () => {
                                                 <td className="py-4 px-6 text-sm font-medium text-gray-900">{result.full_name}</td>
                                                 <td className="py-4 px-6 text-sm text-gray-600">{result.candidate_no}</td>
                                                 <td className="py-4 px-6 text-sm text-gray-600">
-                                                    {result.questions_answered !== undefined && result.questions_answered !== 'N/A'
-                                                        ? `${result.questions_answered} / ${result.total_questions || 'N/A'}`
+                                                    {result.correct_answers !== undefined && result.correct_answers !== 'N/A'
+                                                        ? `${result.correct_answers} / ${(result.questions_answered || 0) - result.correct_answers}`
                                                         : 'N/A'}
                                                 </td>
                                                 <td className="py-4 px-6 text-sm">
@@ -342,7 +342,7 @@ const ExamResultsDetail = () => {
                                                 </td>
                                                 <td className="py-4 px-6 text-sm">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${result.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                                                            passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                        passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                                         }`}>
                                                         {result.status === 'in_progress' ? 'In Progress' : passed ? 'Pass' : 'Fail'}
                                                     </span>

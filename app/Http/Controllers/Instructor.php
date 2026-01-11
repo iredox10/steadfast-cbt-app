@@ -311,7 +311,21 @@ class Instructor extends Controller
                     if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) continue;
                     if ($instr->role === 'faculty_officer' && (!$s->level || $s->level->faculty_id != $instr->faculty_id)) continue;
                     $seen[] = $s->id;
-                    $results[] = ['id' => $score->id, 'student_id' => $s->id, 'student' => $s->toArray(), 'course_name' => $score->course_name, 'score' => $score->score, 'status' => 'submitted', 'submitted_at' => $score->created_at];
+                    
+                    $questions_answered = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id])->count();
+                    $correct_answers = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count();
+
+                    $results[] = [
+                        'id' => $score->id, 
+                        'student_id' => $s->id, 
+                        'student' => $s->toArray(), 
+                        'course_name' => $score->course_name, 
+                        'score' => $score->score, 
+                        'status' => 'submitted', 
+                        'submitted_at' => $score->created_at,
+                        'questions_answered' => $questions_answered,
+                        'correct_answers' => $correct_answers
+                    ];
                 }
             }
             if ($activeExam) {
@@ -320,7 +334,21 @@ class Instructor extends Controller
                     if ($s = Student::with('level')->find($c->student_id)) {
                         if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) continue;
                         if ($instr->role === 'faculty_officer' && (!$s->level || $s->level->faculty_id != $instr->faculty_id)) continue;
-                        $results[] = ['id' => 'cand_'.$c->id, 'student_id' => $s->id, 'student' => $s->toArray(), 'course_name' => $activeExam->course->title ?? 'N/A', 'score' => 0, 'status' => 'in_progress', 'submitted_at' => null];
+                        
+                        $questions_answered = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id])->count();
+                        $correct_answers = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count();
+
+                        $results[] = [
+                            'id' => 'cand_'.$c->id, 
+                            'student_id' => $s->id, 
+                            'student' => $s->toArray(), 
+                            'course_name' => $activeExam->course->title ?? 'N/A', 
+                            'score' => 0, 
+                            'status' => 'in_progress', 
+                            'submitted_at' => null,
+                            'questions_answered' => $questions_answered,
+                            'correct_answers' => $correct_answers
+                        ];
                     }
                 }
             }

@@ -96,14 +96,13 @@ const ExamArchiveDetail = () => {
 
         autoTable(doc, {
             startY: 48,
-            head: [['Full Name', 'Candidate No.', 'Questions Answered', 'Correct', 'Score', 'Time']],
+            head: [['Full Name', 'Candidate No.', 'Right/Wrong', 'Score', 'Time']],
             body: sortedAndFilteredResults.map(result => [
                 result.full_name,
                 result.candidate_no,
-                `${result.questions_answered || 0}/${archive.total_questions || 'N/A'}`,
-                result.correct_answers || 0,
+                `${result.correct_answers || 0}/${(result.questions_answered || 0) - (result.correct_answers || 0)}`,
                 result.score,
-                format(new Date(result.submission_time), 'Pp')
+                result.submission_time ? format(new Date(result.submission_time), 'Pp') : 'N/A'
             ]),
         });
 
@@ -115,11 +114,9 @@ const ExamArchiveDetail = () => {
             sortedAndFilteredResults.map(result => ({
                 'Full Name': result.full_name,
                 'Candidate No.': result.candidate_no,
-                'Questions Answered': result.questions_answered || 0,
-                'Total Questions': archive.total_questions || 'N/A',
-                'Correct Answers': result.correct_answers || 0,
+                'Right/Wrong': `${result.correct_answers || 0}/${(result.questions_answered || 0) - (result.correct_answers || 0)}`,
                 'Score': result.score,
-                'Submission Time': format(new Date(result.submission_time), 'Pp')
+                'Submission Time': result.submission_time ? format(new Date(result.submission_time), 'Pp') : 'N/A'
             }))
         );
         const workbook = XLSX.utils.book_new();
@@ -178,12 +175,8 @@ const ExamArchiveDetail = () => {
                                     <p className="font-semibold text-gray-900">{archive?.total_questions || 'N/A'}</p>
                                 </div>
                                 <div className="p-4 bg-indigo-50 rounded-lg">
-                                    <span className="text-sm text-gray-600">Marks per Question</span>
-                                    <p className="font-semibold text-gray-900">{archive?.marks_per_question || 'N/A'}</p>
-                                </div>
-                                <div className="p-4 bg-red-50 rounded-lg">
-                                    <span className="text-sm text-gray-600">Total Marks</span>
-                                    <p className="font-semibold text-gray-900">{archive.total_marks || 'N/A'}</p>
+                                    <span className="text-sm text-gray-600">Mark Detail</span>
+                                    <p className="font-semibold text-gray-900">{archive?.marks_per_question} / {archive.total_marks}</p>
                                 </div>
                                 <div className="p-4 bg-teal-50 rounded-lg">
                                     <span className="text-sm text-gray-600">Total Students</span>
@@ -216,7 +209,7 @@ const ExamArchiveDetail = () => {
                                     <tr>
                                         <SortableHeader name="full_name">Full Name</SortableHeader>
                                         <SortableHeader name="candidate_no">Candidate No.</SortableHeader>
-                                        <SortableHeader name="questions_answered">Questions Answered</SortableHeader>
+                                        <SortableHeader name="correct_answers">Right/Wrong</SortableHeader>
                                         <SortableHeader name="score">Score</SortableHeader>
                                         <SortableHeader name="submission_time">Submission Time</SortableHeader>
                                     </tr>
@@ -232,8 +225,8 @@ const ExamArchiveDetail = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900">
-                                                    {result.questions_answered !== undefined && result.questions_answered !== null
-                                                        ? `${result.questions_answered} / ${archive.total_questions || 'N/A'}`
+                                                    {result.correct_answers !== undefined
+                                                        ? `${result.correct_answers} / ${(result.questions_answered || 0) - result.correct_answers}`
                                                         : 'N/A'}
                                                 </div>
                                             </td>
