@@ -104,12 +104,10 @@ const StudentResult = () => {
                                     <p className="text-2xl font-bold text-blue-700">{answered_questions?.length || 0}</p>
                                 </div>
 
-                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 text-center">
-                                    <div className="w-8 h-8 mx-auto mb-2 flex items-center justify-center font-bold text-gray-400 text-xl">#</div>
-                                    <p className="text-gray-500 text-xs uppercase tracking-wide">Score ID</p>
-                                    <p className="text-lg font-bold text-gray-700 truncate" title={score_record?.id}>
-                                        {score_record?.id || 'N/A'}
-                                    </p>
+                                <div className="bg-red-50 rounded-xl p-4 border border-red-100 text-center">
+                                    <FaTimesCircle className="text-red-500 text-2xl mx-auto mb-2" />
+                                    <p className="text-gray-500 text-xs uppercase tracking-wide">Incorrect</p>
+                                    <p className="text-2xl font-bold text-red-700">{(answered_questions?.length || 0) - correct_answers}</p>
                                 </div>
                             </div>
 
