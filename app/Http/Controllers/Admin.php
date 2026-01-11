@@ -1034,9 +1034,32 @@ class Admin extends Controller
     public function logViolation(Request $request)
     {
         try {
-            $v = $request->validate(['exam_id' => 'required', 'student_id' => 'required', 'violation_type' => 'required', 'severity' => 'required']);
-            $violation = \App\Models\ExamViolation::create($v);
-            return response()->json($violation, 201);
+            $v = $request->validate([
+                'exam_id' => 'required',
+                'student_id' => 'required',
+                'violation_type' => 'required',
+                'details' => 'nullable'
+            ]);
+
+            $exam = Exam::findOrFail($request->exam_id);
+            
+            $violation = \App\Models\ExamViolation::create([
+                'exam_id' => $v['exam_id'],
+                'student_id' => $v['student_id'],
+                'violation_type' => $v['violation_type'],
+                'details' => $v['details'] ?? [],
+                'violated_at' => now()
+            ]);
+
+            $violationCount = \App\Models\ExamViolation::getViolationCount($v['student_id'], $v['exam_id']);
+            $shouldAutoSubmit = $violationCount >= ($exam->max_violations ?? 3);
+
+            return response()->json([
+                'violation' => $violation,
+                'violation_count' => $violationCount,
+                'should_auto_submit' => $shouldAutoSubmit,
+                'max_violations' => $exam->max_violations ?? 3
+            ], 201);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

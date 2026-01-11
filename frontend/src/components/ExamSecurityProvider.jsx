@@ -41,6 +41,9 @@ const ExamSecurityProvider = ({
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [multipleMonitorsDetected, setMultipleMonitorsDetected] = useState(false);
     const [fullscreenRequired, setFullscreenRequired] = useState(false);
+    const [penaltyActive, setPenaltyActive] = useState(false);
+    const [penaltySeconds, setPenaltySeconds] = useState(0);
+    const [penaltyType, setPenaltyType] = useState('');
 
     // Default security settings (can be overridden)
     const settings = {
@@ -98,11 +101,40 @@ const ExamSecurityProvider = ({
                 );
             }
 
+            // Trigger penalty for tab switch or fullscreen exit
+            if (violationType === 'tab_switch' || violationType === 'fullscreen_exit') {
+                startPenalty(violationType === 'tab_switch' ? 'Tab Switch' : 'Fullscreen Exit');
+            }
+
             console.warn('Security Violation:', violationType, details);
         } catch (error) {
             console.error('Error logging violation:', error);
         }
     }, [enabled, studentId, examId, settings.max_violations, onAutoSubmit]);
+
+    /**
+     * Start a penalty timer
+     */
+    const startPenalty = (type) => {
+        setPenaltyType(type);
+        setPenaltySeconds(10);
+        setPenaltyActive(true);
+    };
+
+    /**
+     * Penalty timer effect
+     */
+    useEffect(() => {
+        let interval;
+        if (penaltyActive && penaltySeconds > 0) {
+            interval = setInterval(() => {
+                setPenaltySeconds(prev => prev - 1);
+            }, 1000);
+        } else if (penaltySeconds === 0) {
+            setPenaltyActive(false);
+        }
+        return () => clearInterval(interval);
+    }, [penaltyActive, penaltySeconds]);
 
     /**
      * Show warning modal
@@ -422,6 +454,19 @@ const ExamSecurityProvider = ({
         checkMultipleMonitors();
     }, [enabled, settings.enable_multiple_monitor_check, logViolation]);
 
+    // Re-check monitors periodically
+    useEffect(() => {
+        if (!enabled || !settings.enable_multiple_monitor_check) return;
+
+        const interval = setInterval(() => {
+            if (window.screen && window.screen.isExtended !== undefined) {
+                setMultipleMonitorsDetected(window.screen.isExtended);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [enabled, settings.enable_multiple_monitor_check]);
+
     const value = {
         violations,
         isFullscreen,
@@ -494,6 +539,55 @@ const ExamSecurityProvider = ({
                         <span className="text-sm font-medium text-gray-700">
                             Violations: {serverViolationCount || violations.length}/{settings.max_violations}
                         </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Penalty Overlay */}
+            {penaltyActive && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-900 bg-opacity-95 backdrop-blur-md">
+                    <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-lg w-full mx-4 text-center border-t-8 border-red-600">
+                        <div className="mb-6 flex justify-center">
+                            <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center animate-bounce">
+                                <FaExclamationTriangle className="text-4xl text-red-600" />
+                            </div>
+                        </div>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Security Penalty</h2>
+                        <p className="text-gray-700 text-lg mb-8 leading-relaxed">
+                            You violated the security policy: <span className="font-bold text-red-600">{penaltyType}</span>.
+                            <br />
+                            A temporary lock has been applied. You can resume in:
+                        </p>
+                        <div className="inline-block px-8 py-4 bg-gray-900 text-white rounded-2xl text-4xl font-mono font-bold shadow-inner">
+                            {penaltySeconds}s
+                        </div>
+                        <p className="mt-8 text-sm text-gray-500 italic">
+                            Further violations will result in automatic exam submission.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Multiple Monitors Block */}
+            {enabled && settings.enable_multiple_monitor_check && multipleMonitorsDetected && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-gray-900 bg-opacity-98 backdrop-blur-xl">
+                    <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full mx-4 text-center">
+                        <div className="mb-6 flex justify-center">
+                            <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center">
+                                <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Multiple Displays Detected</h2>
+                        <p className="text-gray-600 mb-8 leading-relaxed">
+                            A secondary monitor has been detected. Please disconnect all external displays or disable screen mirroring to continue the exam.
+                        </p>
+                        <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                            <p className="text-xs text-indigo-700 font-medium">
+                                This screen will disappear automatically once the secondary monitor is disconnected.
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}
