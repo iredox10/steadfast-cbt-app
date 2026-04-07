@@ -10,7 +10,7 @@ import {
 import { path } from '../../../utils/path';
 import AdminSidebar from '../../components/AdminSidebar';
 import { format } from 'date-fns';
-import LevelSelector from '../../components/LevelSelector';
+import SessionSelector from '../../components/SessionSelector';
 import logo from "../../../public/assets/buk.png";
 
 const SuperAdminDashboard = () => {
@@ -278,10 +278,10 @@ const SuperAdminDashboard = () => {
                                                                 <FaListAlt className="text-blue-500" />
                                                                 Filter by Session
                                                             </h3>
-                                                            <LevelSelector
+                                                            <SessionSelector
                                                                 currentUser={currentUser}
-                                                                selectedLevel={selectedLevel}
-                                                                onLevelChange={setSelectedLevel}
+                                                                selectedSession={selectedLevel}
+                                                                onSessionChange={setSelectedLevel}
                                                                 showAllOption={true}
                                                                 allOptionText="All Sessions"
                                                             />                        </div>
