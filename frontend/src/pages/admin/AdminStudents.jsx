@@ -374,13 +374,6 @@ const AdminStudents = () => {
                             Student Management
                         </h2>
                         <p className="text-gray-500 mt-1">Manage student registrations and exam eligibility</p>
-                        
-                        {activeExam && (
-                            <div className="mt-2 flex items-center text-sm bg-green-50 text-green-700 px-3 py-1 rounded-full w-fit border border-green-200">
-                                <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                                Active Exam: <strong>{activeExam.title || `Exam ID: ${activeExam.id}`}</strong>
-                            </div>
-                        )}
                     </div>
                     
                     <div className="flex gap-3">

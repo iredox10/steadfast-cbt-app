@@ -92,10 +92,11 @@ const ExamArchiveDetail = () => {
         doc.text(`Date: ${format(new Date(archive.exam_date), 'PPP')}`, 14, 27);
         doc.text(`Duration: ${archive.duration} minutes`, 14, 32);
         doc.text(`Total Questions: ${archive.total_questions || 'N/A'}`, 14, 37);
-        doc.text(`Total Marks: ${archive.total_marks || 'N/A'}`, 14, 42);
+        doc.text(`Questions to Answer: ${archive.exam?.actual_questions || 'N/A'}`, 14, 42);
+        doc.text(`Total Marks: ${archive.total_marks || 'N/A'}`, 14, 47);
 
         autoTable(doc, {
-            startY: 48,
+            startY: 53,
             head: [['Full Name', 'Candidate No.', 'Right/Wrong', 'Score', 'Time']],
             body: sortedAndFilteredResults.map(result => [
                 result.full_name,
@@ -173,6 +174,10 @@ const ExamArchiveDetail = () => {
                                 <div className="p-4 bg-pink-50 rounded-lg">
                                     <span className="text-sm text-gray-600">Total Questions</span>
                                     <p className="font-semibold text-gray-900">{archive?.total_questions || 'N/A'}</p>
+                                </div>
+                                <div className="p-4 bg-orange-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Questions to Answer</span>
+                                    <p className="font-semibold text-gray-900">{archive?.exam?.actual_questions || 'N/A'}</p>
                                 </div>
                                 <div className="p-4 bg-indigo-50 rounded-lg">
                                     <span className="text-sm text-gray-600">Mark Detail</span>
