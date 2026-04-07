@@ -75,12 +75,7 @@ const AdminStudents = () => {
                 setActiveExam(null);
             }
 
-            let studentsUrl = "";
-            if (currentExam && currentExam.course_id) {
-                studentsUrl = `${path}/invigilator/students/${currentExam.course_id}`;
-            } else {
-                studentsUrl = `${path}/students-by-level`;
-            }
+            let studentsUrl = `${path}/students-by-level`;
 
             // Build query params
             const params = new URLSearchParams();
