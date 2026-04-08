@@ -6,9 +6,7 @@ use App\Models\Answers;
 use App\Models\Candidate;
 use App\Models\Exam;
 use App\Models\Question;
-use App\Models\Student as ModelsStudent;
 use App\Models\StudentCourse;
-use App\Models\ExamTicket;
 use App\Models\SystemConfig;
 use Carbon\Carbon;
 use Exception;
@@ -25,44 +23,46 @@ class Student extends Controller
     {
         Log::info('Student login attempt', [
             'candidate_no' => $request->input('candidate_no'),
-            'ticket_no' => $request->input('ticket_no')
+            'ticket_no' => $request->input('ticket_no'),
         ]);
 
         $student = \App\Models\Student::where('candidate_no', $request->input('candidate_no'))->first();
-        if (!$student) {
+        if (! $student) {
             Log::warning('Student not found', ['candidate_no' => $request->input('candidate_no')]);
+
             return response()->json('user not found', 404);
         }
-        
+
         Log::info('Student found', [
             'id' => $student->id,
             'candidate_no' => $student->candidate_no,
             'is_checked_in' => $student->is_checked_in,
-            'checkin_time' => $student->checkin_time
+            'checkin_time' => $student->checkin_time,
         ]);
 
         // Check if student has been checked in by invigilator
-        if (!$student->is_checked_in || $student->is_checked_in == 0) {
+        if (! $student->is_checked_in || $student->is_checked_in == 0) {
             Log::warning('Student not checked in - blocking login', [
                 'candidate_no' => $student->candidate_no,
-                'is_checked_in' => $student->is_checked_in
+                'is_checked_in' => $student->is_checked_in,
             ]);
+
             return response()->json([
                 'error' => 'check_in_required',
                 'message' => 'Please see the invigilator to check in before starting your exam.',
-                'is_checked_in' => $student->is_checked_in
+                'is_checked_in' => $student->is_checked_in,
             ], 403);
         }
-        
+
         Log::info('Student is checked in - proceeding with login', ['candidate_no' => $student->candidate_no]);
-        
+
         $ticketNo = $request->input('ticket_no');
         $password = $request->input('password');
-        
+
         if ($ticketNo) {
             $ticketRecord = \App\Models\ExamTicket::where('ticket_no', $ticketNo)->first();
 
-            if (!$ticketRecord) {
+            if (! $ticketRecord) {
                 return response()->json('Invalid ticket number. Please check your ticket and try again.', 404);
             }
 
@@ -72,7 +72,7 @@ class Student extends Controller
 
             $examForTicket = Exam::find($ticketRecord->exam_id);
 
-            if (!$examForTicket || $examForTicket->activated !== 'yes') {
+            if (! $examForTicket || $examForTicket->activated !== 'yes') {
                 return response()->json('This ticket is not linked to an active exam.', 404);
             }
 
@@ -80,7 +80,7 @@ class Student extends Controller
                 ->where('course_id', $examForTicket->course_id)
                 ->exists();
 
-            if (!$isEnrolled) {
+            if (! $isEnrolled) {
                 return response()->json('You are not enrolled in this exam\'s course', 403);
             }
 
@@ -103,19 +103,19 @@ class Student extends Controller
                 ]
             );
 
-            if (!$ticketRecord->assigned_to_student_id) {
+            if (! $ticketRecord->assigned_to_student_id) {
                 $ticketRecord->assigned_to_student_id = $student->id;
                 $ticketRecord->assigned_at = now();
                 $ticketRecord->is_used = true;
                 $ticketRecord->save();
-                
+
                 Log::info('Ticket assigned to student', [
                     'ticket_no' => $ticketNo,
                     'student_id' => $student->id,
-                    'exam_id' => $examForTicket->id
+                    'exam_id' => $examForTicket->id,
                 ]);
-            } else if ($ticketRecord->assigned_to_student_id == $student->id) {
-                if (!$ticketRecord->is_used) {
+            } elseif ($ticketRecord->assigned_to_student_id == $student->id) {
+                if (! $ticketRecord->is_used) {
                     $ticketRecord->is_used = true;
                     $ticketRecord->save();
                 }
@@ -126,7 +126,7 @@ class Student extends Controller
                 $candidate->save();
             }
 
-            if (!$student->checkin_time && $student->is_checked_in) {
+            if (! $student->checkin_time && $student->is_checked_in) {
                 $student->checkin_time = $candidate->checkin_time ?? now();
                 $student->save();
             }
@@ -134,17 +134,18 @@ class Student extends Controller
             $student->refresh();
 
             Log::info('Student login successful', ['candidate_no' => $student->candidate_no]);
+
             return response()->json($student);
-            
-        } else if ($password) {
-            if (!Hash::check($password, $student->password)) {
+
+        } elseif ($password) {
+            if (! Hash::check($password, $student->password)) {
                 return response()->json('wrong password!!', 404);
             }
-            
+
             if ($student->checkin_time == null) {
                 return response()->json('user not checked in', 400);
             }
-            
+
             return response()->json($student);
         } else {
             return response()->json('ticket number or password required', 400);
@@ -155,24 +156,26 @@ class Student extends Controller
     {
         $user = $request->user();
         $studentsQuery = \App\Models\Student::with('level');
-        
+
         if ($user && $user->role === 'level_admin' && $user->level_id) {
             $studentsQuery->where('level_id', $user->level_id);
         } elseif ($user && $user->role === 'faculty_officer') {
-            $studentsQuery->whereHas('level', function($q) use ($user) {
+            $studentsQuery->whereHas('level', function ($q) use ($user) {
                 $q->where('faculty_id', $user->faculty_id);
             });
         } elseif ($request->has('level_id') && $request->level_id) {
             $studentsQuery->where('level_id', $request->level_id);
         }
-        
+
         $students = $studentsQuery->orderBy('checkin_time')->get();
+
         return response()->json($students);
     }
 
     public function get_student($student_id)
     {
         $student = \App\Models\Student::findOrFail($student_id);
+
         return response()->json($student, 200);
     }
 
@@ -182,14 +185,14 @@ class Student extends Controller
             $student = \App\Models\Student::findOrFail($student_id);
             $student->is_logged_on = 'yes';
             $student->save();
-            
+
             $activeExam = Exam::where('activated', 'yes')->first();
-            
+
             if ($activeExam) {
                 $candidate = Candidate::where('student_id', $student_id)
                     ->where('exam_id', $activeExam->id)
                     ->first();
-                    
+
                 if ($candidate) {
                     if (is_null($candidate->start_time)) {
                         $candidate->start_time = now()->toIso8601String();
@@ -197,7 +200,7 @@ class Student extends Controller
                     }
                 }
             }
-            
+
             return response()->json($student, 200);
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 500);
@@ -214,9 +217,10 @@ class Student extends Controller
                 'department' => ' string | max:255',
             ]);
             $student = \App\Models\Student::create($validate);
+
             return response()->json([
                 'message' => 'student created',
-                'data' => $student
+                'data' => $student,
             ], 201);
         } catch (\Exception $e) {
             return response()->json($e->getMessage());
@@ -227,7 +231,7 @@ class Student extends Controller
     {
         try {
             $exam = Exam::where('activated', 'yes')->first();
-            if (!$exam) {
+            if (! $exam) {
                 return response()->json(['error' => 'No active exam found'], 404);
             }
 
@@ -238,12 +242,12 @@ class Student extends Controller
                 ->inRandomOrder()
                 ->get();
             $examResponse = $exam->toArray();
-            
+
             $data = [
                 'exam' => $examResponse,
-                'questions' => $shuffledQuestions->values()->all()
+                'questions' => $shuffledQuestions->values()->all(),
             ];
-            
+
             return response()->json($data, 200);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -259,7 +263,7 @@ class Student extends Controller
             } else {
                 $question = Question::inRandomOrder()->first();
             }
-            
+
             $questionData = [
                 'id' => $question->id,
                 'question' => $question->question,
@@ -271,7 +275,7 @@ class Student extends Controller
                 'option_c' => $question->option_c,
                 'option_d' => $question->option_d,
             ];
-            
+
             return response()->json($questionData, 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -292,8 +296,9 @@ class Student extends Controller
             }
             $student_course = StudentCourse::create([
                 'course_id' => $validate['course_id'],
-                'student_id' => $student_id
+                'student_id' => $student_id,
             ]);
+
             return response()->json($student_course, 201);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -311,7 +316,7 @@ class Student extends Controller
             $selected_answer_clean = trim(strtolower(html_entity_decode(strip_tags($selected_answer))));
 
             $is_correct = $correct_answer_clean === $selected_answer_clean;
-            
+
             $answer = Answers::updateOrCreate(
                 [
                     'question_id' => $question_Id,
@@ -325,6 +330,7 @@ class Student extends Controller
                     'answered' => true,
                 ]
             );
+
             return response()->json($answer);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -343,7 +349,7 @@ class Student extends Controller
             $student->save();
 
             $candidate = Candidate::where('student_id', $student_id)
-                ->whereHas('exam', function($q) use ($course_id) {
+                ->whereHas('exam', function ($q) use ($course_id) {
                     $q->where('course_id', $course_id);
                 })
                 ->with('exam')
@@ -362,15 +368,15 @@ class Student extends Controller
                     ->where('activated', 'yes')
                     ->latest()
                     ->first();
-                
-                if (!$exam) {
+
+                if (! $exam) {
                     $exam = Exam::where('course_id', $course_id)
                         ->latest()
                         ->first();
                 }
             }
 
-            if (!$exam) {
+            if (! $exam) {
                 throw new \Exception('No valid exam found for this submission');
             }
 
@@ -387,20 +393,20 @@ class Student extends Controller
 
             $score_record = \App\Models\StudentExamScore::firstOrNew([
                 'student_id' => $student_id,
-                'course_id' => $course_id
+                'course_id' => $course_id,
             ]);
-            
+
             $score_record->score = $total_score;
             $score_record->course_name = $courseTitle;
             $score_record->timestamps = false;
-            
+
             $now = \Carbon\Carbon::now()->format('Y-m-d H:i:s');
-            if (!$score_record->exists) {
+            if (! $score_record->exists) {
                 $score_record->created_at = $now;
             }
             $score_record->updated_at = $now;
             $score_record->save();
-            
+
             $score_record->timestamps = true;
 
             $response = [
@@ -408,7 +414,7 @@ class Student extends Controller
             ];
 
             $seeResult = \App\Models\SystemConfig::get('student_see_result', false);
-            
+
             if ($seeResult) {
                 $response['answered_questions'] = $answers;
                 $response['correct_answers'] = $correct_answers_count;
@@ -424,7 +430,7 @@ class Student extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to submit exam',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -433,6 +439,7 @@ class Student extends Controller
     {
         try {
             $courses = StudentCourse::where('student_id', $student_id)->get();
+
             return response()->json($courses);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -445,6 +452,7 @@ class Student extends Controller
             $student = \App\Models\Student::findOrFail($student_id);
             $student->checkin_time = now();
             $student->save();
+
             return response()->json($student);
         } catch (Exception $e) {
             return response()->json($e->getMessage());
@@ -455,31 +463,30 @@ class Student extends Controller
     {
         try {
             $candidate = Candidate::where('student_id', $student_id)
-                ->whereHas('exam', function($q) {
+                ->whereHas('exam', function ($q) {
                     $q->where('activated', 'yes');
                 })
                 ->with('exam')
                 ->latest('updated_at')
                 ->first();
 
-            if (!$candidate || !$candidate->exam) {
+            if (! $candidate || ! $candidate->exam) {
                 return response()->json(['error' => 'No active exam found for this student. Please ensure you are checked in and the exam is activated.'], 404);
             }
 
             $exam = $candidate->exam;
 
             // Calculate total time (base duration + extension)
-            $base_duration = (int)$exam->exam_duration;
-            $time_extension = $candidate ? (int)($candidate->time_extension ?? 0) : 0;
+            $base_duration = (int) $exam->exam_duration;
+            $time_extension = $candidate ? (int) ($candidate->time_extension ?? 0) : 0;
             $total_duration = $base_duration + $time_extension;
 
             // Calculate remaining seconds precisely on the server using UTC
             $remaining_seconds = 0;
             if ($candidate && $candidate->start_time) {
                 $startTime = Carbon::parse($candidate->start_time);
-                $elapsedSeconds = Carbon::now()->diffInSeconds($startTime, false);
-                // If elapsed is negative, it means startTime is in the future (sync issue), treat as 0
-                $elapsedSeconds = $elapsedSeconds > 0 ? $elapsedSeconds : 0;
+                // Calculate positive seconds elapsed
+                $elapsedSeconds = $startTime->diffInSeconds(Carbon::now());
                 $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
             } else {
                 $remaining_seconds = $total_duration * 60;
@@ -503,7 +510,7 @@ class Student extends Controller
             $examResponse['exam_duration'] = $total_duration;
             $examResponse['base_duration'] = $base_duration;
             $examResponse['time_extension'] = $time_extension;
-            $examResponse['remaining_seconds'] = (int)max(0, floor($remaining_seconds));
+            $examResponse['remaining_seconds'] = (int) max(0, floor($remaining_seconds));
 
             $globalMaxViolations = SystemConfig::get('max_violations', 3);
             $examResponse['max_violations'] = $globalMaxViolations;
@@ -511,18 +518,18 @@ class Student extends Controller
             $course = \App\Models\Course::find($exam->course_id);
             $examResponse['course_title'] = $course ? $course->title : 'Unknown Course';
             $examResponse['course_code'] = $course ? $course->code : '';
-            
+
             $existingAnswers = Answers::where('candidate_id', $student_id)
                 ->where('course_id', $exam->course_id)
                 ->get();
-            
+
             $data = [
                 'exam' => $examResponse,
                 'questions' => $shuffledQuestions->values()->all(),
                 'candidate' => $candidate,
-                'existing_answers' => $existingAnswers
+                'existing_answers' => $existingAnswers,
             ];
-            
+
             return response()->json($data, 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

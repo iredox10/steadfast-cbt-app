@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Answers;
 use App\Models\Candidate;
+use App\Models\Course;
 use App\Models\Exam;
-use App\Models\Student;
+use App\Models\ExamArchive;
 use App\Models\ExamTicket;
+use App\Models\ExamViolation;
+use App\Models\Question;
+use App\Models\Student;
+use App\Models\StudentExamScore;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
-use App\Models\Course;
-use App\Models\ExamArchive;
-use App\Models\Question;
-use App\Models\Answers;
-use App\Models\StudentExamScore;
-use App\Models\ExamViolation;
-use Carbon\Carbon;
 
 class InvigilatorController extends Controller
 {
@@ -22,14 +22,14 @@ class InvigilatorController extends Controller
     {
         return response()->json([
             'error' => 'Ticket generation is no longer available.',
-            'message' => 'Tickets are automatically assigned when students login.'
+            'message' => 'Tickets are automatically assigned when students login.',
         ], 400);
     }
 
     public function regenerate_ticket(Request $request)
     {
         return response()->json([
-            'error' => 'Ticket regeneration has been disabled.'
+            'error' => 'Ticket regeneration has been disabled.',
         ], 403);
     }
 
@@ -46,7 +46,7 @@ class InvigilatorController extends Controller
                 ->where('activated', 'yes')
                 ->first();
 
-            if (!$active_exam) {
+            if (! $active_exam) {
                 return response()->json(['error' => 'No active exam found for this course'], 404);
             }
 
@@ -55,11 +55,11 @@ class InvigilatorController extends Controller
                 ->where('course_id', $validate['course_id'])
                 ->exists();
 
-            if (!$isEnrolled) {
+            if (! $isEnrolled) {
                 return response()->json(['error' => 'Student is not enrolled in this course'], 404);
             }
 
-            /* 
+            /*
             // Check if there are available tickets
             $availableTicketsCount = ExamTicket::where('exam_id', $active_exam->id)
                 ->whereNull('assigned_to_student_id')
@@ -75,7 +75,7 @@ class InvigilatorController extends Controller
                 ->where('exam_id', $active_exam->id)
                 ->first();
 
-            if (!$candidate) {
+            if (! $candidate) {
                 $candidate = Candidate::create([
                     'student_id' => $student->id,
                     'exam_id' => $active_exam->id,
@@ -102,7 +102,7 @@ class InvigilatorController extends Controller
             return response()->json([
                 'message' => 'Student checked in successfully.',
                 'student' => $student,
-                'is_checked_in' => true
+                'is_checked_in' => true,
             ], 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -117,17 +117,19 @@ class InvigilatorController extends Controller
             $student_list = [];
 
             $active_exam = Exam::where('course_id', $course_id)->where('activated', 'yes')->first();
-            if (!$active_exam) {
+            if (! $active_exam) {
                 $active_exam = Exam::where('course_id', $course_id)->latest()->first();
             }
-            
+
             $invigilator = $request->user();
             $levelFilter = $request->query('level_id');
 
             foreach ($students as $student_course) {
                 $student = Student::with('level')->find($student_course->student_id);
-                if (!$student) continue;
-                
+                if (! $student) {
+                    continue;
+                }
+
                 // Filter by level_id query parameter if provided
                 if ($levelFilter && $levelFilter !== 'all' && $student->level_id != $levelFilter) {
                     continue;
@@ -135,14 +137,14 @@ class InvigilatorController extends Controller
 
                 // Role-based filtering
                 if ($invigilator->role === 'level_admin' && $student->level_id != $invigilator->level_id) {
-                    continue; 
+                    continue;
                 } elseif ($invigilator->role === 'faculty_officer') {
                     // Check if student belongs to a department in this faculty
-                    if (!$student->level || $student->level->faculty_id != $invigilator->faculty_id) {
+                    if (! $student->level || $student->level->faculty_id != $invigilator->faculty_id) {
                         continue;
                     }
                 }
-                
+
                 if ($active_exam) {
                     $candidate = Candidate::where('student_id', $student->id)
                         ->where('exam_id', $active_exam->id)
@@ -170,42 +172,51 @@ class InvigilatorController extends Controller
             $validate = $request->validate([
                 'student_id' => 'required|numeric',
                 'exam_id' => 'required|numeric',
-                'extension_minutes' => 'required|numeric|min:1'
+                'extension_minutes' => 'required|numeric|min:1',
             ]);
 
             $active_exam = Exam::findOrFail($validate['exam_id']);
             $student = Student::findOrFail($validate['student_id']);
             $candidate = Candidate::where('student_id', $student->id)
-                                ->where('exam_id', $active_exam->id)
-                                ->first();
+                ->where('exam_id', $active_exam->id)
+                ->first();
 
-            if (!$candidate) {
+            if (! $candidate) {
                 return response()->json(['error' => 'Candidate record not found.'], 404);
             }
 
-            $current_extension = (int)($candidate->time_extension ?? 0);
-            $extension_minutes = (int)$validate['extension_minutes'];
-            $new_extension = $current_extension + $extension_minutes;
-            
+            $current_extension = (int) ($candidate->time_extension ?? 0);
+            $extension_minutes = (int) $validate['extension_minutes'];
+
+            // To ensure the student actually gets the added minutes applied to their REMAINING time,
+            // we must account for any time that has elapsed *past* their total allowed time (debt).
+            // If they are already in negative time (debt), adding 5 mins might just bring them to -1 min.
+            // By adding the debt to the new extension, we guarantee they get exactly $extension_minutes of POSITIVE time.
             if ($candidate->start_time) {
-                $elapsed_seconds = now()->diffInSeconds(Carbon::parse($candidate->start_time));
+                $startTime = \Carbon\Carbon::parse($candidate->start_time);
+                $elapsed_seconds = $startTime->diffInSeconds(now());
                 $total_allowed_seconds = ($active_exam->exam_duration + $current_extension) * 60;
-                
+
                 if ($elapsed_seconds > $total_allowed_seconds) {
-                    $debt_minutes = (int)ceil(($elapsed_seconds - $total_allowed_seconds) / 60);
+                    // Calculate how many minutes they are over their limit
+                    $debt_minutes = (int) ceil(($elapsed_seconds - $total_allowed_seconds) / 60);
                     $new_extension = $current_extension + $debt_minutes + $extension_minutes;
+                } else {
+                    $new_extension = $current_extension + $extension_minutes;
                 }
+            } else {
+                $new_extension = $current_extension + $extension_minutes;
             }
 
             $candidate->update([
                 'time_extension' => $new_extension,
-                'status' => 'active'
+                'status' => 'active',
             ]);
 
             return response()->json([
                 'message' => 'Time extended successfully',
                 'time_extension' => $new_extension,
-                'student_name' => $student->full_name
+                'student_name' => $student->full_name,
             ], 200);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -216,10 +227,10 @@ class InvigilatorController extends Controller
     {
         try {
             $exam = Exam::where('course_id', $course_id)
-                    ->where('activated', 'yes')
-                    ->first();
+                ->where('activated', 'yes')
+                ->first();
 
-            if (!$exam) {
+            if (! $exam) {
                 return response()->json(['message' => 'No active exam found'], 404);
             }
 
@@ -228,13 +239,16 @@ class InvigilatorController extends Controller
                 $now = now();
                 $duration = (int) $exam->exam_duration;
                 $globalEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
-                
+
                 // Check all active candidates for latest possible end time
                 $latestCandidateEndTime = Candidate::where('exam_id', $exam->id)
                     ->get()
-                    ->map(function($c) use ($duration) {
-                        if (!$c->start_time) return null;
-                        return Carbon::parse($c->start_time)->addMinutes($duration + (int)($c->time_extension ?? 0));
+                    ->map(function ($c) use ($duration) {
+                        if (! $c->start_time) {
+                            return null;
+                        }
+
+                        return Carbon::parse($c->start_time)->addMinutes($duration + (int) ($c->time_extension ?? 0));
                     })
                     ->filter()
                     ->max();
@@ -243,10 +257,11 @@ class InvigilatorController extends Controller
 
                 if ($now->lt($lockEndTime)) {
                     $remainingMinutes = ceil($now->diffInMinutes($lockEndTime, false));
+
                     return response()->json([
                         'error' => "Exam cannot be terminated yet. Please wait for the allocated time to elapse ($remainingMinutes minutes remaining).",
                         'remaining_minutes' => $remainingMinutes,
-                        'lock_end_time' => $lockEndTime->toDateTimeString()
+                        'lock_end_time' => $lockEndTime->toDateTimeString(),
                     ], 403);
                 }
             }
@@ -256,37 +271,37 @@ class InvigilatorController extends Controller
             $totalQuestions = Question::where('exam_id', $exam_id)->count();
             $totalMarks = $exam->marks_per_question * $totalQuestions;
 
-            $studentResults = Student::whereHas('candidates', function($query) use ($exam_id) {
+            $studentResults = Student::whereHas('candidates', function ($query) use ($exam_id) {
                 $query->where('exam_id', $exam_id);
             })
-            ->with(['candidates' => fn($q) => $q->where('exam_id', $exam_id), 'examScores' => fn($q) => $q->where('course_id', $exam->course_id)])
-            ->get()
-            ->map(function ($student) use ($exam) {
-                $candidate = $student->candidates->first();
-                $examScore = $student->examScores->first();
-                $questionsAnswered = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->count() : 0;
-                $correctAnswers = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->where('is_correct', true)->count() : 0;
-                
-                return [
-                    'student_id' => $student->id,
-                    'candidate_no' => $student->candidate_no,
-                    'full_name' => $student->full_name,
-                    'department' => $student->department,
-                    'programme' => $student->programme,
-                    'level_id' => $student->level_id,
-                    'score' => $examScore ? $examScore->score : 0,
-                    'submission_time' => $candidate ? $candidate->created_at : null,
-                    'questions_answered' => $questionsAnswered,
-                    'correct_answers' => $correctAnswers,
-                ];
-            })->toArray();
+                ->with(['candidates' => fn ($q) => $q->where('exam_id', $exam_id), 'examScores' => fn ($q) => $q->where('course_id', $exam->course_id)])
+                ->get()
+                ->map(function ($student) use ($exam) {
+                    $candidate = $student->candidates->first();
+                    $examScore = $student->examScores->first();
+                    $questionsAnswered = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->count() : 0;
+                    $correctAnswers = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->where('is_correct', true)->count() : 0;
+
+                    return [
+                        'student_id' => $student->id,
+                        'candidate_no' => $student->candidate_no,
+                        'full_name' => $student->full_name,
+                        'department' => $student->department,
+                        'programme' => $student->programme,
+                        'level_id' => $student->level_id,
+                        'score' => $examScore ? $examScore->score : 0,
+                        'submission_time' => $candidate ? $candidate->created_at : null,
+                        'questions_answered' => $questionsAnswered,
+                        'correct_answers' => $correctAnswers,
+                    ];
+                })->toArray();
 
             $terminator = auth()->user();
             $activator = $exam->activator;
 
             ExamArchive::create([
                 'exam_id' => $exam_id,
-                'exam_title' => $exam->title ?? $course->title . ' Exam',
+                'exam_title' => $exam->title ?? $course->title.' Exam',
                 'course_title' => $course->title,
                 'exam_date' => $exam->activated_date,
                 'duration' => $exam->exam_duration,
@@ -295,11 +310,11 @@ class InvigilatorController extends Controller
                 'total_marks' => $totalMarks,
                 'student_results' => $studentResults,
                 'activated_by_name' => $activator ? $activator->full_name : 'N/A',
-                'terminated_by_name' => $terminator ? $terminator->full_name : 'N/A'
+                'terminated_by_name' => $terminator ? $terminator->full_name : 'N/A',
             ]);
 
             $studentIds = Candidate::where('exam_id', $exam_id)->pluck('student_id')->toArray();
-            if (!empty($studentIds)) {
+            if (! empty($studentIds)) {
                 Student::whereIn('id', $studentIds)->update([
                     'is_logged_on' => 'no',
                     'checkin_time' => null,

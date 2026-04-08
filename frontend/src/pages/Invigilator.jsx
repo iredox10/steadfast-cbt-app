@@ -486,15 +486,18 @@ const Invigilator = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredStudents.map((student) => {
-                            const isCheckedIn = student.is_checked_in;
+                            const isCheckedIn = Boolean(student.is_checked_in);
+                            const isSubmitted = Boolean(student.is_submitted);
                             const isProcessing = checkingIn === student.id;
 
                             return (
                                 <div
                                     key={student.id}
-                                    className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${isCheckedIn
-                                        ? 'border-4 border-green-400'
-                                        : 'border-4 border-gray-200 hover:border-blue-400'
+                                    className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ${isSubmitted
+                                        ? 'border-4 border-blue-500 opacity-80'
+                                        : isCheckedIn
+                                            ? 'border-4 border-green-400'
+                                            : 'border-4 border-gray-200 hover:border-blue-400'
                                         }`}
                                 >
                                     {/* Student Photo - Large and Prominent */}
@@ -521,7 +524,12 @@ const Invigilator = () => {
 
                                         {/* Status Badge */}
                                         <div className="absolute top-4 right-4 z-10">
-                                            {isCheckedIn ? (
+                                            {isSubmitted ? (
+                                                <div className="bg-blue-500 text-white px-4 py-2 rounded-full font-bold flex items-center shadow-lg">
+                                                    <FaCheckCircle className="mr-2" />
+                                                    SUBMITTED
+                                                </div>
+                                            ) : isCheckedIn ? (
                                                 <div className="bg-green-500 text-white px-4 py-2 rounded-full font-bold flex items-center shadow-lg">
                                                     <FaCheckCircle className="mr-2" />
                                                     CHECKED IN
@@ -569,7 +577,7 @@ const Invigilator = () => {
                                         </div>
 
                                         {/* Action Button */}
-                                        {!isCheckedIn && (
+                                        {!isCheckedIn && !isSubmitted && (
                                             <button
                                                 onClick={() => handleCheckIn(student)}
                                                 disabled={isProcessing}
@@ -595,11 +603,20 @@ const Invigilator = () => {
                                             </button>
                                         )}
 
-                                        {isCheckedIn && (
+                                        {isCheckedIn && !isSubmitted && (
                                             <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 text-center">
                                                 <p className="text-green-800 font-bold flex items-center justify-center">
                                                     <FaCheckCircle className="mr-2" />
                                                     Ready for Exam
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {isSubmitted && (
+                                            <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 text-center">
+                                                <p className="text-blue-800 font-bold flex items-center justify-center">
+                                                    <FaCheckCircle className="mr-2" />
+                                                    Exam Finished
                                                 </p>
                                             </div>
                                         )}
