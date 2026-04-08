@@ -156,6 +156,7 @@ class InvigilatorController extends Controller
                     // $student->ticket_no = $ticketRecord ? $ticketRecord->ticket_no : ($candidate ? $candidate->ticket_no : null);
                     $student->exam_id = $active_exam->id;
                     $student->time_extension = $candidate ? $candidate->time_extension : 0;
+                    $student->is_submitted = $candidate ? ($candidate->is_checkout == 1 || $candidate->status === 'submitted') : false;
                 }
                 $student_list[] = $student;
             }
@@ -208,10 +209,22 @@ class InvigilatorController extends Controller
                 $new_extension = $current_extension + $extension_minutes;
             }
 
-            $candidate->update([
+            $was_submitted = ($candidate->is_checkout == 1 || $candidate->status === 'submitted');
+
+            $candidateUpdateData = [
                 'time_extension' => $new_extension,
                 'status' => 'active',
-            ]);
+            ];
+
+            if ($was_submitted) {
+                // If they had already submitted, reopen their session and require check-in again
+                $candidateUpdateData['is_checkout'] = 0;
+                $candidateUpdateData['is_checked_in'] = 0;
+                $candidateUpdateData['checkout_time'] = null;
+                $student->update(['is_checked_in' => 0, 'checkout_time' => null, 'is_logged_on' => 'no']);
+            }
+
+            $candidate->update($candidateUpdateData);
 
             return response()->json([
                 'message' => 'Time extended successfully',
