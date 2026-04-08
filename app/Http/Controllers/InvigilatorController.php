@@ -201,7 +201,10 @@ class InvigilatorController extends Controller
                 if ($elapsed_seconds > $total_allowed_seconds) {
                     // Calculate how many minutes they are over their limit
                     $debt_minutes = (int) ceil(($elapsed_seconds - $total_allowed_seconds) / 60);
-                    $new_extension = $current_extension + $debt_minutes + $extension_minutes;
+                    // Forgive the debt by advancing the start_time, giving them exact extension_minutes
+                    $startTime->addMinutes($debt_minutes);
+                    $candidate->start_time = $startTime->toIso8601String();
+                    $new_extension = $current_extension + $extension_minutes;
                 } else {
                     $new_extension = $current_extension + $extension_minutes;
                 }

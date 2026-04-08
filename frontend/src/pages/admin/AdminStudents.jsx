@@ -503,12 +503,28 @@ const AdminStudents = () => {
                                                         <span className="text-xs text-gray-400 italic">No Ticket</span>
                                                     )}
                                                     
-                                                    {student.time_extension > 0 && (
-                                                        <span className="flex items-center text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded w-fit">
+                                                    {student.exam_duration && student.time_extension > 0 ? (
+                                                        <div className="flex flex-col gap-0.5 mt-1 border border-amber-200 bg-amber-50 p-1.5 rounded text-[11px] text-amber-800">
+                                                            <div className="flex justify-between gap-3">
+                                                                <span className="opacity-75">Base:</span>
+                                                                <span className="font-semibold">{student.exam_duration}m</span>
+                                                            </div>
+                                                            <div className="flex justify-between gap-3">
+                                                                <span className="opacity-75">Ext:</span>
+                                                                <span className="font-semibold text-amber-600">+{student.time_extension}m</span>
+                                                            </div>
+                                                            <div className="border-t border-amber-200 my-0.5"></div>
+                                                            <div className="flex justify-between gap-3 font-bold text-blue-700">
+                                                                <span>Total:</span>
+                                                                <span>{Number(student.exam_duration) + Number(student.time_extension)}m</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : student.time_extension > 0 ? (
+                                                        <span className="flex items-center text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded w-fit mt-1">
                                                             <FaClock className="mr-1" />
                                                             +{student.time_extension} mins
                                                         </span>
-                                                    )}
+                                                    ) : null}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
