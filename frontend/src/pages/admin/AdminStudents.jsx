@@ -796,11 +796,32 @@ const AdminStudents = () => {
                         <form onSubmit={handleExtendTime} className="p-6 space-y-4">
                             <div className="text-center mb-4">
                                 <p className="text-sm text-gray-500">Student</p>
-                                <p className="font-bold text-gray-900 text-lg">{selectedStudent?.full_name}</p>
-                                {selectedStudent?.time_extension > 0 && (
-                                    <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full font-medium">
-                                        Currently +{selectedStudent.time_extension} mins
-                                    </span>
+                                <p className="font-bold text-gray-900 text-lg mb-2">{selectedStudent?.full_name}</p>
+                                
+                                {selectedStudent?.exam_duration ? (
+                                    <div className="flex flex-col gap-1 items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <div className="flex justify-between w-full max-w-[200px] text-sm">
+                                            <span className="text-gray-500">Base Time:</span>
+                                            <span className="font-semibold text-gray-700">{selectedStudent.exam_duration} min</span>
+                                        </div>
+                                        <div className="flex justify-between w-full max-w-[200px] text-sm">
+                                            <span className="text-gray-500">Extended:</span>
+                                            <span className="font-semibold text-amber-600">+{selectedStudent.time_extension || 0} min</span>
+                                        </div>
+                                        <div className="w-full max-w-[200px] h-px bg-gray-200 my-1"></div>
+                                        <div className="flex justify-between w-full max-w-[200px] text-sm">
+                                            <span className="text-gray-700 font-bold">Total Time:</span>
+                                            <span className="font-bold text-blue-600">
+                                                {Number(selectedStudent.exam_duration) + Number(selectedStudent.time_extension || 0)} min
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    selectedStudent?.time_extension > 0 && (
+                                        <span className="inline-block mt-1 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full font-medium">
+                                            Currently +{selectedStudent.time_extension} mins
+                                        </span>
+                                    )
                                 )}
                             </div>
                             
