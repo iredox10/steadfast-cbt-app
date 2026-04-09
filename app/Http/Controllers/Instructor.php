@@ -6,20 +6,16 @@ use App\Models\Answers;
 use App\Models\Candidate;
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\ExamArchive;
 use App\Models\LecturerCourse;
 use App\Models\Question;
 use App\Models\QuestionBank;
 use App\Models\Student;
-use App\Models\StudentCourse;
 use App\Models\StudentExamScore;
 use App\Models\User;
-use App\Models\ExamArchive;
-use Carbon\Carbon;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 
 class Instructor extends Controller
 {
@@ -28,11 +24,11 @@ class Instructor extends Controller
         try {
             $user = $request->user();
             $usersQuery = User::whereIn('role', ['lecturer', 'instructor', 'invigilator', 'technician'])->with(['level.faculty']);
-            
+
             if ($user && $user->role === 'level_admin' && $user->level_id) {
                 $usersQuery->where('level_id', $user->level_id);
             } elseif ($user && $user->role === 'faculty_officer') {
-                $usersQuery->whereHas('level', function($q) use ($user) {
+                $usersQuery->whereHas('level', function ($q) use ($user) {
                     $q->where('faculty_id', $user->faculty_id);
                 });
             } elseif ($request->has('level_id') && $request->level_id) {
@@ -40,6 +36,7 @@ class Instructor extends Controller
             }
 
             $users = $usersQuery->orderBy('created_at', 'desc')->get();
+
             return response()->json($users);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -54,21 +51,22 @@ class Instructor extends Controller
             'full_name' => 'required| string | max:255',
             'role' => 'required| string | max:255',
             'status' => 'required| string | max:255',
-            'level_id' => 'nullable|exists:acd_sessions,id'
+            'level_id' => 'nullable|exists:acd_sessions,id',
         ]);
-        
+
         $validate['password'] = Hash::make($validate['password'] ?? 'password');
-        
+
         $currentUser = $request->user();
         if ($currentUser && $currentUser->role === 'level_admin' && $currentUser->level_id) {
             $validate['level_id'] = $currentUser->level_id;
         }
-        
+
         try {
             $user = User::create($validate);
+
             return response()->json([
                 'message' => 'Instructor created successfully',
-                'user' => $user->load('level')
+                'user' => $user->load('level'),
             ], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -79,6 +77,7 @@ class Instructor extends Controller
     {
         try {
             $user = User::findOrFail($id);
+
             return response()->json($user);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -99,6 +98,7 @@ class Instructor extends Controller
                 $request->validate(['email' => 'unique:users,email']);
             }
             $user->update($validate);
+
             return response()->json(['message' => 'User updated successfully', 'user' => $user]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -111,6 +111,7 @@ class Instructor extends Controller
             $user = User::findOrFail($id);
             $user->password = Hash::make('password');
             $user->save();
+
             return response()->json(['message' => 'Password reset successfully']);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -121,6 +122,7 @@ class Instructor extends Controller
     {
         $user = User::find($id);
         $user->delete();
+
         return response()->json($user);
     }
 
@@ -152,6 +154,7 @@ class Instructor extends Controller
             for ($i = 0; $i < $exam->no_of_questions; $i++) {
                 Question::create(['exam_id' => $exam->id, 'user_id' => $user->id, 'serial_number' => $i + 1]);
             }
+
             return response()->json($exam, 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -171,10 +174,12 @@ class Instructor extends Controller
         ]);
         try {
             $exam = Exam::findOrFail($exam_id);
-            if ($exam->finished_time) return response()->json(['error' => 'Cannot update a terminated exam'], 403);
+            if ($exam->finished_time) {
+                return response()->json(['error' => 'Cannot update a terminated exam'], 403);
+            }
             $exam->update($validate);
             $currentCount = Question::where('exam_id', $exam->id)->count();
-            $newCount = (int)$validate['no_of_questions'];
+            $newCount = (int) $validate['no_of_questions'];
             if ($newCount > $currentCount) {
                 for ($i = $currentCount; $i < $newCount; $i++) {
                     Question::create(['exam_id' => $exam->id, 'user_id' => $exam->user_id, 'serial_number' => $i + 1]);
@@ -187,6 +192,7 @@ class Instructor extends Controller
             foreach ($remaining as $index => $q) {
                 $q->update(['serial_number' => $index + 1]);
             }
+
             return response()->json($exam, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -200,6 +206,7 @@ class Instructor extends Controller
             foreach ($exams as $exam) {
                 $exam->filled_questions_count = Question::where('exam_id', $exam->id)->whereNotNull('question')->count();
             }
+
             return response()->json($exams);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -215,6 +222,7 @@ class Instructor extends Controller
             if ($q->wasChanged()) {
                 QuestionBank::create(['exam_id' => $exam_id, 'user_id' => $user_id, 'course_id' => $course_id, 'question' => $q->question, 'correct_answer' => $q->correct_answer, 'option_a' => $q->option_a, 'option_b' => $q->option_b, 'option_c' => $q->option_c, 'option_d' => $q->option_d]);
             }
+
             return response()->json($q, 201);
         } catch (Exception $e) {
             return response()->json($e->getMessage(), 500);
@@ -224,11 +232,36 @@ class Instructor extends Controller
     public function submitExam(Request $request, $exam_id)
     {
         try {
-            $exam = Exam::findOrFail($exam_id);
-            if ($exam->submission_status === 'submitted' && !$exam->finished_time) return response()->json(['error' => 'Already submitted'], 400);
+            $exam = Exam::with(['course.semester.acdSession', 'user'])->findOrFail($exam_id);
+            if ($exam->submission_status === 'submitted' && ! $exam->finished_time) {
+                return response()->json(['error' => 'Already submitted'], 400);
+            }
             $exam->update(['submission_status' => 'submitted', 'submission_count' => ($exam->submission_count ?? 0) + 1, 'submission_date' => now(), 'finished_time' => null, 'activated' => 'no']);
+
+            // Notify admins
+            $facultyId = $exam->course->semester->acdSession->faculty_id ?? null;
+            $levelId = $exam->course->semester->acd_session_id ?? null;
+            $instructorName = $exam->user->full_name ?? 'An instructor';
+            $courseTitle = $exam->course->title ?? 'a course';
+
+            $admins = User::whereIn('role', ['super_admin', 'faculty_officer', 'level_admin'])->get();
+            foreach ($admins as $admin) {
+                if ($admin->role === 'super_admin' ||
+                   ($admin->role === 'faculty_officer' && $admin->faculty_id == $facultyId) ||
+                   ($admin->role === 'level_admin' && $admin->level_id == $levelId)) {
+                    $admin->notify(new \App\Notifications\AdminNotification(
+                        "{$instructorName} has submitted a new exam for {$courseTitle}.",
+                        'exam-submission',
+                        "/admin-exam/{$admin->id}",
+                        'file'
+                    ));
+                }
+            }
+
+            \App\Models\ActivityLog::log('submission', "{$instructorName} submitted {$courseTitle} exam", $exam->user_id);
+
             return response()->json(['message' => 'Submitted', 'exam' => $exam]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -236,11 +269,36 @@ class Instructor extends Controller
     public function recallExam(Request $request, $exam_id)
     {
         try {
-            $exam = Exam::findOrFail($exam_id);
-            if ($exam->activated === 'yes') return response()->json(['error' => 'Active exam'], 400);
+            $exam = Exam::with(['course.semester.acdSession', 'user'])->findOrFail($exam_id);
+            if ($exam->activated === 'yes') {
+                return response()->json(['error' => 'Active exam'], 400);
+            }
             \Illuminate\Support\Facades\DB::table('exams')->where('id', $exam_id)->update(['submission_status' => 'not_submitted', 'updated_at' => now()]);
+
+            // Notify admins
+            $facultyId = $exam->course->semester->acdSession->faculty_id ?? null;
+            $levelId = $exam->course->semester->acd_session_id ?? null;
+            $instructorName = $exam->user->full_name ?? 'An instructor';
+            $courseTitle = $exam->course->title ?? 'a course';
+
+            $admins = User::whereIn('role', ['super_admin', 'faculty_officer', 'level_admin'])->get();
+            foreach ($admins as $admin) {
+                if ($admin->role === 'super_admin' ||
+                   ($admin->role === 'faculty_officer' && $admin->faculty_id == $facultyId) ||
+                   ($admin->role === 'level_admin' && $admin->level_id == $levelId)) {
+                    $admin->notify(new \App\Notifications\AdminNotification(
+                        "{$instructorName} has recalled the exam for {$courseTitle}.",
+                        'exam-recall',
+                        "/admin-exam/{$admin->id}",
+                        'bell'
+                    ));
+                }
+            }
+
+            \App\Models\ActivityLog::log('admin', "{$instructorName} recalled {$courseTitle} exam", $exam->user_id);
+
             return response()->json(['message' => 'Recalled', 'exam' => $exam->fresh()]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -258,6 +316,7 @@ class Instructor extends Controller
     {
         try {
             Exam::destroy($exam_id);
+
             return response()->json(['message' => 'Deleted']);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -287,11 +346,16 @@ class Instructor extends Controller
             $list = [];
             foreach ($students as $sc) {
                 if ($s = Student::find($sc->student_id)) {
-                    if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) continue;
-                    if ($instr->role === 'faculty_officer' && (!$s->level || $s->level->faculty_id != $instr->faculty_id)) continue;
+                    if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) {
+                        continue;
+                    }
+                    if ($instr->role === 'faculty_officer' && (! $s->level || $s->level->faculty_id != $instr->faculty_id)) {
+                        continue;
+                    }
                     $list[] = $s;
                 }
             }
+
             return response()->json($list);
         } catch (Exception $err) {
             return response()->json(['error' => $err->getMessage()], 500);
@@ -308,23 +372,27 @@ class Instructor extends Controller
             $seen = [];
             foreach ($scores as $score) {
                 if ($s = Student::with('level')->find($score->student_id)) {
-                    if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) continue;
-                    if ($instr->role === 'faculty_officer' && (!$s->level || $s->level->faculty_id != $instr->faculty_id)) continue;
+                    if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) {
+                        continue;
+                    }
+                    if ($instr->role === 'faculty_officer' && (! $s->level || $s->level->faculty_id != $instr->faculty_id)) {
+                        continue;
+                    }
                     $seen[] = $s->id;
-                    
+
                     $questions_answered = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id])->count();
                     $correct_answers = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count();
 
                     $results[] = [
-                        'id' => $score->id, 
-                        'student_id' => $s->id, 
-                        'student' => $s->toArray(), 
-                        'course_name' => $score->course_name, 
-                        'score' => $score->score, 
-                        'status' => 'submitted', 
+                        'id' => $score->id,
+                        'student_id' => $s->id,
+                        'student' => $s->toArray(),
+                        'course_name' => $score->course_name,
+                        'score' => $score->score,
+                        'status' => 'submitted',
                         'submitted_at' => $score->created_at,
                         'questions_answered' => $questions_answered,
-                        'correct_answers' => $correct_answers
+                        'correct_answers' => $correct_answers,
                     ];
                 }
             }
@@ -332,26 +400,31 @@ class Instructor extends Controller
                 $cands = Candidate::where('exam_id', $activeExam->id)->whereNotIn('student_id', $seen)->get();
                 foreach ($cands as $c) {
                     if ($s = Student::with('level')->find($c->student_id)) {
-                        if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) continue;
-                        if ($instr->role === 'faculty_officer' && (!$s->level || $s->level->faculty_id != $instr->faculty_id)) continue;
-                        
+                        if ($instr->role === 'level_admin' && $s->level_id != $instr->level_id) {
+                            continue;
+                        }
+                        if ($instr->role === 'faculty_officer' && (! $s->level || $s->level->faculty_id != $instr->faculty_id)) {
+                            continue;
+                        }
+
                         $questions_answered = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id])->count();
                         $correct_answers = Answers::where(['course_id' => $course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count();
 
                         $results[] = [
-                            'id' => 'cand_'.$c->id, 
-                            'student_id' => $s->id, 
-                            'student' => $s->toArray(), 
-                            'course_name' => $activeExam->course->title ?? 'N/A', 
-                            'score' => 0, 
-                            'status' => 'in_progress', 
+                            'id' => 'cand_'.$c->id,
+                            'student_id' => $s->id,
+                            'student' => $s->toArray(),
+                            'course_name' => $activeExam->course->title ?? 'N/A',
+                            'score' => 0,
+                            'status' => 'in_progress',
                             'submitted_at' => null,
                             'questions_answered' => $questions_answered,
-                            'correct_answers' => $correct_answers
+                            'correct_answers' => $correct_answers,
                         ];
                     }
                 }
             }
+
             return response()->json($results);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -366,9 +439,10 @@ class Instructor extends Controller
             $csv = "Student ID,Candidate Number,Full Name,Department,Programme,Course Name,Score,Submitted At\n";
             foreach ($scores as $score) {
                 if ($s = Student::find($score->student_id)) {
-                    $csv .= implode(',', [$s->id, '"'.$s->candidate_no.'"', '"'.$s->full_name.'"', '"'.$s->department.'"', '"'.$s->programme.'"', '"'.$score->course_name.'"', $score->score, $score->created_at ?? 'N/A']) . "\n";
+                    $csv .= implode(',', [$s->id, '"'.$s->candidate_no.'"', '"'.$s->full_name.'"', '"'.$s->department.'"', '"'.$s->programme.'"', '"'.$score->course_name.'"', $score->score, $score->created_at ?? 'N/A'])."\n";
                 }
             }
+
             return response($csv, 200, ['Content-Type' => 'text/csv', 'Content-Disposition' => 'attachment; filename="scores.csv"']);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -379,6 +453,7 @@ class Instructor extends Controller
     {
         $q = Question::findOrFail($question_Id);
         $q->update($request->all());
+
         return response()->json($q);
     }
 
@@ -390,6 +465,7 @@ class Instructor extends Controller
     public function getExamQuestionBank($user_id, $exam_id)
     {
         $e = Exam::findOrFail($exam_id);
+
         return response()->json(Course::findOrFail($e->course_id)->questionBanks, 200);
     }
 
@@ -397,26 +473,34 @@ class Instructor extends Controller
     {
         try {
             $a = ExamArchive::with('exam')->where('exam_id', $exam_id)->orderBy('id', 'desc')->first();
-            if (!$a) return response()->json(['error' => 'Not found'], 404);
+            if (! $a) {
+                return response()->json(['error' => 'Not found'], 404);
+            }
             $user = $request->user();
-            if ($user->role === "level_admin") {
-                $res = collect($a->student_results)->filter(function($r) use ($user) {
-                    if (isset($r["level_id"])) return $r["level_id"] == $user->level_id;
-                    $s = Student::find($r["student_id"]);
+            if ($user->role === 'level_admin') {
+                $res = collect($a->student_results)->filter(function ($r) use ($user) {
+                    if (isset($r['level_id'])) {
+                        return $r['level_id'] == $user->level_id;
+                    }
+                    $s = Student::find($r['student_id']);
+
                     return $s && $s->level_id == $user->level_id;
                 })->values()->all();
                 $a->student_results = $res;
-            } elseif ($user->role === "faculty_officer") {
-                $res = collect($a->student_results)->filter(function($r) use ($user) {
-                    if (isset($r["level_id"])) {
-                        $d = Acd_session::find($r["level_id"]);
+            } elseif ($user->role === 'faculty_officer') {
+                $res = collect($a->student_results)->filter(function ($r) use ($user) {
+                    if (isset($r['level_id'])) {
+                        $d = Acd_session::find($r['level_id']);
+
                         return $d && $d->faculty_id == $user->faculty_id;
                     }
-                    $s = Student::with("level")->find($r["student_id"]);
+                    $s = Student::with('level')->find($r['student_id']);
+
                     return $s && $s->level && $s->level->faculty_id == $user->faculty_id;
                 })->values()->all();
                 $a->student_results = $res;
             }
+
             return response()->json($a);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

@@ -22,6 +22,13 @@ Route::post('/login', [UserController::class, 'login']);
 // Get current authenticated user
 Route::get('/user', [UserController::class, 'getCurrentUser'])->middleware('auth:sanctum');
 
+// Notifications
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notifications', [UserController::class, 'getNotifications']);
+    Route::post('/notifications/{id}/read', [UserController::class, 'markNotificationRead']);
+    Route::post('/notifications/read-all', [UserController::class, 'markAllNotificationsRead']);
+});
+
 // student
 
 Route::post('/student-login', [Student::class, 'login']);

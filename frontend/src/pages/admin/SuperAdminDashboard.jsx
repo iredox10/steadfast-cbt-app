@@ -29,6 +29,11 @@ const SuperAdminDashboard = () => {
     const [activeExams, setActiveExams] = useState([]);
     const [recentActivities, setRecentActivities] = useState([]);
     const [activitiesLoading, setActivitiesLoading] = useState(true);
+    
+    // Notifications State
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     // Helper function to get time-based greeting
     const getGreeting = () => {
@@ -43,7 +48,46 @@ const SuperAdminDashboard = () => {
         fetchStats();
         fetchActiveExams();
         fetchRecentActivities();
+        fetchNotifications();
     }, []);
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await axios.get(`${path}/notifications`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setNotifications(response.data.notifications);
+            setUnreadCount(response.data.unread_count);
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        }
+    };
+
+    const markNotificationAsRead = async (id, actionUrl) => {
+        try {
+            await axios.post(`${path}/notifications/${id}/read`, {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            fetchNotifications();
+            if (actionUrl) {
+                window.location.href = actionUrl;
+            }
+        } catch (error) {
+            console.error('Error marking notification read:', error);
+        }
+    };
+
+    const markAllNotificationsAsRead = async () => {
+        try {
+            await axios.post(`${path}/notifications/read-all`, {}, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            fetchNotifications();
+            setShowNotifications(false);
+        } catch (error) {
+            console.error('Error marking all notifications read:', error);
+        }
+    };
 
     const fetchCurrentUser = async () => {
         try {
@@ -233,15 +277,64 @@ const SuperAdminDashboard = () => {
                             <p className="text-blue-600 text-sm">Managing: {currentUser.level.title}</p>
                         )}
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <button className="p-3 bg-white border rounded-full hover:bg-gray-100 relative">
+                    <div className="flex items-center space-x-4 relative">
+                        <button 
+                            className="p-3 bg-white border rounded-full hover:bg-gray-100 relative focus:outline-none"
+                            onClick={() => setShowNotifications(!showNotifications)}
+                        >
                             <FaBell className="text-gray-600" />
-                            {activeExams.length > 0 && (
+                            {unreadCount > 0 && (
                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                                    {activeExams.length}
+                                    {unreadCount > 99 ? '99+' : unreadCount}
                                 </span>
                             )}
                         </button>
+
+                        {/* Notifications Dropdown */}
+                        {showNotifications && (
+                            <div className="absolute top-12 right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
+                                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                    <h3 className="font-semibold text-gray-800">Notifications</h3>
+                                    {unreadCount > 0 && (
+                                        <button 
+                                            onClick={markAllNotificationsAsRead}
+                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                        >
+                                            Mark all as read
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                                    {notifications.length > 0 ? (
+                                        notifications.map(notification => (
+                                            <div 
+                                                key={notification.id} 
+                                                onClick={() => markNotificationAsRead(notification.id, notification.data.action_url)}
+                                                className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${!notification.read_at ? 'bg-blue-50/30' : ''}`}
+                                            >
+                                                <div className="flex gap-3">
+                                                    <div className={`mt-1 p-2 rounded-full ${!notification.read_at ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                        <FaBell size={12} />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-sm ${!notification.read_at ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+                                                            {notification.data.message}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            {format(new Date(notification.created_at), "MMM d, h:mm a")}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-6 text-center text-gray-500 text-sm">
+                                            No notifications yet.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -311,13 +404,13 @@ const SuperAdminDashboard = () => {
                                 <div>
                                     <h4 className="text-sm font-medium text-gray-500 mb-4">User Distribution</h4>
                                     <div className="flex items-end h-32 gap-2 mb-2">
-                                        <div className="flex-1 flex flex-col justify-end group relative">
+                                        <div className="flex-1 h-full flex flex-col justify-end group relative">
                                             <div className="w-full bg-blue-500 rounded-t-md transition-all duration-500" style={{ height: `${Math.max(10, Math.min(100, (stats?.totalStudents / (stats?.totalStudents + stats?.totalInstructors + 1)) * 100))}%` }}></div>
                                             <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap transition-opacity">
                                                 {stats?.totalStudents} Students
                                             </div>
                                         </div>
-                                        <div className="flex-1 flex flex-col justify-end group relative">
+                                        <div className="flex-1 h-full flex flex-col justify-end group relative">
                                             <div className="w-full bg-green-500 rounded-t-md transition-all duration-500" style={{ height: `${Math.max(10, Math.min(100, (stats?.totalInstructors / (stats?.totalStudents + stats?.totalInstructors + 1)) * 100))}%` }}></div>
                                             <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap transition-opacity">
                                                 {stats?.totalInstructors} Instructors
