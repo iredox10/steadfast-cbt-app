@@ -426,6 +426,8 @@ class Student extends Controller
                 $response['message'] = 'Exam submitted successfully. Your results will be released later.';
             }
 
+            \App\Models\ActivityLog::log('submission', "Student {$student->candidate_no} submitted exam", auth()->id());
+
             return response()->json($response, 200);
         } catch (\Exception $e) {
             return response()->json([

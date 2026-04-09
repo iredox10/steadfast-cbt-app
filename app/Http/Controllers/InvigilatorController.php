@@ -99,6 +99,8 @@ class InvigilatorController extends Controller
 
             $student->update(['is_checked_in' => true]);
 
+            \App\Models\ActivityLog::log('check-in', "Checked in student {$student->candidate_no}", auth()->id());
+
             return response()->json([
                 'message' => 'Student checked in successfully.',
                 'student' => $student,
@@ -228,6 +230,8 @@ class InvigilatorController extends Controller
             }
 
             $candidate->update($candidateUpdateData);
+
+            \App\Models\ActivityLog::log('time-extension', "Extended time by {$extension_minutes} mins for {$student->candidate_no}", auth()->id());
 
             return response()->json([
                 'message' => 'Time extended successfully',

@@ -10,7 +10,6 @@ import {
 import { path } from '../../../utils/path';
 import AdminSidebar from '../../components/AdminSidebar';
 import { format } from 'date-fns';
-import SessionSelector from '../../components/SessionSelector';
 import logo from "../../../public/assets/buk.png";
 
 const SuperAdminDashboard = () => {
@@ -26,8 +25,6 @@ const SuperAdminDashboard = () => {
         activeExams: 0,
         recentActivities: []
     });
-    const [selectedLevel, setSelectedLevel] = useState('');
-    const [levelStats, setLevelStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeExams, setActiveExams] = useState([]);
     const [recentActivities, setRecentActivities] = useState([]);
@@ -47,12 +44,6 @@ const SuperAdminDashboard = () => {
         fetchActiveExams();
         fetchRecentActivities();
     }, []);
-
-    useEffect(() => {
-        if (selectedLevel && currentUser?.role === 'super_admin') {
-            fetchLevelStats();
-        }
-    }, [selectedLevel]);
 
     const fetchCurrentUser = async () => {
         try {
@@ -135,40 +126,6 @@ const SuperAdminDashboard = () => {
         }
     };
 
-    const fetchLevelStats = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
-
-            const [studentsRes, usersRes, examsRes] = await Promise.all([
-                axios.get(`${path}/students-by-level?level_id=${selectedLevel}`, { headers }),
-                axios.get(`${path}/users-by-level?level_id=${selectedLevel}`, { headers }),
-                axios.get(`${path}/exams-by-level?level_id=${selectedLevel}`, { headers })
-            ]);
-
-            // Ensure we have arrays before calling .length or .filter
-            const studentsData = Array.isArray(studentsRes.data) ? studentsRes.data : [];
-            const usersData = Array.isArray(usersRes.data) ? usersRes.data : [];
-            const examsData = Array.isArray(examsRes.data) ? examsRes.data : [];
-
-            setLevelStats({
-                students: studentsData.length,
-                instructors: usersData.filter(u => u.role === 'lecturer').length,
-                exams: examsData.length,
-                activeExams: examsData.filter(e => e.status === 'active').length
-            });
-
-        } catch (error) {
-            console.error('Error fetching level stats:', error);
-            setLevelStats({
-                students: 0,
-                instructors: 0,
-                exams: 0,
-                activeExams: 0
-            });
-        }
-    };
-
     const fetchActiveExams = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -186,15 +143,34 @@ const SuperAdminDashboard = () => {
 
     const fetchRecentActivities = async () => {
         try {
-            // Mock activities - replace with actual API when available
-            const mockActivities = [
-                { id: 1, type: 'check-in', message: 'Student checked in for Mathematics exam', time: '2 minutes ago', icon: <FaUserCheck className="text-green-500" /> },
-                { id: 2, type: 'submission', message: 'New exam submission received', time: '5 minutes ago', icon: <FaFileSignature className="text-blue-500" /> },
-                { id: 3, type: 'exam-start', message: 'Chemistry exam activated', time: '12 minutes ago', icon: <FaPlay className="text-purple-500" /> },
-                { id: 4, type: 'ticket', message: 'Exam tickets generated for 60 students', time: '18 minutes ago', icon: <FaTicketAlt className="text-orange-500" /> },
-                { id: 5, type: 'admin', message: 'New level admin created for Level 200', time: '25 minutes ago', icon: <FaUserShield className="text-red-500" /> },
-            ];
-            setRecentActivities(mockActivities);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${path}/recent-activities`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            const formattedActivities = response.data.map(activity => {
+                let icon = <FaClipboardList className="text-gray-500" />;
+                
+                // Map the backend 'type' string to the proper React icon
+                switch(activity.type) {
+                    case 'check-in': icon = <FaUserCheck className="text-green-500" />; break;
+                    case 'submission': icon = <FaFileSignature className="text-blue-500" />; break;
+                    case 'exam-start': icon = <FaPlay className="text-purple-500" />; break;
+                    case 'ticket': icon = <FaTicketAlt className="text-orange-500" />; break;
+                    case 'admin': icon = <FaUserShield className="text-red-500" />; break;
+                    case 'time-extension': icon = <FaRegClock className="text-yellow-500" />; break;
+                }
+
+                return {
+                    id: activity.id,
+                    type: activity.type,
+                    message: activity.message,
+                    time: activity.time, // from diffForHumans
+                    icon: icon
+                };
+            });
+            
+            setRecentActivities(formattedActivities);
         } catch (error) {
             console.error('Error fetching activities:', error);
             setRecentActivities([]);
@@ -271,22 +247,6 @@ const SuperAdminDashboard = () => {
 
                 {/* Content Area */}
                 <div className="p-8">
-                    {/* Level Selector for Super Admin */}
-                    {currentUser?.role === 'super_admin' && (
-                        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
-                                                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                                                <FaListAlt className="text-blue-500" />
-                                                                Filter by Session
-                                                            </h3>
-                                                            <SessionSelector
-                                                                currentUser={currentUser}
-                                                                selectedSession={selectedLevel}
-                                                                onSessionChange={setSelectedLevel}
-                                                                showAllOption={true}
-                                                                allOptionText="All Sessions"
-                                                            />                        </div>
-                    )}
-
                     {/* Enhanced Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                         {currentUser?.role === 'super_admin' && (
@@ -336,147 +296,119 @@ const SuperAdminDashboard = () => {
                         />
                     </div>
 
-                    {/* Quick Actions */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {currentUser?.role === 'super_admin' && (
-                                <Link 
-                                    to="/faculty-management"
-                                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <FaBuilding className="mr-3 text-indigo-500" />
-                                    <div>
-                                        <div className="font-medium">Manage Faculties</div>
-                                        <div className="text-sm text-gray-600">Create and manage university faculties</div>
-                                    </div>
-                                </Link>
-                            )}
-
-                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
-                                <Link 
-                                    to="/department-management"
-                                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <FaBuilding className="mr-3 text-orange-500" />
-                                    <div>
-                                        <div className="font-medium">Manage Departments</div>
-                                        <div className="text-sm text-gray-600">Create and manage departments</div>
-                                    </div>
-                                </Link>
-                            )}
-
-                            {(currentUser?.role === 'super_admin' || currentUser?.role === 'faculty_officer') && (
-                                <Link 
-                                    to="/admin-management"
-                                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <FaUserShield className="mr-3 text-red-500" />
-                                    <div>
-                                        <div className="font-medium">
-                                            {currentUser?.role === 'faculty_officer' ? 'Dept Officers' : 'Admin Management'}
+                    {/* Analytics and Activity Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        
+                        {/* Visual Analytics (CSS based) */}
+                        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                                <FaChartLine className="text-indigo-500" />
+                                System Overview Analytics
+                            </h3>
+                            
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* User Distribution */}
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500 mb-4">User Distribution</h4>
+                                    <div className="flex items-end h-32 gap-2 mb-2">
+                                        <div className="flex-1 flex flex-col justify-end group relative">
+                                            <div className="w-full bg-blue-500 rounded-t-md transition-all duration-500" style={{ height: `${Math.max(10, Math.min(100, (stats?.totalStudents / (stats?.totalStudents + stats?.totalInstructors + 1)) * 100))}%` }}></div>
+                                            <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap transition-opacity">
+                                                {stats?.totalStudents} Students
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-gray-600">Manage administrators and officers</div>
+                                        <div className="flex-1 flex flex-col justify-end group relative">
+                                            <div className="w-full bg-green-500 rounded-t-md transition-all duration-500" style={{ height: `${Math.max(10, Math.min(100, (stats?.totalInstructors / (stats?.totalStudents + stats?.totalInstructors + 1)) * 100))}%` }}></div>
+                                            <div className="absolute opacity-0 group-hover:opacity-100 -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded whitespace-nowrap transition-opacity">
+                                                {stats?.totalInstructors} Instructors
+                                            </div>
+                                        </div>
                                     </div>
-                                </Link>
-                            )}
-
-                            <Link 
-                                to={`/admin-students/${userId}`}
-                                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                <FaUserPlus className="mr-3 text-blue-500" />
-                                <div>
-                                    <div className="font-medium">Add Student</div>
-                                    <div className="text-sm text-gray-600">Register a new student</div>
+                                    <div className="flex justify-between text-xs text-gray-500 border-t pt-2">
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span>Students</span>
+                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>Instructors</span>
+                                    </div>
                                 </div>
-                            </Link>
 
-                            <Link 
-                                to={`/admin-exam/${userId}`}
-                                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                <FaBook className="mr-3 text-purple-500" />
+                                {/* Exam Status */}
                                 <div>
-                                    <div className="font-medium">Manage Exams</div>
-                                    <div className="text-sm text-gray-600">Activate and monitor exams</div>
-                                </div>
-                            </Link>
-
-                            <Link 
-                                to={`/admin-tickets/${userId}`}
-                                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                <FaTicketAlt className="mr-3 text-orange-500" />
-                                <div>
-                                    <div className="font-medium">View Tickets</div>
-                                    <div className="text-sm text-gray-600">View and manage exam tickets</div>
-                                </div>
-                            </Link>
-
-                            <Link 
-                                to="/exam-archives"
-                                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                <FaEye className="mr-3 text-gray-500" />
-                                <div>
-                                    <div className="font-medium">Exam Archives</div>
-                                    <div className="text-sm text-gray-600">View past exam results</div>
-                                </div>
-                            </Link>
-
-                            {currentUser?.role === 'super_admin' && (
-                                <>
-                                    <Link 
-                                        to="/department-management"
-                                        className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                    >
-                                        <FaBuilding className="mr-3 text-orange-500" />
+                                    <h4 className="text-sm font-medium text-gray-500 mb-4">Exam Status Summary</h4>
+                                    <div className="space-y-4 mt-2">
                                         <div>
-                                            <div className="font-medium">Manage Departments</div>
-                                            <div className="text-sm text-gray-600">Create and manage departments</div>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="font-medium text-gray-700">Active Exams</span>
+                                                <span className="text-gray-500">{activeExams.length} / {stats?.totalExams || 0}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                                <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.max(0, Math.min(100, (activeExams.length / (stats?.totalExams || 1)) * 100))}%` }}></div>
+                                            </div>
                                         </div>
-                                    </Link>
-
-                                    <Link 
-                                        to="/admin-management"
-                                        className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                    >
-                                        <FaUserShield className="mr-3 text-red-500" />
+                                        
                                         <div>
-                                            <div className="font-medium">Admin Management</div>
-                                            <div className="text-sm text-gray-600">Create and manage administrators</div>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="font-medium text-gray-700">Faculty Coverage</span>
+                                                <span className="text-gray-500">{stats?.totalFaculties || 0} Faculties</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                                <div className="bg-indigo-500 h-2.5 rounded-full transition-all duration-500" style={{ width: '100%' }}></div>
+                                            </div>
                                         </div>
-                                    </Link>
-                                </>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Level-specific Statistics (for Super Admin) */}
-                    {currentUser?.role === 'super_admin' && selectedLevel && levelStats && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Level Statistics</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-600">{levelStats?.students || 0}</div>
-                                    <div className="text-sm text-gray-600">Students</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">{levelStats?.instructors || 0}</div>
-                                    <div className="text-sm text-gray-600">Instructors</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">{levelStats?.exams || 0}</div>
-                                    <div className="text-sm text-gray-600">Exams</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-red-600">{levelStats?.activeExams || 0}</div>
-                                    <div className="text-sm text-gray-600">Active Exams</div>
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="font-medium text-gray-700">Department Coverage</span>
+                                                <span className="text-gray-500">{stats?.totalDepartments || 0} Depts</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                                <div className="bg-orange-500 h-2.5 rounded-full transition-all duration-500" style={{ width: '100%' }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    )}
+
+                        {/* Recent Activity Feed */}
+                        <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full max-h-96">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <FaClipboardList className="text-blue-500" />
+                                Recent Activity
+                            </h3>
+                            <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                                {activitiesLoading ? (
+                                    <div className="animate-pulse space-y-4">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="flex gap-3">
+                                                <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                                                <div className="flex-1">
+                                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : recentActivities.length > 0 ? (
+                                    recentActivities.map((activity, index) => (
+                                        <div key={activity.id} className="flex items-start gap-3 relative pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+                                            <div className="mt-1 p-2 bg-gray-50 rounded-full shadow-sm">
+                                                {activity.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-800">{activity.message}</p>
+                                                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                    <FaRegClock /> {activity.time}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        No recent activities.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Active Exams Section - Full Width */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

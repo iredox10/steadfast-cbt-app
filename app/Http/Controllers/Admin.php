@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Acd_session;
+use App\Models\ActivityLog;
 use App\Models\Answers;
 use App\Models\Candidate;
 use App\Models\Course;
@@ -513,6 +514,11 @@ class Admin extends Controller
                 }
             }
 
+            if ($ticketsGenerated > 0) {
+                \App\Models\ActivityLog::log('ticket', "Generated $ticketsGenerated tickets for ".($exam->title ?? 'Exam'), $user->id);
+            }
+            \App\Models\ActivityLog::log('exam-start', 'Activated exam: '.($exam->title ?? $exam->exam_type), $user->id);
+
             return response()->json(['exam' => $exam, 'tickets_generated' => $ticketsGenerated]);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -594,6 +600,8 @@ class Admin extends Controller
             Candidate::where('exam_id', $exam_id)->delete();
             ExamTicket::where('exam_id', $exam_id)->delete();
             $exam->update(['activated' => 'no', 'invigilator' => null, 'activated_by' => null, 'finished_time' => now()]);
+
+            \App\Models\ActivityLog::log('exam-start', 'Terminated exam: '.($exam->title ?? $exam->exam_type), auth()->id());
 
             return response()->json(['message' => 'Terminated']);
         } catch (Exception $e) {
@@ -1324,5 +1332,20 @@ class Admin extends Controller
         $request->user()->update(['password' => bcrypt($v['new_password'])]);
 
         return response()->json(['message' => 'Changed']);
+    }
+
+    public function getRecentActivities(Request $request)
+    {
+        $activities = ActivityLog::latest()
+            ->take(20)
+            ->get()
+            ->map(function ($activity) {
+                // Calculate human readable time diff (e.g. "5 minutes ago")
+                $activity->time = $activity->created_at->diffForHumans();
+
+                return $activity;
+            });
+
+        return response()->json($activities);
     }
 }

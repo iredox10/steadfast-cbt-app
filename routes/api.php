@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Instructor;
 use App\Http\Controllers\InvigilatorController;
 use App\Http\Controllers\Student;
@@ -9,8 +8,8 @@ use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function(){
-            return response()->json('hlooo');
+Route::get('/', function () {
+    return response()->json('hlooo');
 });
 
 Route::get('/user', function (Request $request) {
@@ -22,7 +21,6 @@ Route::post('/login', [UserController::class, 'login']);
 
 // Get current authenticated user
 Route::get('/user', [UserController::class, 'getCurrentUser'])->middleware('auth:sanctum');
-
 
 // student
 
@@ -41,22 +39,22 @@ Route::post('/student-add-course/{student_id}', [Student::class, 'add_course']);
 
 Route::post('/get-question/{question_id?}', [Student::class, 'get_question']);
 
-Route::post('/answer-question/{student_id}/{question_id}/{course_id}',[Student::class, 'answer_question']);
+Route::post('/answer-question/{student_id}/{question_id}/{course_id}', [Student::class, 'answer_question']);
 
-Route::get('/submit-exam/{student_id}/{course_id}', [Student::class,'submit_exam']);
+Route::get('/submit-exam/{student_id}/{course_id}', [Student::class, 'submit_exam']);
 
 // Adding POST route for submit-exam to match frontend expectations
 Route::post('/submit-exam', function (Request $request) {
     $studentId = $request->input('student_id');
     $courseId = $request->input('course_id');
 
-    if (!$studentId || !$courseId) {
+    if (! $studentId || ! $courseId) {
         return response()->json(['error' => 'Missing student_id or course_id'], 400);
     }
 
     return app()->call('App\Http\Controllers\Student@submit_exam', [
         'student_id' => $studentId,
-        'course_id' => $courseId
+        'course_id' => $courseId,
     ]);
 });
 
@@ -65,7 +63,6 @@ Route::get('/student-courses/{student_id}', [Student::class, 'get_courses']);
 Route::post('/check-student/{student_id}', [Student::class, 'check_student']);
 
 Route::post('/start-exam/{student_id}', [Student::class, 'start_exam']);
-
 
 // instructor
 Route::get('/get-users', [Instructor::class, 'index'])->middleware(['auth:sanctum']);
@@ -137,9 +134,9 @@ Route::get('/get-course/{course_id}', [Admin::class, 'get_course']);
 // Debug route for exam visibility
 Route::get('/debug-exam-visibility', function (Request $request) {
     $user = $request->user();
-    
+
     $allExams = \App\Models\Exam::with(['course.semester.acdSession', 'user'])->get();
-    
+
     $mappedExams = $allExams->map(function ($exam) {
         return [
             'id' => $exam->id,
@@ -150,14 +147,14 @@ Route::get('/debug-exam-visibility', function (Request $request) {
             'finished_time' => $exam->finished_time,
             'course' => $exam->course ? $exam->course->title : 'No Course',
             'course_id' => $exam->course_id,
-            'department' => $exam->course && $exam->course->semester && $exam->course->semester->acdSession 
-                ? $exam->course->semester->acdSession->title 
+            'department' => $exam->course && $exam->course->semester && $exam->course->semester->acdSession
+                ? $exam->course->semester->acdSession->title
                 : 'N/A',
-            'department_id' => $exam->course && $exam->course->semester 
-                ? $exam->course->semester->acd_session_id 
+            'department_id' => $exam->course && $exam->course->semester
+                ? $exam->course->semester->acd_session_id
                 : 'N/A',
-            'faculty_id' => $exam->course && $exam->course->semester && $exam->course->semester->acdSession 
-                ? $exam->course->semester->acdSession->faculty_id 
+            'faculty_id' => $exam->course && $exam->course->semester && $exam->course->semester->acdSession
+                ? $exam->course->semester->acdSession->faculty_id
                 : 'NULL',
         ];
     });
@@ -167,19 +164,19 @@ Route::get('/debug-exam-visibility', function (Request $request) {
             'id' => $user->id,
             'role' => $user->role,
             'faculty_id' => $user->faculty_id,
-            'level_id' => $user->level_id
+            'level_id' => $user->level_id,
         ],
-        'all_exams' => $mappedExams
+        'all_exams' => $mappedExams,
     ]);
 })->middleware('auth:sanctum');
 
-Route::get('/get-exams', [Admin::class,'get_exams'])->middleware(['auth:sanctum']);
+Route::get('/get-exams', [Admin::class, 'get_exams'])->middleware(['auth:sanctum']);
 
-Route::get('/exam-tickets/{exam_id}', [Admin::class,'get_exam_tickets'])->middleware(['auth:sanctum']);
+Route::get('/exam-tickets/{exam_id}', [Admin::class, 'get_exam_tickets'])->middleware(['auth:sanctum']);
 
-Route::post('/activate-exam/{exam_id}', [Admin::class,'activate_exam'])->middleware(['auth:sanctum']);
+Route::post('/activate-exam/{exam_id}', [Admin::class, 'activate_exam'])->middleware(['auth:sanctum']);
 
-Route::post('/terminate-exam/{exam_id}', [Admin::class,'terminate_exam'])->middleware(['auth:sanctum']);
+Route::post('/terminate-exam/{exam_id}', [Admin::class, 'terminate_exam'])->middleware(['auth:sanctum']);
 
 Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum']);
 Route::post('/update-student/{student_id}', [Admin::class, 'update_student'])->middleware(['auth:sanctum']);
@@ -193,6 +190,7 @@ Route::post('/upload-instructors-excel', [Admin::class, 'upload_instructors_exce
 Route::put('/update-instructor-status/{id}', [Admin::class, 'update_instructor_status'])->middleware(['auth:sanctum']);
 
 Route::get('/dashboard-stats', [Admin::class, 'getDashboardStats']);
+Route::get('/recent-activities', [Admin::class, 'getRecentActivities'])->middleware(['auth:sanctum']);
 
 Route::get('/get-invigilators', [Admin::class, 'get_invigilators'])->middleware(['auth:sanctum']);
 
@@ -272,15 +270,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get-semesters/{session_id}', [Admin::class, 'getSessionSemesters']);
     Route::post('/import-courses', [Admin::class, 'importCourses']);
     Route::get('/download-sample-course-import', [Admin::class, 'downloadSampleCourseImport']);
-    
+
     // Faculty management
     Route::apiResource('faculties', \App\Http\Controllers\FacultyController::class);
     Route::get('faculties/{id}/officers', [\App\Http\Controllers\FacultyController::class, 'getFacultyOfficers']);
-    
+
     Route::post('/import-faculties', [\App\Http\Controllers\FacultyController::class, 'importFaculties']);
     Route::get('/download-sample-faculties-import', [\App\Http\Controllers\FacultyController::class, 'downloadSampleImportFile']);
     Route::post('/create-faculty-officer', [Admin::class, 'createFacultyOfficer']);
-    
+
     // System Settings (Super Admin)
     Route::get('/system-settings', [Admin::class, 'get_system_settings']);
     Route::post('/system-settings', [Admin::class, 'update_system_setting']);
@@ -293,34 +291,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/exam/{examId}/security-settings', [Admin::class, 'updateExamSecuritySettings']);
     Route::get('/exam/{examId}/security-settings', [Admin::class, 'getExamSecuritySettings']);
 });
-Route::get('/debug-semesters/{sessionId}', function($sessionId) { 
-    $user = request()->user(); 
-    $semesters = App\Models\Semester::where('acd_session_id', $sessionId)->get(); 
+Route::get('/debug-semesters/{sessionId}', function ($sessionId) {
+    $user = request()->user();
+    $semesters = App\Models\Semester::where('acd_session_id', $sessionId)->get();
+
     return response()->json([
         'user' => $user ? ['id' => $user->id, 'role' => $user->role] : null,
         'sessionId' => $sessionId,
         'allSemesters' => $semesters,
-        'userSemesters' => $user ? App\Models\Semester::where('acd_session_id', $sessionId)->where('created_by', $user->id)->get() : []
+        'userSemesters' => $user ? App\Models\Semester::where('acd_session_id', $sessionId)->where('created_by', $user->id)->get() : [],
     ]);
 })->middleware('auth:sanctum');
 
 // Additional debug route to check what get-semesters returns
-Route::get('/debug-get-semesters/{sessionId}', function($sessionId) {
+Route::get('/debug-get-semesters/{sessionId}', function ($sessionId) {
     $user = auth('sanctum')->user();
-    
-    if (!$user) {
+
+    if (! $user) {
         return response()->json(['error' => 'Not authenticated'], 401);
     }
-    
+
     $query = App\Models\Semester::where('acd_session_id', $sessionId);
-    
+
     // Apply role-based filtering
     if ($user->role === 'level_admin') {
         $query->where('created_by', $user->id);
     }
-    
+
     $semesters = $query->get();
-    
+
     return response()->json([
         'debug_info' => [
             'user_id' => $user->id,
@@ -329,51 +328,52 @@ Route::get('/debug-get-semesters/{sessionId}', function($sessionId) {
             'query_applied' => $user->role === 'level_admin' ? 'Filtered by created_by' : 'No filtering',
         ],
         'semesters' => $semesters,
-        'count' => $semesters->count()
+        'count' => $semesters->count(),
     ]);
 })->middleware('auth:sanctum');
 
 // Debug route for testing lecturer courses without auth
-Route::get('/debug-lecturer-courses/{user_id}', function($user_id) {
+Route::get('/debug-lecturer-courses/{user_id}', function ($user_id) {
     $courses = App\Models\LecturerCourse::where('user_id', $user_id)->get();
+
     return response()->json([
         'user_id' => $user_id,
         'courses_count' => $courses->count(),
-        'courses' => $courses
+        'courses' => $courses,
     ]);
 });
 
 // Debug route for level admin exam filtering
-Route::get('/debug-exam-filtering', function() {
+Route::get('/debug-exam-filtering', function () {
     $user = auth('sanctum')->user();
-    
-    if (!$user) {
+
+    if (! $user) {
         return response()->json(['error' => 'Not authenticated'], 401);
     }
-    
+
     // Get all submitted exams
     $allExams = App\Models\Exam::where('submission_status', 'submitted')->get();
-    
+
     // Get courses assigned by this level admin
     $assignedCourses = App\Models\LecturerCourse::where('created_by', $user->id)->get();
     $assignedCourseIds = $assignedCourses->pluck('course_id')->toArray();
-    
+
     // Get filtered exams
     $filteredExams = App\Models\Exam::where('submission_status', 'submitted')
-                                   ->whereIn('course_id', $assignedCourseIds)
-                                   ->get();
-    
+        ->whereIn('course_id', $assignedCourseIds)
+        ->get();
+
     return response()->json([
         'user' => [
             'id' => $user->id,
             'role' => $user->role,
-            'name' => $user->full_name
+            'name' => $user->full_name,
         ],
         'all_submitted_exams_count' => $allExams->count(),
         'assigned_courses' => $assignedCourses,
         'assigned_course_ids' => $assignedCourseIds,
         'filtered_exams_count' => $filteredExams->count(),
         'filtered_exams' => $filteredExams,
-        'all_exams' => $allExams
+        'all_exams' => $allExams,
     ]);
 })->middleware('auth:sanctum');
