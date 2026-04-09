@@ -240,7 +240,8 @@ class Instructor extends Controller
 
             // Notify admins
             $facultyId = $exam->course->semester->acdSession->faculty_id ?? null;
-            $levelId = $exam->course->semester->acd_session_id ?? null;
+            $levelId = $exam->level_id ?? $exam->course->semester->acd_session_id ?? null;
+            $courseCreatorId = $exam->course->created_by ?? null;
             $instructorName = $exam->user->full_name ?? 'An instructor';
             $courseTitle = $exam->course->title ?? 'a course';
 
@@ -248,7 +249,7 @@ class Instructor extends Controller
             foreach ($admins as $admin) {
                 if ($admin->role === 'super_admin' ||
                    ($admin->role === 'faculty_officer' && $admin->faculty_id == $facultyId) ||
-                   ($admin->role === 'level_admin' && $admin->level_id == $levelId)) {
+                   ($admin->role === 'level_admin' && ($admin->level_id == $levelId || $admin->id == $courseCreatorId))) {
                     $admin->notify(new \App\Notifications\AdminNotification(
                         "{$instructorName} has submitted a new exam for {$courseTitle}.",
                         'exam-submission',
@@ -277,7 +278,8 @@ class Instructor extends Controller
 
             // Notify admins
             $facultyId = $exam->course->semester->acdSession->faculty_id ?? null;
-            $levelId = $exam->course->semester->acd_session_id ?? null;
+            $levelId = $exam->level_id ?? $exam->course->semester->acd_session_id ?? null;
+            $courseCreatorId = $exam->course->created_by ?? null;
             $instructorName = $exam->user->full_name ?? 'An instructor';
             $courseTitle = $exam->course->title ?? 'a course';
 
@@ -285,7 +287,7 @@ class Instructor extends Controller
             foreach ($admins as $admin) {
                 if ($admin->role === 'super_admin' ||
                    ($admin->role === 'faculty_officer' && $admin->faculty_id == $facultyId) ||
-                   ($admin->role === 'level_admin' && $admin->level_id == $levelId)) {
+                   ($admin->role === 'level_admin' && ($admin->level_id == $levelId || $admin->id == $courseCreatorId))) {
                     $admin->notify(new \App\Notifications\AdminNotification(
                         "{$instructorName} has recalled the exam for {$courseTitle}.",
                         'exam-recall',
