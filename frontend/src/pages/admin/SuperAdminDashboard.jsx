@@ -49,9 +49,17 @@ const SuperAdminDashboard = () => {
         fetchActiveExams();
         fetchRecentActivities();
         fetchNotifications();
+
+        // Set up real-time polling every 5 seconds for notifications and recent activities
+        const intervalId = setInterval(() => {
+            fetchNotifications(false); // Silent fetch, no loading spinner
+            fetchRecentActivities(false); // Silent fetch, no loading spinner
+        }, 5000);
+
+        return () => clearInterval(intervalId); // Cleanup on unmount
     }, []);
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = async (showLoading = true) => {
         try {
             const response = await axios.get(`${path}/notifications`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
@@ -185,8 +193,10 @@ const SuperAdminDashboard = () => {
         }
     };
 
-    const fetchRecentActivities = async () => {
+    const fetchRecentActivities = async (showLoading = true) => {
         try {
+            if (showLoading && recentActivities.length === 0) setActivitiesLoading(true);
+
             const token = localStorage.getItem('token');
             const response = await axios.get(`${path}/recent-activities`, {
                 headers: { Authorization: `Bearer ${token}` }
