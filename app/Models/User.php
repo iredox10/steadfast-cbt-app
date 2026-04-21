@@ -25,6 +25,7 @@ class User extends Authenticatable
         'status',
         'level_id',
         'faculty_id',
+        'force_password_change',
     ];
 
     public function level(){
@@ -62,6 +63,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'force_password_change' => 'boolean',
         ];
     }
 

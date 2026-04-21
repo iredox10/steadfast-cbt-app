@@ -162,10 +162,16 @@ class Student extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
+            'current_password' => 'required',
             'new_password' => 'required|min:6',
         ]);
 
         $student = \App\Models\Student::findOrFail($request->student_id);
+
+        if (! Hash::check($request->current_password, $student->password)) {
+            return response()->json(['error' => 'Invalid current password'], 400);
+        }
+
         $student->password = Hash::make($request->new_password);
         $student->force_password_change = false;
         $student->save();

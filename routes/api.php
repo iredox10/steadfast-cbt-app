@@ -18,7 +18,6 @@ Route::get('/user', function (Request $request) {
 
 // user
 Route::post('/login', [UserController::class, 'login']);
-Route::post('/change-password', [UserController::class, 'changePassword'])->middleware('auth:sanctum');
 
 // Get current authenticated user
 Route::get('/user', [UserController::class, 'getCurrentUser'])->middleware('auth:sanctum');
