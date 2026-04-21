@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import ForcePasswordChange from './ForcePasswordChange';
 
 /**
  * A wrapper component for protected routes that redirects to the login page
@@ -17,7 +18,12 @@ const ProtectedRoute = ({ children }) => {
         return <Navigate to="/admin-login" state={{ from: location }} replace />;
     }
 
-    return children;
+    return (
+        <>
+            <ForcePasswordChange />
+            {children}
+        </>
+    );
 };
 
 export default ProtectedRoute;

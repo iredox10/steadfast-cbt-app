@@ -31,6 +31,11 @@ const AdminLogin = () => {
             if (res.data.token) {
                 localStorage.setItem('token', res.data.token);
             }
+            if (res.data.force_password_change) {
+                localStorage.setItem('force_password_change', 'true');
+            } else {
+                localStorage.setItem('force_password_change', 'false');
+            }
             console.log(res)
             // Role-based navigation
             if (user.role === "admin") {

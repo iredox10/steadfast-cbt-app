@@ -18,6 +18,7 @@ Route::get('/user', function (Request $request) {
 
 // user
 Route::post('/login', [UserController::class, 'login']);
+Route::post('/change-password', [UserController::class, 'changePassword'])->middleware('auth:sanctum');
 
 // Get current authenticated user
 Route::get('/user', [UserController::class, 'getCurrentUser'])->middleware('auth:sanctum');
@@ -32,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // student
 
 Route::post('/student-login', [Student::class, 'login']);
+Route::post('/student-change-password', [Student::class, 'changePassword']);
 
 Route::post('/student-reg', [Student::class, 'store']);
 
@@ -292,12 +294,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/change-password', [Admin::class, 'changePassword']);
 
     // Exam Security & Violation Logging
-    Route::post('/log-violation', [Admin::class, 'logViolation']);
     Route::get('/exam/{examId}/violations', [Admin::class, 'getExamViolations']);
     Route::get('/student/{studentId}/violations', [Admin::class, 'getStudentViolations']);
     Route::put('/exam/{examId}/security-settings', [Admin::class, 'updateExamSecuritySettings']);
     Route::get('/exam/{examId}/security-settings', [Admin::class, 'getExamSecuritySettings']);
 });
+
+// Student Exam Security & Violation Logging (No Auth Required)
+Route::post('/log-violation', [Admin::class, 'logViolation']);
 Route::get('/debug-semesters/{sessionId}', function ($sessionId) {
     $user = request()->user();
     $semesters = App\Models\Semester::where('acd_session_id', $sessionId)->get();

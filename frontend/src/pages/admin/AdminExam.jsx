@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { path } from "../../../utils/path";
+import useFetch from "../../hooks/useFetch";
 import axios from "axios";
 import {
     FaEye,
@@ -22,6 +23,9 @@ import AdminSidebar from "../../components/AdminSidebar";
 
 const AdminExam = () => {
     const { id: userId } = useParams();
+    
+    // Fetch current user
+    const { data: currentUser } = useFetch("/user");
 
     // State for invigilators data
     const [invigilators, setInvigilators] = useState([]);
@@ -437,23 +441,25 @@ const AdminExam = () => {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <div className="flex justify-end gap-2">
-                                                            {exam.activated === "no" ? (
-                                                                <button
-                                                                    onClick={() => showModelAndSetExamId(exam.id)}
-                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                                                                >
-                                                                    <FaPlay className="mr-1" /> Activate
-                                                                </button>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setexamId(exam.id);
-                                                                        setShowTerminateModel(true);
-                                                                    }}
-                                                                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                                                >
-                                                                    <FaStop className="mr-1" /> Terminate
-                                                                </button>
+                                                            {currentUser?.role !== "super_admin" && (
+                                                                exam.activated === "no" ? (
+                                                                    <button
+                                                                        onClick={() => showModelAndSetExamId(exam.id)}
+                                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                                                    >
+                                                                        <FaPlay className="mr-1" /> Activate
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setexamId(exam.id);
+                                                                            setShowTerminateModel(true);
+                                                                        }}
+                                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                                    >
+                                                                        <FaStop className="mr-1" /> Terminate
+                                                                    </button>
+                                                                )
                                                             )}
                                                             <button
                                                                 onClick={() => handleViewExam(exam)}

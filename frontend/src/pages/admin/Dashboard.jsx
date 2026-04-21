@@ -12,6 +12,9 @@ import { FaPenToSquare } from "react-icons/fa6";
 const AdminDashboard = () => {
     const { id } = useParams();
 
+    // Fetch current user
+    const { data: currentUser } = useFetch("/user");
+
     const {
         data: invigilators,
         loading: invigilatorsLoading,
@@ -293,7 +296,7 @@ const AdminDashboard = () => {
                                                             {exam.activated === "yes" ? "Active" : "Inactive"}
                                                         </span>
                                                         <div className="flex gap-2">
-                                                            {exam.activated == "no" && (
+                                                            {currentUser?.role !== "super_admin" && exam.activated == "no" && (
                                                                 <button
                                                                     onClick={() => showModelAndSetExamId(exam.id)}
                                                                     className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
@@ -311,15 +314,17 @@ const AdminDashboard = () => {
                                                                         <FaTicketAlt className="mr-1" />
                                                                         Tickets
                                                                     </button>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setexamId(exam.id);
-                                                                            setShowTerminateModel(true);
-                                                                        }}
-                                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                                                    >
-                                                                        Terminate
-                                                                    </button>
+                                                                    {currentUser?.role !== "super_admin" && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setexamId(exam.id);
+                                                                                setShowTerminateModel(true);
+                                                                            }}
+                                                                            className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                                        >
+                                                                            Terminate
+                                                                        </button>
+                                                                    )}
                                                                 </>
                                                             )}
                                                         </div>

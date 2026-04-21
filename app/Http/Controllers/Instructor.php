@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Acd_session;
 use App\Models\Answers;
 use App\Models\Candidate;
 use App\Models\Course;
@@ -110,6 +111,7 @@ class Instructor extends Controller
         try {
             $user = User::findOrFail($id);
             $user->password = Hash::make('password');
+            $user->force_password_change = true;
             $user->save();
 
             return response()->json(['message' => 'Password reset successfully']);

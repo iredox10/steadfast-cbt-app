@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { path } from '../../utils/path';
 import { FaExclamationTriangle, FaShieldAlt } from 'react-icons/fa';
@@ -44,6 +44,9 @@ const ExamSecurityProvider = ({
     const [penaltyActive, setPenaltyActive] = useState(false);
     const [penaltySeconds, setPenaltySeconds] = useState(0);
     const [penaltyType, setPenaltyType] = useState('');
+    
+    // Cooldown ref to prevent multiple rapid violation triggers from a single action
+    const lastViolationTimeRef = useRef(0);
 
     // Default security settings (can be overridden)
     const settings = {
@@ -61,6 +64,14 @@ const ExamSecurityProvider = ({
      */
     const logViolation = useCallback(async (violationType, details = {}) => {
         if (!enabled || !studentId || !examId) return;
+
+        // Implement a 5-second cooldown to prevent rapid multiple firing (e.g., blur + visibilitychange firing together)
+        const now = Date.now();
+        if (now - lastViolationTimeRef.current < 5000) {
+            console.log(`Violation ${violationType} ignored due to cooldown`);
+            return;
+        }
+        lastViolationTimeRef.current = now;
 
         try {
             const token = localStorage.getItem('token');

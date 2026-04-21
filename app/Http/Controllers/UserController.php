@@ -57,10 +57,25 @@ class UserController extends Controller
                 'level_id' => $user->level_id,
                 'level' => $user->level,
                 'token' => $token,
+                'force_password_change' => (bool) $user->force_password_change,
             ], 200);
         } else {
             return response()->json(['error' => 'Wrong password'], 400);
         }
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'new_password' => 'required|min:6',
+        ]);
+
+        $user = $request->user();
+        $user->password = Hash::make($request->new_password);
+        $user->force_password_change = false;
+        $user->save();
+
+        return response()->json(['message' => 'Password changed successfully']);
     }
 
     public function getCurrentUser(Request $request)

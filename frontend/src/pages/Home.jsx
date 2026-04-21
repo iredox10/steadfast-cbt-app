@@ -10,9 +10,76 @@ const Home = () => {
     const [ticketNumber, setTicketNumber] = useState("");
     const [errMsg, setErrMsg] = useState("");
     const [loading, setLoading] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [studentForPasswordChange, setStudentForPasswordChange] = useState(null);
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordErr, setPasswordErr] = useState("");
+
     const navigate = useNavigate();
+
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        setPasswordErr("");
+        if (newPassword !== confirmPassword) {
+            setPasswordErr("Passwords do not match.");
+            return;
+        }
+        if (newPassword.length < 6) {
+            setPasswordErr("Password must be at least 6 characters.");
+            return;
+        }
+        setLoading(true);
+        try {
+            await axios.post(`${path}/student-change-password`, {
+                student_id: studentForPasswordChange.id,
+                current_password: currentPassword,
+                new_password: newPassword
+            });
+            setShowPasswordModal(false);
+            
+            // Continue login flow
+            const res = { data: studentForPasswordChange };
+            
+            // Check if student is checked in
+            if (!res.data.checkin_time) {
+                navigate("/not-check-in");
+                setLoading(false);
+                return;
+            }
+
+            // Get student's exam status and time extension info
+            try {
+                const examRes = await axios.get(`${path}/get-student-exam/${res.data.id}`);
+                const candidate = examRes.data?.candidate;
+                
+                // If student has time extension, allow them to go directly to exam
+                if (candidate && candidate.time_extension > 0) {
+                    navigate(`/student/${res.data.id}`);
+                    setLoading(false);
+                    return;
+                }
+            } catch (examErr) {
+                console.log('Could not fetch exam data:', examErr);
+            }
+
+            // Check if student is already logged in (without time extension)
+            if (res.data.is_logged_on === "yes") {
+                navigate("/logged-student");
+                setLoading(false);
+                return;
+            }
+
+            // Student is checked in and not logged in, proceed to exam instructions
+            navigate(`/exam-instructions/${res.data.id}`);
+            setLoading(false);
+        } catch (err) {
+            setPasswordErr(err.response?.data?.error || "Failed to update password");
+            setLoading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -30,6 +97,14 @@ const Home = () => {
                 candidate_no: candidateNumber,
                 ticket_no: ticketNumber,
             });
+
+            // Check if student needs to change password
+            if (res.data.force_password_change) {
+                setStudentForPasswordChange(res.data);
+                setShowPasswordModal(true);
+                setLoading(false);
+                return;
+            }
 
             // Check if student is checked in
             if (!res.data.checkin_time) {
@@ -201,21 +276,8 @@ const Home = () => {
                                         </div>
                                     </div>
 
-                                    {/* Remember Me & Forgot Password */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <input
-                                                id="remember-me"
-                                                name="remember-me"
-                                                type="checkbox"
-                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                                checked={rememberMe}
-                                                onChange={(e) => setRememberMe(e.target.checked)}
-                                            />
-                                            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                                                Remember me
-                                            </label>
-                                        </div>
+                                    {/* Forgot Password */}
+                                    <div className="flex items-center justify-end">
                                         <div className="text-sm text-gray-600">
                                             Lost your ticket? Contact the exam officer to have it re-issued before check-in.
                                         </div>
@@ -322,6 +384,76 @@ const Home = () => {
                     </div>
                 </div>
             </footer>
+
+            {/* Password Change Modal */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-800">Update Password Required</h2>
+                        
+                        <div className="text-red-600 bg-red-50 p-4 rounded mb-6 text-sm border border-red-200">
+                            <strong>Security Notice:</strong> For security reasons, you must set a new password for your account before proceeding. 
+                            This protects your account from unauthorized access using the default password.
+                        </div>
+                        
+                        {passwordErr && (
+                            <div className="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded mb-4">
+                                {passwordErr}
+                            </div>
+                        )}
+                        
+                        <form onSubmit={handlePasswordChange}>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 font-medium mb-2">Current Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full border-gray-300 rounded-md shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    placeholder="Your current password"
+                                    required
+                                />
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-gray-700 font-medium mb-2">New Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full border-gray-300 rounded-md shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="Min 6 characters"
+                                    required
+                                />
+                            </div>
+                            
+                            <div className="mb-6">
+                                <label className="block text-gray-700 font-medium mb-2">Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    className="w-full border-gray-300 rounded-md shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Re-enter new password"
+                                    required
+                                />
+                            </div>
+                            
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`w-full bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition duration-150 ease-in-out ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                            >
+                                {loading ? (
+                                    <><i className="fas fa-spinner fa-spin mr-2"></i> Updating...</>
+                                ) : (
+                                    'Update Password & Continue'
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

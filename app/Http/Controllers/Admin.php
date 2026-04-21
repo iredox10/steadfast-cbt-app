@@ -199,7 +199,10 @@ class Admin extends Controller
     {
         try {
             $user = User::findOrFail($id);
-            $user->update(['password' => bcrypt('password')]);
+            $user->update([
+                'password' => bcrypt('password'),
+                'force_password_change' => true,
+            ]);
 
             return response()->json(['message' => 'Password reset successful']);
         } catch (Exception $e) {
@@ -491,17 +494,23 @@ class Admin extends Controller
     public function activate_exam(Request $request, $exam_id)
     {
         try {
-            $exam = Exam::with('course.semester')->findOrFail($exam_id);
             $user = $request->user();
+            if ($user->role === 'super_admin') {
+                return response()->json(['error' => 'Super Admins are not allowed to activate exams.'], 403);
+            }
+
+            $exam = Exam::with('course.semester')->findOrFail($exam_id);
+
             $exam->update(['activated' => 'yes', 'activated_date' => now(), 'invigilator' => $request->invigilator, 'activated_by' => $user->id]);
             if ($user->role === 'level_admin') {
                 $exam->update(['level_id' => $user->level_id]);
-            } elseif (in_array($user->role, ['faculty_officer', 'super_admin'])) {
+            } elseif ($user->role === 'faculty_officer') {
                 $creator = User::find($exam->user_id) ?? ($exam->course ? User::find($exam->course->created_by) : null);
                 if ($creator && $creator->level_id) {
                     $exam->update(['level_id' => $creator->level_id]);
                 }
             }
+
             $ticketsGenerated = 0;
             if ($course = $exam->course) {
                 foreach ($course->studentCourses as $sc) {
@@ -528,6 +537,11 @@ class Admin extends Controller
     public function terminate_exam($exam_id)
     {
         try {
+            $user = auth()->user();
+            if ($user->role === 'super_admin') {
+                return response()->json(['error' => 'Super Admins are not allowed to terminate exams.'], 403);
+            }
+
             $exam = Exam::findOrFail($exam_id);
 
             // Time Check: Prevent termination before duration has elapsed
@@ -1329,7 +1343,10 @@ class Admin extends Controller
         if (! Hash::check($v['current_password'], $request->user()->password)) {
             return response()->json(['error' => 'Invalid password'], 400);
         }
-        $request->user()->update(['password' => bcrypt($v['new_password'])]);
+        $request->user()->update([
+            'password' => bcrypt($v['new_password']),
+            'force_password_change' => false,
+        ]);
 
         return response()->json(['message' => 'Changed']);
     }
