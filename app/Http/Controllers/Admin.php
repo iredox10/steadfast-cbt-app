@@ -9,6 +9,7 @@ use App\Models\Candidate;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamArchive;
+use App\Models\ExamTerminationRequest;
 use App\Models\ExamTicket;
 use App\Models\ExamViolation;
 use App\Models\LecturerCourse;
@@ -534,6 +535,155 @@ class Admin extends Controller
         }
     }
 
+    public function request_terminate_exam(Request $request, $exam_id)
+    {
+        try {
+            $user = auth()->user();
+            if ($user->role !== 'technician') {
+                return response()->json(['error' => 'Only technicians can request exam termination.'], 403);
+            }
+
+            $v = $request->validate([
+                'reason' => 'required|string|max:1000',
+            ]);
+
+            $exam = Exam::findOrFail($exam_id);
+
+            if ($exam->activated !== 'yes') {
+                return response()->json(['error' => 'Exam is not currently active.'], 400);
+            }
+
+            $existingRequest = ExamTerminationRequest::where('exam_id', $exam_id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($existingRequest) {
+                return response()->json(['error' => 'A termination request for this exam is already pending.'], 400);
+            }
+
+            $terminationRequest = ExamTerminationRequest::create([
+                'exam_id' => $exam_id,
+                'requested_by' => $user->id,
+                'request_reason' => $v['reason'],
+                'status' => 'pending',
+            ]);
+
+            ActivityLog::log('exam-termination-request', 'Requested termination of exam: '.($exam->title ?? $exam->exam_type), $user->id);
+
+            return response()->json([
+                'message' => 'Termination request submitted successfully. Awaiting admin approval.',
+                'request' => $terminationRequest,
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function approve_termination_request(Request $request, $request_id)
+    {
+        try {
+            $user = auth()->user();
+            if ($user->role === 'super_admin') {
+                return response()->json(['error' => 'Super Admins are not allowed to terminate exams.'], 403);
+            }
+
+            $allowedRoles = ['level_admin', 'faculty_officer', 'admin', 'lecturer'];
+            if (! in_array($user->role, $allowedRoles)) {
+                return response()->json(['error' => 'Only department admins can approve exam termination.'], 403);
+            }
+
+            $v = $request->validate([
+                'reason' => 'required|string|max:1000',
+            ]);
+
+            $terminationRequest = ExamTerminationRequest::with('exam')->findOrFail($request_id);
+
+            if ($terminationRequest->status !== 'pending') {
+                return response()->json(['error' => 'This termination request has already been processed.'], 400);
+            }
+
+            $exam = $terminationRequest->exam;
+            if ($exam->activated !== 'yes') {
+                return response()->json(['error' => 'Exam is not currently active.'], 400);
+            }
+
+            $terminationRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'review_reason' => $v['reason'],
+                'reviewed_at' => now(),
+            ]);
+
+            $this->executeExamTermination($exam, $terminationRequest, $user);
+
+            ActivityLog::log('exam-terminate', 'Approved termination of exam: '.($exam->title ?? $exam->exam_type), $user->id);
+
+            return response()->json(['message' => 'Exam terminated successfully.']);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function reject_termination_request(Request $request, $request_id)
+    {
+        try {
+            $user = auth()->user();
+            if ($user->role === 'super_admin') {
+                return response()->json(['error' => 'Unauthorized.'], 403);
+            }
+
+            $allowedRoles = ['level_admin', 'faculty_officer', 'admin', 'lecturer'];
+            if (! in_array($user->role, $allowedRoles)) {
+                return response()->json(['error' => 'Only department admins can reject exam termination.'], 403);
+            }
+
+            $v = $request->validate([
+                'reason' => 'required|string|max:1000',
+            ]);
+
+            $terminationRequest = ExamTerminationRequest::findOrFail($request_id);
+
+            if ($terminationRequest->status !== 'pending') {
+                return response()->json(['error' => 'This termination request has already been processed.'], 400);
+            }
+
+            $terminationRequest->update([
+                'status' => 'rejected',
+                'reviewed_by' => $user->id,
+                'review_reason' => $v['reason'],
+                'reviewed_at' => now(),
+            ]);
+
+            ActivityLog::log('exam-termination-rejected', 'Rejected termination request for exam: '.$terminationRequest->exam_id, $user->id);
+
+            return response()->json(['message' => 'Termination request rejected.']);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function get_pending_termination_requests(Request $request)
+    {
+        try {
+            $user = auth()->user();
+
+            $query = ExamTerminationRequest::with(['exam.course', 'requester', 'reviewer'])
+                ->where('status', 'pending');
+
+            if ($user->role === 'level_admin' && $user->level_id) {
+                $query->whereHas('exam', fn ($q) => $q->where('level_id', $user->level_id));
+            } elseif ($user->role === 'faculty_officer' && $user->faculty_id) {
+                $query->whereHas('exam', fn ($q) => $q->whereHas('course', fn ($cq) => $cq->whereHas('level', fn ($lq) => $lq->where('faculty_id', $user->faculty_id))));
+            }
+
+            $requests = $query->latest()->get();
+
+            return response()->json(['requests' => $requests]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function terminate_exam($exam_id)
     {
         try {
@@ -544,83 +694,97 @@ class Admin extends Controller
 
             $exam = Exam::findOrFail($exam_id);
 
-            // Time Check: Prevent termination before duration has elapsed
-            if ($exam->activated === 'yes' && $exam->activated_date) {
-                $now = now();
-                $duration = (int) $exam->exam_duration;
-                $globalEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
+            $terminationRequest = ExamTerminationRequest::where('exam_id', $exam_id)
+                ->where('status', 'approved')
+                ->latest()
+                ->first();
 
-                // Check all active candidates for latest possible end time
-                $latestCandidateEndTime = Candidate::where('exam_id', $exam_id)
-                    ->get()
-                    ->map(function ($c) use ($duration) {
-                        if (! $c->start_time) {
-                            return null;
-                        }
-
-                        return Carbon::parse($c->start_time)->addMinutes($duration + (int) ($c->time_extension ?? 0));
-                    })
-                    ->filter()
-                    ->max();
-
-                $lockEndTime = $latestCandidateEndTime ? $globalEndTime->max($latestCandidateEndTime) : $globalEndTime;
-
-                if ($now->lt($lockEndTime)) {
-                    $remainingMinutes = ceil($now->diffInMinutes($lockEndTime, false));
-
-                    return response()->json([
-                        'error' => "Exam cannot be terminated yet. Please wait for the allocated time to elapse ($remainingMinutes minutes remaining).",
-                        'remaining_minutes' => $remainingMinutes,
-                        'lock_end_time' => $lockEndTime->toDateTimeString(),
-                    ], 403);
-                }
+            if (! $terminationRequest) {
+                return response()->json(['error' => 'No approved termination request found. A technician must first request termination, and a department admin must approve it.'], 400);
             }
 
-            $course = Course::findOrFail($exam->course_id);
-            $totalQuestions = Question::where('exam_id', $exam_id)->count();
-            $results = Student::whereHas('candidates', fn ($q) => $q->where('exam_id', $exam_id))->with(['candidates' => fn ($q) => $q->where('exam_id', $exam_id), 'examScores' => fn ($q) => $q->where('course_id', $exam->course_id)])->get()
-                ->map(fn ($s) => [
-                    'student_id' => $s->id, 'candidate_no' => $s->candidate_no, 'full_name' => $s->full_name, 'department' => $s->department, 'programme' => $s->programme, 'level_id' => $s->level_id, 'score' => $s->examScores->first() ? $s->examScores->first()->score : 0,
-                    'submission_time' => $s->candidates->first() ? $s->candidates->first()->created_at : null,
-                    'questions_answered' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id])->count(),
-                    'correct_answers' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count(),
-                ])->toArray();
-            $terminator = auth()->user();
-            $activator = $exam->activator;
+            $this->executeExamTermination($exam, $terminationRequest, $user);
 
-            ExamArchive::create([
-                'exam_id' => $exam_id,
-                'exam_title' => $exam->title ?? $course->title.' Exam',
-                'course_title' => $course->title,
-                'exam_date' => $exam->activated_date,
-                'duration' => $exam->exam_duration,
-                'total_questions' => $totalQuestions,
-                'marks_per_question' => $exam->marks_per_question,
-                'total_marks' => $exam->marks_per_question * $totalQuestions,
-                'student_results' => $results,
-                'activated_by_name' => $activator ? $activator->full_name : 'N/A',
-                'terminated_by_name' => $terminator ? $terminator->full_name : 'N/A',
-            ]);
-
-            // Clear live exam data after archiving
-            Answers::where('course_id', $exam->course_id)->delete();
-            StudentExamScore::where('course_id', $exam->course_id)->delete();
-            ExamViolation::where('exam_id', $exam_id)->delete();
-
-            $studentIds = Candidate::where('exam_id', $exam_id)->pluck('student_id')->toArray();
-            if (! empty($studentIds)) {
-                Student::whereIn('id', $studentIds)->update(['is_logged_on' => 'no', 'is_checked_in' => false]);
-            }
-            Candidate::where('exam_id', $exam_id)->delete();
-            ExamTicket::where('exam_id', $exam_id)->delete();
-            $exam->update(['activated' => 'no', 'invigilator' => null, 'activated_by' => null, 'finished_time' => now()]);
-
-            \App\Models\ActivityLog::log('exam-start', 'Terminated exam: '.($exam->title ?? $exam->exam_type), auth()->id());
-
-            return response()->json(['message' => 'Terminated']);
+            return response()->json(['message' => 'Exam terminated successfully.']);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    private function executeExamTermination(Exam $exam, ExamTerminationRequest $terminationRequest, $terminator)
+    {
+        $exam_id = $exam->id;
+
+        if ($exam->activated === 'yes' && $exam->activated_date) {
+            $now = now();
+            $duration = (int) $exam->exam_duration;
+            $globalEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
+
+            $latestCandidateEndTime = Candidate::where('exam_id', $exam_id)
+                ->get()
+                ->map(function ($c) use ($duration) {
+                    if (! $c->start_time) {
+                        return null;
+                    }
+
+                    return Carbon::parse($c->start_time)->addMinutes($duration + (int) ($c->time_extension ?? 0));
+                })
+                ->filter()
+                ->max();
+
+            $lockEndTime = $latestCandidateEndTime ? $globalEndTime->max($latestCandidateEndTime) : $globalEndTime;
+
+            if ($now->lt($lockEndTime)) {
+                $remainingMinutes = ceil($now->diffInMinutes($lockEndTime, false));
+
+                throw new Exception("Exam cannot be terminated yet. Please wait for the allocated time to elapse ($remainingMinutes minutes remaining).");
+            }
+        }
+
+        $course = Course::findOrFail($exam->course_id);
+        $totalQuestions = Question::where('exam_id', $exam_id)->count();
+        $results = Student::whereHas('candidates', fn ($q) => $q->where('exam_id', $exam_id))->with(['candidates' => fn ($q) => $q->where('exam_id', $exam_id), 'examScores' => fn ($q) => $q->where('course_id', $exam->course_id)])->get()
+            ->map(fn ($s) => [
+                'student_id' => $s->id, 'candidate_no' => $s->candidate_no, 'full_name' => $s->full_name, 'department' => $s->department, 'programme' => $s->programme, 'level_id' => $s->level_id, 'score' => $s->examScores->first() ? $s->examScores->first()->score : 0,
+                'submission_time' => $s->candidates->first() ? $s->candidates->first()->created_at : null,
+                'questions_answered' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id])->count(),
+                'correct_answers' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count(),
+            ])->toArray();
+
+        ExamArchive::create([
+            'exam_id' => $exam_id,
+            'exam_title' => $exam->title ?? $course->title.' Exam',
+            'course_title' => $course->title,
+            'exam_date' => $exam->activated_date,
+            'duration' => $exam->exam_duration,
+            'total_questions' => $totalQuestions,
+            'marks_per_question' => $exam->marks_per_question,
+            'total_marks' => $exam->marks_per_question * $totalQuestions,
+            'student_results' => $results,
+            'activated_by_name' => $exam->activator ? $exam->activator->full_name : 'N/A',
+            'terminated_by_name' => $terminator ? $terminator->full_name : 'N/A',
+            'technician_termination_reason' => $terminationRequest->request_reason,
+            'admin_termination_reason' => $terminationRequest->review_reason,
+        ]);
+
+        Answers::where('course_id', $exam->course_id)->delete();
+        StudentExamScore::where('course_id', $exam->course_id)->delete();
+        ExamViolation::where('exam_id', $exam_id)->delete();
+
+        $studentIds = Candidate::where('exam_id', $exam_id)->pluck('student_id')->toArray();
+        if (! empty($studentIds)) {
+            Student::whereIn('id', $studentIds)->update(['is_logged_on' => 'no', 'is_checked_in' => false]);
+        }
+        Candidate::where('exam_id', $exam_id)->delete();
+        ExamTicket::where('exam_id', $exam_id)->delete();
+        $exam->update([
+            'activated' => 'no',
+            'invigilator' => null,
+            'activated_by' => null,
+            'finished_time' => now(),
+            'terminated_by' => $terminator->id,
+            'termination_reason' => $terminationRequest->review_reason,
+        ]);
     }
 
     public function register_student(Request $request)

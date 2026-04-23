@@ -36,7 +36,9 @@ class Exam extends Model
         'enable_tab_switch_detection',
         'enable_multiple_monitor_check',
         'max_violations',
-        'activated_by'
+        'activated_by',
+        'terminated_by',
+        'termination_reason',
     ];
 
     public function level()
@@ -56,6 +58,21 @@ class Exam extends Model
     public function activator()
     {
         return $this->belongsTo(User::class, 'activated_by');
+    }
+
+    public function terminator()
+    {
+        return $this->belongsTo(User::class, 'terminated_by');
+    }
+
+    public function terminationRequests()
+    {
+        return $this->hasMany(ExamTerminationRequest::class);
+    }
+
+    public function pendingTerminationRequest()
+    {
+        return $this->hasOne(ExamTerminationRequest::class)->where('status', 'pending');
     }
     public function student() {
         return $this->hasMany(Student::class);

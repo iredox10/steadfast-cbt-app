@@ -186,6 +186,11 @@ Route::post('/activate-exam/{exam_id}', [Admin::class, 'activate_exam'])->middle
 
 Route::post('/terminate-exam/{exam_id}', [Admin::class, 'terminate_exam'])->middleware(['auth:sanctum']);
 
+Route::post('/request-terminate-exam/{exam_id}', [Admin::class, 'request_terminate_exam'])->middleware(['auth:sanctum']);
+Route::post('/approve-termination-request/{request_id}', [Admin::class, 'approve_termination_request'])->middleware(['auth:sanctum']);
+Route::post('/reject-termination-request/{request_id}', [Admin::class, 'reject_termination_request'])->middleware(['auth:sanctum']);
+Route::get('/pending-termination-requests', [Admin::class, 'get_pending_termination_requests'])->middleware(['auth:sanctum']);
+
 Route::post('/register-student/{user_id}', [Admin::class, 'register_student'])->middleware(['auth:sanctum']);
 Route::post('/update-student/{student_id}', [Admin::class, 'update_student'])->middleware(['auth:sanctum']);
 

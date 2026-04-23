@@ -17,7 +17,8 @@ import {
     FaRegClock,
     FaCalendarAlt,
     FaMedal,
-    FaCog
+    FaCog,
+    FaPowerOff
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -36,6 +37,12 @@ const Invigilator = () => {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [showPhotoModal, setShowPhotoModal] = useState(false);
     const [error, setError] = useState(null);
+    const [showTerminateModal, setShowTerminateModal] = useState(false);
+    const [terminationReason, setTerminationReason] = useState('');
+    const [terminating, setTerminating] = useState(false);
+    const [terminateSuccess, setTerminateSuccess] = useState(false);
+    const [terminateError, setTerminateError] = useState(null);
+    const [pendingRequest, setPendingRequest] = useState(null);
 
     const fetchStudents = async () => {
         setLoadingStudents(true);
@@ -61,8 +68,24 @@ const Invigilator = () => {
     useEffect(() => {
         if (userData && !userLoading) {
             fetchStudents();
+            if (userData?.Invigilator?.role === 'technician' && userData?.exam?.id) {
+                fetchPendingRequest();
+            }
         }
     }, [userData, userLoading]);
+
+    const fetchPendingRequest = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await axios.get(`${path}/pending-termination-requests`, { headers });
+            const examId = userData?.exam?.id;
+            const found = res.data?.requests?.find(r => r.exam_id === examId);
+            setPendingRequest(found || null);
+        } catch (err) {
+            console.error("Error fetching pending requests:", err);
+        }
+    };
 
     const handleCheckIn = async (student) => {
         setCheckingIn(student.id);
@@ -111,6 +134,38 @@ const Invigilator = () => {
             alert(`Check-in failed: ${errorMessage}`);
         } finally {
             setCheckingIn(null);
+        }
+    };
+
+    const handleRequestTermination = async (e) => {
+        e.preventDefault();
+        setTerminating(true);
+        setTerminateError(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const examId = userData?.exam?.id;
+
+            const res = await axios.post(
+                `${path}/request-terminate-exam/${examId}`,
+                { reason: terminationReason },
+                { headers }
+            );
+
+            setTerminateSuccess(true);
+            setTerminationReason('');
+
+            setTimeout(() => {
+                setShowTerminateModal(false);
+                setTerminateSuccess(false);
+                fetchPendingRequest();
+            }, 2000);
+        } catch (err) {
+            console.error("Termination request error:", err);
+            setTerminateError(err.response?.data?.error || "Failed to submit termination request.");
+        } finally {
+            setTerminating(false);
         }
     };
 
@@ -270,6 +325,111 @@ const Invigilator = () => {
                 </div>
             )}
 
+            {/* Termination Request Modal */}
+            {showTerminateModal && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+                    onClick={() => setShowTerminateModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="bg-red-600 text-white p-6">
+                            <h2 className="text-2xl font-bold flex items-center">
+                                <FaPowerOff className="mr-3" />
+                                Request Exam Termination
+                            </h2>
+                            <p className="text-red-100 mt-1 text-sm">This request will be sent to the department admin for approval</p>
+                        </div>
+
+                        <div className="p-6">
+                            {pendingRequest ? (
+                                <div className="text-center py-4">
+                                    <FaRegClock className="text-6xl text-yellow-500 mx-auto mb-4 animate-pulse" />
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Pending Request Exists</h3>
+                                    <p className="text-gray-600 mb-4">You already have a pending termination request for this exam.</p>
+                                    <div className="bg-gray-50 rounded-lg p-4 text-left mb-4">
+                                        <p className="text-sm text-gray-700 mb-2"><strong>Your reason:</strong> {pendingRequest.request_reason}</p>
+                                        <p className="text-sm text-gray-500"><strong>Submitted:</strong> {new Date(pendingRequest.created_at).toLocaleString()}</p>
+                                    </div>
+                                    <p className="text-sm text-gray-500">Please wait for the department admin to review your request.</p>
+                                </div>
+                            ) : terminateSuccess ? (
+                                <div className="text-center py-6">
+                                    <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Request Submitted</h3>
+                                    <p className="text-gray-600">Your termination request has been sent to the department admin for approval.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+                                        <div className="flex items-start">
+                                            <FaExclamationTriangle className="text-yellow-500 text-xl mt-0.5 mr-3 flex-shrink-0" />
+                                            <p className="text-yellow-800 text-sm">
+                                                <strong>Note:</strong> You must provide a reason for the termination request. The department admin will review and approve or reject your request.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {terminateError && (
+                                        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                                            <p className="text-red-800 text-sm">{terminateError}</p>
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleRequestTermination}>
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Reason for Termination <span className="text-red-500">*</span>
+                                            </label>
+                                            <textarea
+                                                value={terminationReason}
+                                                onChange={(e) => setTerminationReason(e.target.value)}
+                                                rows={4}
+                                                className="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-red-500 focus:outline-none resize-none"
+                                                placeholder="Provide a detailed reason for terminating this exam..."
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowTerminateModal(false)}
+                                                className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={terminating || !terminationReason.trim()}
+                                                className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+                                            >
+                                                {terminating ? (
+                                                    <>
+                                                        <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                        </svg>
+                                                        Submitting...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FaPowerOff className="mr-2" />
+                                                        Submit Request
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -305,6 +465,30 @@ const Invigilator = () => {
                                 <FaCog className="mr-2" />
                                 Settings
                             </Link>
+                            {userData?.Invigilator?.role === 'technician' && (
+                                pendingRequest ? (
+                                    <div className="flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg border-2 border-yellow-400">
+                                        <FaRegClock className="mr-2 animate-pulse" />
+                                        <div>
+                                            <span className="font-medium text-sm">Request Pending</span>
+                                            <span className="text-xs ml-2">(Awaiting admin approval)</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            setShowTerminateModal(true);
+                                            setTerminateError(null);
+                                            setTerminateSuccess(false);
+                                            setTerminationReason('');
+                                        }}
+                                        className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    >
+                                        <FaPowerOff className="mr-2" />
+                                        Request Termination
+                                    </button>
+                                )
+                            )}
                             <button
                                 onClick={fetchStudents}
                                 disabled={loadingStudents}
