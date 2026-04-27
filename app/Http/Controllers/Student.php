@@ -510,15 +510,28 @@ class Student extends Controller
             $time_extension = $candidate ? (int) ($candidate->time_extension ?? 0) : 0;
             $total_duration = $base_duration + $time_extension;
 
-            // Calculate remaining seconds precisely on the server using UTC
+            // Calculate remaining seconds based on timer mode
             $remaining_seconds = 0;
-            if ($candidate && $candidate->start_time) {
-                $startTime = Carbon::parse($candidate->start_time);
-                // Calculate positive seconds elapsed
-                $elapsedSeconds = $startTime->diffInSeconds(Carbon::now());
-                $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+            $timer_mode = $exam->timer_mode ?? 'individual';
+
+            if ($timer_mode === 'global') {
+                // Global timer: all students share the same countdown from exam activation
+                if ($exam->activated_date) {
+                    $globalStartTime = Carbon::parse($exam->activated_date);
+                    $elapsedSeconds = $globalStartTime->diffInSeconds(Carbon::now());
+                    $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+                } else {
+                    $remaining_seconds = $total_duration * 60;
+                }
             } else {
-                $remaining_seconds = $total_duration * 60;
+                // Individual timer: each student's countdown starts when they begin
+                if ($candidate && $candidate->start_time) {
+                    $startTime = Carbon::parse($candidate->start_time);
+                    $elapsedSeconds = $startTime->diffInSeconds(Carbon::now());
+                    $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+                } else {
+                    $remaining_seconds = $total_duration * 60;
+                }
             }
 
             // Get questions that are considered valid for the exam and shuffle them deterministically per student
@@ -539,6 +552,7 @@ class Student extends Controller
             $examResponse['exam_duration'] = $total_duration;
             $examResponse['base_duration'] = $base_duration;
             $examResponse['time_extension'] = $time_extension;
+            $examResponse['timer_mode'] = $timer_mode;
             $examResponse['remaining_seconds'] = (int) max(0, floor($remaining_seconds));
 
             $globalMaxViolations = SystemConfig::get('max_violations', 3);

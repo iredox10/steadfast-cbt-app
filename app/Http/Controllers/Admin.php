@@ -500,9 +500,22 @@ class Admin extends Controller
                 return response()->json(['error' => 'Super Admins are not allowed to activate exams.'], 403);
             }
 
+            $v = $request->validate([
+                'invigilator' => 'nullable|string',
+                'timer_mode' => 'nullable|in:individual,global',
+            ]);
+
             $exam = Exam::with('course.semester')->findOrFail($exam_id);
 
-            $exam->update(['activated' => 'yes', 'activated_date' => now(), 'invigilator' => $request->invigilator, 'activated_by' => $user->id]);
+            $timerMode = $v['timer_mode'] ?? 'individual';
+
+            $exam->update([
+                'activated' => 'yes',
+                'activated_date' => now(),
+                'invigilator' => $v['invigilator'] ?? null,
+                'activated_by' => $user->id,
+                'timer_mode' => $timerMode,
+            ]);
             if ($user->role === 'level_admin') {
                 $exam->update(['level_id' => $user->level_id]);
             } elseif ($user->role === 'faculty_officer') {
@@ -714,25 +727,33 @@ class Admin extends Controller
     private function executeExamTermination(Exam $exam, ExamTerminationRequest $terminationRequest, $terminator)
     {
         $exam_id = $exam->id;
+        $timerMode = $exam->timer_mode ?? 'individual';
 
         if ($exam->activated === 'yes' && $exam->activated_date) {
             $now = now();
             $duration = (int) $exam->exam_duration;
-            $globalEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
 
-            $latestCandidateEndTime = Candidate::where('exam_id', $exam_id)
-                ->get()
-                ->map(function ($c) use ($duration) {
-                    if (! $c->start_time) {
-                        return null;
-                    }
+            if ($timerMode === 'global') {
+                // Global timer: lock end time is simply activated_date + duration
+                $lockEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
+            } else {
+                // Individual timer: check both global end time and latest individual student end time
+                $globalEndTime = Carbon::parse($exam->activated_date)->addMinutes($duration);
 
-                    return Carbon::parse($c->start_time)->addMinutes($duration + (int) ($c->time_extension ?? 0));
-                })
-                ->filter()
-                ->max();
+                $latestCandidateEndTime = Candidate::where('exam_id', $exam_id)
+                    ->get()
+                    ->map(function ($c) use ($duration) {
+                        if (! $c->start_time) {
+                            return null;
+                        }
 
-            $lockEndTime = $latestCandidateEndTime ? $globalEndTime->max($latestCandidateEndTime) : $globalEndTime;
+                        return Carbon::parse($c->start_time)->addMinutes($duration + (int) ($c->time_extension ?? 0));
+                    })
+                    ->filter()
+                    ->max();
+
+                $lockEndTime = $latestCandidateEndTime ? $globalEndTime->max($latestCandidateEndTime) : $globalEndTime;
+            }
 
             if ($now->lt($lockEndTime)) {
                 $remainingMinutes = ceil($now->diffInMinutes($lockEndTime, false));

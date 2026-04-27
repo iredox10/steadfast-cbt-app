@@ -467,6 +467,16 @@ const Student = () => {
                                             </div>
                                         )}
                                         <p className="text-xs text-gray-500">Time Remaining</p>
+                                        {activeData?.exam?.timer_mode === "global" && (
+                                            <p className="text-xs text-blue-600 font-medium">
+                                                Global Timer (All students synchronized)
+                                            </p>
+                                        )}
+                                        {activeData?.exam?.timer_mode === "individual" && (
+                                            <p className="text-xs text-purple-600 font-medium">
+                                                Individual Timer
+                                            </p>
+                                        )}
                                         {activeData?.exam?.time_extension > 0 && (
                                             <p className="text-xs text-green-600 font-medium">
                                                 +{activeData.exam.time_extension} min extended

@@ -67,6 +67,7 @@ const AdminExam = () => {
     const [selectedExam, setSelectedExam] = useState(null);
     const [examId, setexamId] = useState();
     const [invigilator, setInvigilator] = useState();
+    const [timerMode, setTimerMode] = useState("individual");
     const [showLockModal, setShowLockModal] = useState(false);
     const [lockMessage, setLockMessage] = useState("");
     const [pendingRequests, setPendingRequests] = useState([]);
@@ -148,6 +149,8 @@ const AdminExam = () => {
     const showModelAndSetExamId = (id) => {
         SetshowAssignInvigilator(true);
         setexamId(id);
+        setTimerMode("individual");
+        setInvigilator("");
     };
 
     const handleActivateExam = async (id) => {
@@ -155,9 +158,11 @@ const AdminExam = () => {
             const headers = getAuthHeaders();
             const res = await axios.post(`${path}/activate-exam/${id}`, {
                 invigilator,
+                timer_mode: timerMode,
             }, { headers });
             if (res.status == 200) {
                 fetchExams();
+                fetchPendingRequests();
             }
         } catch (err) {
             console.error("Error activating exam:", err);
@@ -166,6 +171,7 @@ const AdminExam = () => {
             }
         } finally {
             SetshowAssignInvigilator(false);
+            setTimerMode("individual");
         }
     };
 
@@ -694,6 +700,7 @@ const AdminExam = () => {
                                 onClick={() => {
                                     SetshowAssignInvigilator(false);
                                     setInvigilator("");
+                                    setTimerMode("individual");
                                 }}
                                 className="text-gray-500 hover:text-gray-700"
                             >
@@ -723,9 +730,49 @@ const AdminExam = () => {
                             </select>
                         </div>
 
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Timer Mode
+                            </label>
+                            <div className="space-y-2">
+                                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${timerMode === "individual" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                                    <input
+                                        type="radio"
+                                        name="timerMode"
+                                        value="individual"
+                                        checked={timerMode === "individual"}
+                                        onChange={(e) => setTimerMode(e.target.value)}
+                                        className="mr-3 h-4 w-4 text-blue-600"
+                                    />
+                                    <div>
+                                        <p className="font-medium text-gray-900">Individual Timer</p>
+                                        <p className="text-xs text-gray-500">Each student's timer starts when they begin the exam</p>
+                                    </div>
+                                </label>
+                                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${timerMode === "global" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                                    <input
+                                        type="radio"
+                                        name="timerMode"
+                                        value="global"
+                                        checked={timerMode === "global"}
+                                        onChange={(e) => setTimerMode(e.target.value)}
+                                        className="mr-3 h-4 w-4 text-blue-600"
+                                    />
+                                    <div>
+                                        <p className="font-medium text-gray-900">Global Timer</p>
+                                        <p className="text-xs text-gray-500">All students share one timer starting when exam is activated</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <div className="flex justify-end gap-3">
                             <button
-                                onClick={() => SetshowAssignInvigilator(false)}
+                                onClick={() => {
+                                    SetshowAssignInvigilator(false);
+                                    setInvigilator("");
+                                    setTimerMode("individual");
+                                }}
                                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                             >
                                 Cancel
