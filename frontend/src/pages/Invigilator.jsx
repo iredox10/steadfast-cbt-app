@@ -18,7 +18,9 @@ import {
     FaCalendarAlt,
     FaMedal,
     FaCog,
-    FaPowerOff
+    FaPowerOff,
+    FaPlay,
+    FaInfoCircle
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -43,6 +45,10 @@ const Invigilator = () => {
     const [terminateSuccess, setTerminateSuccess] = useState(false);
     const [terminateError, setTerminateError] = useState(null);
     const [pendingRequest, setPendingRequest] = useState(null);
+    const [showStartModal, setShowStartModal] = useState(false);
+    const [startingExam, setStartingExam] = useState(false);
+    const [startSuccess, setStartSuccess] = useState(false);
+    const [startError, setStartError] = useState(null);
 
     const fetchStudents = async () => {
         setLoadingStudents(true);
@@ -84,6 +90,28 @@ const Invigilator = () => {
             setPendingRequest(found || null);
         } catch (err) {
             console.error("Error fetching pending requests:", err);
+        }
+    };
+
+    const handleStartExam = async () => {
+        setStartingExam(true);
+        setStartError(null);
+        try {
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const courseId = userData?.exam?.course_id;
+            const res = await axios.post(`${path}/invigilator/start-exam/${courseId}`, {}, { headers });
+            setStartSuccess(true);
+            setTimeout(() => {
+                setShowStartModal(false);
+                setStartSuccess(false);
+                window.location.reload();
+            }, 2000);
+        } catch (err) {
+            console.error("Error starting exam:", err);
+            setStartError(err.response?.data?.error || "Failed to start exam.");
+        } finally {
+            setStartingExam(false);
         }
     };
 
@@ -430,6 +458,92 @@ const Invigilator = () => {
                 </div>
             )}
 
+            {/* Start Exam Modal */}
+            {showStartModal && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+                    onClick={() => setShowStartModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="bg-green-600 text-white p-6">
+                            <h2 className="text-2xl font-bold flex items-center">
+                                <FaPlay className="mr-3" />
+                                Start Exam Timer
+                            </h2>
+                            <p className="text-green-100 mt-1 text-sm">This will start the global timer for all students simultaneously</p>
+                        </div>
+
+                        <div className="p-6">
+                            {startSuccess ? (
+                                <div className="text-center py-6">
+                                    <FaCheckCircle className="text-6xl text-green-500 mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Timer Started!</h3>
+                                    <p className="text-gray-600">The global exam timer has started. All students now share the same countdown.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                                        <div className="flex items-start">
+                                            <FaInfoCircle className="text-blue-500 text-xl mt-0.5 mr-3 flex-shrink-0" />
+                                            <p className="text-blue-800 text-sm">
+                                                <strong>Important:</strong> Once you start the timer, it cannot be paused or reset. All students will have the same remaining time regardless of when they begin answering.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {startError && (
+                                        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                                            <p className="text-red-800 text-sm">{startError}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                                        <h3 className="font-bold text-gray-900 mb-2">Exam Details</h3>
+                                        <div className="space-y-1 text-sm text-gray-700">
+                                            <p><strong>Course:</strong> {userData?.exam?.course || "N/A"}</p>
+                                            <p><strong>Duration:</strong> {userData?.exam?.exam_duration || "N/A"} minutes</p>
+                                            <p><strong>Timer Mode:</strong> Global (Synchronized)</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setShowStartModal(false)}
+                                            className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleStartExam}
+                                            disabled={startingExam}
+                                            className="flex-1 py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+                                        >
+                                            {startingExam ? (
+                                                <>
+                                                    <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                    </svg>
+                                                    Starting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FaPlay className="mr-2" />
+                                                    Start Timer Now
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -465,6 +579,28 @@ const Invigilator = () => {
                                 <FaCog className="mr-2" />
                                 Settings
                             </Link>
+                            {userData?.Invigilator?.role === 'technician' && userData?.exam?.timer_mode === 'global' && (userData?.exam?.timer_start_type === 'manual' || !userData?.exam?.timer_start_type) && !userData?.exam?.activated_date && (
+                                <button
+                                    onClick={() => {
+                                        setShowStartModal(true);
+                                        setStartError(null);
+                                        setStartSuccess(false);
+                                    }}
+                                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors animate-pulse"
+                                >
+                                    <FaPlay className="mr-2" />
+                                    Start Exam Timer
+                                </button>
+                            )}
+                            {userData?.Invigilator?.role === 'technician' && userData?.exam?.timer_mode === 'global' && userData?.exam?.timer_start_type === 'scheduled' && userData?.exam?.scheduled_start_time && (
+                                <div className="flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-lg border-2 border-blue-400">
+                                    <FaRegClock className="mr-2" />
+                                    <div>
+                                        <span className="font-medium text-sm">Scheduled Start</span>
+                                        <span className="text-xs ml-2">({new Date(userData.exam.scheduled_start_time).toLocaleString()})</span>
+                                    </div>
+                                </div>
+                            )}
                             {userData?.Invigilator?.role === 'technician' && (
                                 pendingRequest ? (
                                     <div className="flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg border-2 border-yellow-400">

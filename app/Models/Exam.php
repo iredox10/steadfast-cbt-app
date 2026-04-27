@@ -25,6 +25,8 @@ class Exam extends Model
         'submission_date',
         'activated_date',
         'timer_mode',
+        'timer_start_type',
+        'scheduled_start_time',
         'start_time',
         'finished_time',
         'finished',

@@ -243,6 +243,44 @@ class InvigilatorController extends Controller
         }
     }
 
+    public function start_exam($course_id)
+    {
+        try {
+            $user = auth()->user();
+            if ($user->role !== 'technician' && $user->role !== 'invigilator') {
+                return response()->json(['error' => 'Only technicians or invigilators can start the exam.'], 403);
+            }
+
+            $exam = Exam::where('course_id', $course_id)
+                ->where('activated', 'yes')
+                ->first();
+
+            if (! $exam) {
+                return response()->json(['error' => 'No active exam found'], 404);
+            }
+
+            if ($exam->timer_mode !== 'global') {
+                return response()->json(['error' => 'Manual start is only available for global timer mode.'], 400);
+            }
+
+            if ($exam->timer_start_type !== 'manual') {
+                return response()->json(['error' => 'This exam uses scheduled start. Timer will begin at the scheduled time.'], 400);
+            }
+
+            if ($exam->activated_date) {
+                return response()->json(['error' => 'Exam timer has already started.'], 400);
+            }
+
+            $exam->update(['activated_date' => now()]);
+
+            \App\Models\ActivityLog::log('exam-start', 'Technician started global timer for exam: '.($exam->title ?? $exam->exam_type), $user->id);
+
+            return response()->json(['message' => 'Exam timer started successfully. All students now share the same countdown.', 'started_at' => now()]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function terminate_exam($course_id)
     {
         try {

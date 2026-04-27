@@ -68,6 +68,8 @@ const AdminExam = () => {
     const [examId, setexamId] = useState();
     const [invigilator, setInvigilator] = useState();
     const [timerMode, setTimerMode] = useState("individual");
+    const [timerStartType, setTimerStartType] = useState("manual");
+    const [scheduledStartTime, setScheduledStartTime] = useState("");
     const [showLockModal, setShowLockModal] = useState(false);
     const [lockMessage, setLockMessage] = useState("");
     const [pendingRequests, setPendingRequests] = useState([]);
@@ -150,16 +152,23 @@ const AdminExam = () => {
         SetshowAssignInvigilator(true);
         setexamId(id);
         setTimerMode("individual");
+        setTimerStartType("manual");
+        setScheduledStartTime("");
         setInvigilator("");
     };
 
     const handleActivateExam = async (id) => {
         try {
             const headers = getAuthHeaders();
-            const res = await axios.post(`${path}/activate-exam/${id}`, {
+            const payload = {
                 invigilator,
                 timer_mode: timerMode,
-            }, { headers });
+                timer_start_type: timerMode === "global" ? timerStartType : undefined,
+            };
+            if (timerMode === "global" && timerStartType === "scheduled" && scheduledStartTime) {
+                payload.scheduled_start_time = scheduledStartTime;
+            }
+            const res = await axios.post(`${path}/activate-exam/${id}`, payload, { headers });
             if (res.status == 200) {
                 fetchExams();
                 fetchPendingRequests();
@@ -172,6 +181,8 @@ const AdminExam = () => {
         } finally {
             SetshowAssignInvigilator(false);
             setTimerMode("individual");
+            setTimerStartType("manual");
+            setScheduledStartTime("");
         }
     };
 
@@ -701,6 +712,8 @@ const AdminExam = () => {
                                     SetshowAssignInvigilator(false);
                                     setInvigilator("");
                                     setTimerMode("individual");
+                                    setTimerStartType("manual");
+                                    setScheduledStartTime("");
                                 }}
                                 className="text-gray-500 hover:text-gray-700"
                             >
@@ -760,11 +773,56 @@ const AdminExam = () => {
                                     />
                                     <div>
                                         <p className="font-medium text-gray-900">Global Timer</p>
-                                        <p className="text-xs text-gray-500">All students share one timer starting when exam is activated</p>
+                                        <p className="text-xs text-gray-500">All students share one synchronized timer</p>
                                     </div>
                                 </label>
                             </div>
                         </div>
+
+                        {timerMode === "global" && (
+                            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <label className="block text-sm font-medium text-gray-700 mb-3">
+                                    When should the timer start?
+                                </label>
+                                <div className="space-y-3">
+                                    <label className={`flex items-start p-3 border-2 rounded-lg cursor-pointer transition-colors ${timerStartType === "manual" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                                        <input
+                                            type="radio"
+                                            name="timerStartType"
+                                            value="manual"
+                                            checked={timerStartType === "manual"}
+                                            onChange={(e) => setTimerStartType(e.target.value)}
+                                            className="mr-3 h-4 w-4 text-blue-600 mt-0.5"
+                                        />
+                                        <div>
+                                            <p className="font-medium text-gray-900">Manual Start (Recommended)</p>
+                                            <p className="text-xs text-gray-500">Technician clicks "Start Exam" button after all students are ready. Timer begins for everyone at that moment.</p>
+                                        </div>
+                                    </label>
+                                    <label className={`flex items-start p-3 border-2 rounded-lg cursor-pointer transition-colors ${timerStartType === "scheduled" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+                                        <input
+                                            type="radio"
+                                            name="timerStartType"
+                                            value="scheduled"
+                                            checked={timerStartType === "scheduled"}
+                                            onChange={(e) => setTimerStartType(e.target.value)}
+                                            className="mr-3 h-4 w-4 text-blue-600 mt-0.5"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="font-medium text-gray-900">Scheduled Start</p>
+                                            <p className="text-xs text-gray-500 mb-2">Timer automatically starts at a specific date and time</p>
+                                            <input
+                                                type="datetime-local"
+                                                value={scheduledStartTime}
+                                                onChange={(e) => setScheduledStartTime(e.target.value)}
+                                                className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                min={new Date().toISOString().slice(0, 16)}
+                                            />
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex justify-end gap-3">
                             <button
@@ -772,6 +830,8 @@ const AdminExam = () => {
                                     SetshowAssignInvigilator(false);
                                     setInvigilator("");
                                     setTimerMode("individual");
+                                    setTimerStartType("manual");
+                                    setScheduledStartTime("");
                                 }}
                                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                             >
@@ -781,8 +841,8 @@ const AdminExam = () => {
                                 onClick={() => {
                                     handleActivateExam(examId);
                                 }}
-                                disabled={!invigilator}
-                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${invigilator
+                                disabled={!invigilator || (timerMode === "global" && timerStartType === "scheduled" && !scheduledStartTime)}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${invigilator && !(timerMode === "global" && timerStartType === "scheduled" && !scheduledStartTime)
                                     ? "bg-blue-500 text-white hover:bg-blue-600"
                                     : "bg-gray-200 text-gray-500 cursor-not-allowed"
                                     }`}

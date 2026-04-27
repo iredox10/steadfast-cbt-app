@@ -503,19 +503,38 @@ class Admin extends Controller
             $v = $request->validate([
                 'invigilator' => 'nullable|string',
                 'timer_mode' => 'nullable|in:individual,global',
+                'timer_start_type' => 'nullable|in:manual,scheduled',
+                'scheduled_start_time' => 'nullable|date',
             ]);
 
             $exam = Exam::with('course.semester')->findOrFail($exam_id);
 
             $timerMode = $v['timer_mode'] ?? 'individual';
+            $timerStartType = $v['timer_start_type'] ?? 'manual';
 
-            $exam->update([
+            $updateData = [
                 'activated' => 'yes',
-                'activated_date' => now(),
                 'invigilator' => $v['invigilator'] ?? null,
                 'activated_by' => $user->id,
                 'timer_mode' => $timerMode,
-            ]);
+                'timer_start_type' => $timerStartType,
+            ];
+
+            if ($timerMode === 'global') {
+                // Global timer: activated_date stays null until technician starts it or scheduled time arrives
+                $updateData['activated_date'] = null;
+                if ($timerStartType === 'scheduled' && !empty($v['scheduled_start_time'])) {
+                    $updateData['scheduled_start_time'] = $v['scheduled_start_time'];
+                } else {
+                    $updateData['scheduled_start_time'] = null;
+                }
+            } else {
+                // Individual mode: timer starts per-student, activated_date is set now
+                $updateData['activated_date'] = now();
+                $updateData['scheduled_start_time'] = null;
+            }
+
+            $exam->update($updateData);
             if ($user->role === 'level_admin') {
                 $exam->update(['level_id' => $user->level_id]);
             } elseif ($user->role === 'faculty_officer') {

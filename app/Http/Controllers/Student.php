@@ -510,18 +510,40 @@ class Student extends Controller
             $time_extension = $candidate ? (int) ($candidate->time_extension ?? 0) : 0;
             $total_duration = $base_duration + $time_extension;
 
-            // Calculate remaining seconds based on timer mode
+            // Calculate remaining seconds based on timer mode and start type
             $remaining_seconds = 0;
             $timer_mode = $exam->timer_mode ?? 'individual';
+            $timer_start_type = $exam->timer_start_type ?? 'manual';
+            $timer_started = false;
 
             if ($timer_mode === 'global') {
-                // Global timer: all students share the same countdown from exam activation
-                if ($exam->activated_date) {
-                    $globalStartTime = Carbon::parse($exam->activated_date);
-                    $elapsedSeconds = $globalStartTime->diffInSeconds(Carbon::now());
-                    $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+                if ($timer_start_type === 'scheduled' && $exam->scheduled_start_time) {
+                    // Scheduled global timer: starts at the scheduled time
+                    $scheduledTime = Carbon::parse($exam->scheduled_start_time);
+                    $now = Carbon::now();
+
+                    if ($now->lt($scheduledTime)) {
+                        // Exam hasn't started yet
+                        $remaining_seconds = $total_duration * 60;
+                        $timer_started = false;
+                    } else {
+                        // Exam has started
+                        $elapsedSeconds = $scheduledTime->diffInSeconds($now);
+                        $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+                        $timer_started = true;
+                    }
                 } else {
-                    $remaining_seconds = $total_duration * 60;
+                    // Manual global timer: starts when activated_date is set (technician clicked start)
+                    if ($exam->activated_date) {
+                        $globalStartTime = Carbon::parse($exam->activated_date);
+                        $elapsedSeconds = $globalStartTime->diffInSeconds(Carbon::now());
+                        $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+                        $timer_started = true;
+                    } else {
+                        // Timer not yet started by technician
+                        $remaining_seconds = $total_duration * 60;
+                        $timer_started = false;
+                    }
                 }
             } else {
                 // Individual timer: each student's countdown starts when they begin
@@ -529,8 +551,10 @@ class Student extends Controller
                     $startTime = Carbon::parse($candidate->start_time);
                     $elapsedSeconds = $startTime->diffInSeconds(Carbon::now());
                     $remaining_seconds = ($total_duration * 60) - $elapsedSeconds;
+                    $timer_started = true;
                 } else {
                     $remaining_seconds = $total_duration * 60;
+                    $timer_started = false;
                 }
             }
 
@@ -553,6 +577,8 @@ class Student extends Controller
             $examResponse['base_duration'] = $base_duration;
             $examResponse['time_extension'] = $time_extension;
             $examResponse['timer_mode'] = $timer_mode;
+            $examResponse['timer_start_type'] = $timer_start_type;
+            $examResponse['timer_started'] = $timer_started;
             $examResponse['remaining_seconds'] = (int) max(0, floor($remaining_seconds));
 
             $globalMaxViolations = SystemConfig::get('max_violations', 3);
