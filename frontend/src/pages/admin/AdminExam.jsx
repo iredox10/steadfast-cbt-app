@@ -17,7 +17,10 @@ import {
     FaBell,
     FaBook,
     FaCalendarAlt,
-    FaUsers
+    FaUsers,
+    FaPowerOff,
+    FaExclamationTriangle,
+    FaInfoCircle
 } from "react-icons/fa";
 import AdminSidebar from "../../components/AdminSidebar";
 
@@ -66,6 +69,14 @@ const AdminExam = () => {
     const [invigilator, setInvigilator] = useState();
     const [showLockModal, setShowLockModal] = useState(false);
     const [lockMessage, setLockMessage] = useState("");
+    const [pendingRequests, setPendingRequests] = useState([]);
+    const [loadingRequests, setLoadingRequests] = useState(false);
+    const [showRequestsModal, setShowRequestsModal] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [showRequestDetailModal, setShowRequestDetailModal] = useState(false);
+    const [reviewReason, setReviewReason] = useState("");
+    const [processingRequest, setProcessingRequest] = useState(null);
+    const [requestError, setRequestError] = useState(null);
 
     const [courses, setCourses] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -96,7 +107,24 @@ const AdminExam = () => {
 
     useEffect(() => {
         fetchExams();
+        fetchPendingRequests();
     }, []);
+
+    const fetchPendingRequests = async () => {
+        try {
+            setLoadingRequests(true);
+            const headers = getAuthHeaders();
+            const res = await axios.get(`${path}/pending-termination-requests`, { headers });
+            const requests = res.data.requests || [];
+            setPendingRequests(requests);
+            return requests;
+        } catch (err) {
+            console.error("Error fetching pending requests:", err);
+            return [];
+        } finally {
+            setLoadingRequests(false);
+        }
+    };
 
     const fetchCourses = async () => {
         try {
@@ -142,6 +170,16 @@ const AdminExam = () => {
     };
 
     const handleTerminateExam = async (id) => {
+        const currentRequests = pendingRequests.length > 0 ? pendingRequests : await fetchPendingRequests();
+        const pendingForExam = currentRequests.find(r => Number(r.exam_id) === Number(id));
+        if (pendingForExam) {
+            setSelectedRequest(pendingForExam);
+            setReviewReason("");
+            setRequestError(null);
+            setShowRequestDetailModal(true);
+            return;
+        }
+
         try {
             const headers = getAuthHeaders();
             const res = await axios.post(`${path}/terminate-exam/${id}`, {}, { headers });
@@ -151,7 +189,9 @@ const AdminExam = () => {
             }
         } catch (err) {
             console.error("Error terminating exam:", err);
-            if (err.response?.status === 403) {
+            if (err.response?.status === 400 && err.response?.data?.error?.includes("No approved termination request")) {
+                alert("A technician must first request termination for this exam. Please check the pending requests (bell icon) or ask the technician to submit a request.");
+            } else if (err.response?.status === 403) {
                 setLockMessage(err.response.data.error || "Exam cannot be terminated yet.");
                 setShowLockModal(true);
                 setShowTerminateModel(false);
@@ -166,6 +206,66 @@ const AdminExam = () => {
     const handleViewExam = (exam) => {
         setSelectedExam(exam);
         setShowViewModal(true);
+    };
+
+    const handleApproveRequest = async (requestId) => {
+        if (!reviewReason.trim()) {
+            setRequestError("You must provide a reason for approval.");
+            return;
+        }
+        setProcessingRequest("approve");
+        setRequestError(null);
+        try {
+            const headers = getAuthHeaders();
+            const res = await axios.post(`${path}/approve-termination-request/${requestId}`, {
+                reason: reviewReason,
+            }, { headers });
+            if (res.status === 200) {
+                fetchPendingRequests();
+                fetchExams();
+                setShowRequestDetailModal(false);
+                setSelectedRequest(null);
+                setReviewReason("");
+            }
+        } catch (err) {
+            console.error("Error approving request:", err);
+            setRequestError(err.response?.data?.error || "Failed to approve request.");
+        } finally {
+            setProcessingRequest(null);
+        }
+    };
+
+    const handleRejectRequest = async (requestId) => {
+        if (!reviewReason.trim()) {
+            setRequestError("You must provide a reason for rejection.");
+            return;
+        }
+        setProcessingRequest("reject");
+        setRequestError(null);
+        try {
+            const headers = getAuthHeaders();
+            const res = await axios.post(`${path}/reject-termination-request/${requestId}`, {
+                reason: reviewReason,
+            }, { headers });
+            if (res.status === 200) {
+                fetchPendingRequests();
+                setShowRequestDetailModal(false);
+                setSelectedRequest(null);
+                setReviewReason("");
+            }
+        } catch (err) {
+            console.error("Error rejecting request:", err);
+            setRequestError(err.response?.data?.error || "Failed to reject request.");
+        } finally {
+            setProcessingRequest(null);
+        }
+    };
+
+    const openRequestDetail = (request) => {
+        setSelectedRequest(request);
+        setReviewReason("");
+        setRequestError(null);
+        setShowRequestDetailModal(true);
     };
 
     // Calculate stats based on VISIBLE exams (matching table logic)
@@ -252,8 +352,19 @@ const AdminExam = () => {
                         <p className="text-gray-500">Create, activate, and manage examinations</p>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <button className="p-3 bg-white border rounded-full hover:bg-gray-100">
+                        <button
+                            onClick={() => {
+                                fetchPendingRequests();
+                                setShowRequestsModal(true);
+                            }}
+                            className="p-3 bg-white border rounded-full hover:bg-gray-100 relative"
+                        >
                             <FaBell className="text-gray-600" />
+                            {pendingRequests.length > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                                    {pendingRequests.length}
+                                </span>
+                            )}
                         </button>
                     </div>
                 </header>
@@ -432,12 +543,19 @@ const AdminExam = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${exam.activated === "yes"
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-red-100 text-red-800"
-                                                            }`}>
-                                                            {exam.activated === "yes" ? "Active" : "Inactive"}
-                                                        </span>
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full w-fit ${exam.activated === "yes"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : "bg-red-100 text-red-800"
+                                                                }`}>
+                                                                {exam.activated === "yes" ? "Active" : "Inactive"}
+                                                            </span>
+                                                            {pendingRequests.some(r => r.exam_id === exam.id) && (
+                                                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full w-fit bg-yellow-100 text-yellow-800 border border-yellow-300 animate-pulse">
+                                                                    <FaPowerOff className="mr-1 mt-0.5" /> Termination Pending
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <div className="flex justify-end gap-2">
@@ -453,11 +571,22 @@ const AdminExam = () => {
                                                                     <button
                                                                         onClick={() => {
                                                                             setexamId(exam.id);
-                                                                            setShowTerminateModel(true);
+                                                                            handleTerminateExam(exam.id);
                                                                         }}
-                                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                                                        className={`inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${pendingRequests.some(r => r.exam_id === exam.id)
+                                                                            ? "bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500"
+                                                                            : "bg-red-500 hover:bg-red-600 focus:ring-red-500"
+                                                                            }`}
                                                                     >
-                                                                        <FaStop className="mr-1" /> Terminate
+                                                                        {pendingRequests.some(r => r.exam_id === exam.id) ? (
+                                                                            <>
+                                                                                <FaPowerOff className="mr-1" /> Review Request
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <FaStop className="mr-1" /> Terminate
+                                                                            </>
+                                                                        )}
                                                                     </button>
                                                                 )
                                                             )}
@@ -940,6 +1069,249 @@ const AdminExam = () => {
                             >
                                 <FaCheck className="text-sm" /> I Understand
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Pending Termination Requests Modal */}
+            {showRequestsModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+                        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-2xl font-bold flex items-center">
+                                        <FaPowerOff className="mr-3" />
+                                        Pending Termination Requests
+                                    </h2>
+                                    <p className="text-yellow-100 mt-1 text-sm">Review and manage exam termination requests from technicians</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowRequestsModal(false)}
+                                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                                >
+                                    <FaTimes className="text-xl" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {loadingRequests ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+                                    <p className="text-gray-600">Loading requests...</p>
+                                </div>
+                            ) : pendingRequests.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <FaCheck className="text-6xl text-green-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Pending Requests</h3>
+                                    <p className="text-gray-500">All termination requests have been processed.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {pendingRequests.map((request) => (
+                                        <div
+                                            key={request.id}
+                                            className="border border-gray-200 rounded-lg p-4 hover:border-yellow-400 transition-colors bg-gray-50"
+                                        >
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <FaExclamationTriangle className="text-yellow-500" />
+                                                        <h3 className="font-bold text-gray-900">
+                                                            Exam: {request.exam?.course?.title || `Course #${request.exam?.course_id}`}
+                                                        </h3>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
+                                                        <div>
+                                                            <span className="font-medium">Requested by:</span> {request.requester?.full_name || "Unknown"}
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-medium">Submitted:</span> {new Date(request.created_at).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white rounded p-3 border border-gray-200">
+                                                        <p className="text-sm text-gray-700">
+                                                            <span className="font-medium">Reason:</span> {request.request_reason}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => openRequestDetail(request)}
+                                                    className="ml-4 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-medium flex-shrink-0"
+                                                >
+                                                    <FaInfoCircle className="mr-1 inline" /> Review
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-end">
+                            <button
+                                onClick={() => setShowRequestsModal(false)}
+                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Request Detail Modal (Approve/Reject) */}
+            {showRequestDetailModal && selectedRequest && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-xl">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-xl font-bold flex items-center">
+                                        <FaPowerOff className="mr-3" />
+                                        Review Termination Request
+                                    </h2>
+                                    <p className="text-blue-100 mt-1 text-sm">
+                                        {selectedRequest.exam?.course?.title || `Course #${selectedRequest.exam?.course_id}`}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowRequestDetailModal(false);
+                                        setSelectedRequest(null);
+                                        setReviewReason("");
+                                        setRequestError(null);
+                                    }}
+                                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                                >
+                                    <FaTimes className="text-xl" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6">
+                            {/* Request Information */}
+                            <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                                <h3 className="font-bold text-gray-900 mb-3">Request Details</h3>
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Requested by:</span>
+                                        <span className="font-medium text-gray-900">{selectedRequest.requester?.full_name || "Unknown"}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Submitted:</span>
+                                        <span className="font-medium text-gray-900">{new Date(selectedRequest.created_at).toLocaleString()}</span>
+                                    </div>
+                                    <div className="pt-2 border-t border-gray-200">
+                                        <span className="text-gray-600">Reason:</span>
+                                        <p className="mt-1 text-gray-900 font-medium bg-white p-3 rounded border border-gray-200">
+                                            {selectedRequest.request_reason}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Exam Information */}
+                            {selectedRequest.exam && (
+                                <div className="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
+                                    <h3 className="font-bold text-gray-900 mb-3">Exam Information</h3>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <span className="text-gray-600">Duration:</span>
+                                            <p className="font-medium text-gray-900">{selectedRequest.exam.exam_duration} minutes</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-600">Status:</span>
+                                            <p className="font-medium text-green-600">Active</p>
+                                        </div>
+                                        {selectedRequest.exam.invigilator && (
+                                            <div className="col-span-2">
+                                                <span className="text-gray-600">Technician:</span>
+                                                <p className="font-medium text-gray-900">{selectedRequest.exam.invigilator}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Review Reason Input */}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Your Reason <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    value={reviewReason}
+                                    onChange={(e) => {
+                                        setReviewReason(e.target.value);
+                                        setRequestError(null);
+                                    }}
+                                    rows={3}
+                                    className="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:outline-none resize-none"
+                                    placeholder="Provide your reason for this decision..."
+                                    required
+                                />
+                            </div>
+
+                            {requestError && (
+                                <div className="bg-red-50 border-l-4 border-red-500 p-3 mb-4">
+                                    <p className="text-red-800 text-sm">{requestError}</p>
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowRequestDetailModal(false);
+                                        setSelectedRequest(null);
+                                        setReviewReason("");
+                                        setRequestError(null);
+                                    }}
+                                    className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleRejectRequest(selectedRequest.id)}
+                                    disabled={processingRequest !== null}
+                                    className="flex-1 py-3 px-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors font-medium flex items-center justify-center"
+                                >
+                                    {processingRequest === "reject" ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            Rejecting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaTimes className="mr-2" /> Reject
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => handleApproveRequest(selectedRequest.id)}
+                                    disabled={processingRequest !== null}
+                                    className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors font-medium flex items-center justify-center"
+                                >
+                                    {processingRequest === "approve" ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            Terminating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaPowerOff className="mr-2" /> Approve & Terminate
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
