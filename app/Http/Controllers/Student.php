@@ -135,10 +135,7 @@ class Student extends Controller
 
             Log::info('Student login successful', ['candidate_no' => $student->candidate_no]);
 
-            $response = $student->toArray();
-            $response['force_password_change'] = (bool) $student->force_password_change;
-
-            return response()->json($response);
+            return response()->json($student->toArray());
 
         } elseif ($password) {
             if (! Hash::check($password, $student->password)) {
@@ -149,34 +146,10 @@ class Student extends Controller
                 return response()->json('user not checked in', 400);
             }
 
-            $response = $student->toArray();
-            $response['force_password_change'] = (bool) $student->force_password_change;
-
-            return response()->json($response);
+            return response()->json($student->toArray());
         } else {
             return response()->json('ticket number or password required', 400);
         }
-    }
-
-    public function changePassword(Request $request)
-    {
-        $request->validate([
-            'student_id' => 'required|exists:students,id',
-            'current_password' => 'required',
-            'new_password' => 'required|min:6',
-        ]);
-
-        $student = \App\Models\Student::findOrFail($request->student_id);
-
-        if (! Hash::check($request->current_password, $student->password)) {
-            return response()->json(['error' => 'Invalid current password'], 400);
-        }
-
-        $student->password = Hash::make($request->new_password);
-        $student->force_password_change = false;
-        $student->save();
-
-        return response()->json(['message' => 'Password changed successfully']);
     }
 
     public function index(Request $request)

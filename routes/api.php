@@ -32,7 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
 // student
 
 Route::post('/student-login', [Student::class, 'login']);
-Route::post('/student-change-password', [Student::class, 'changePassword']);
 
 Route::post('/student-reg', [Student::class, 'store']);
 
