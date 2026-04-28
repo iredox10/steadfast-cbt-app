@@ -9,7 +9,7 @@ import logo from "../../public/assets/buk.png";
 const ExamInstructions = () => {
     const { studentId } = useParams();
     const navigate = useNavigate();
-    const { data: examData, refetch } = useFetch(`/get-student-exam/${studentId}`);
+    const { data: examData } = useFetch(`/get-student-exam/${studentId}`);
     const { data: student } = useFetch(`/get-student/${studentId}`);
 
     const [course, setCourse] = useState(null);
@@ -71,12 +71,18 @@ const ExamInstructions = () => {
     useEffect(() => {
         if (!examData?.exam || isExamReady) return;
 
-        const interval = setInterval(() => {
-            refetch();
+        const interval = setInterval(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                await axios.get(`${path}/get-student-exam/${studentId}`, { headers });
+            } catch (error) {
+                console.error("Polling error:", error);
+            }
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [examData, isExamReady, refetch]);
+    }, [examData, isExamReady, studentId]);
 
     if (!isExamReady) {
         return (

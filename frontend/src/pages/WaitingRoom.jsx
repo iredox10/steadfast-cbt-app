@@ -1,42 +1,49 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import useFetch from "../hooks/useFetch";
 import axios from "axios";
 import { path } from "../../utils/path";
-import { FaClock, FaUser, FaGraduationCap, FaInfoCircle, FaPlay, FaRegClock, FaCalendarAlt, FaSync } from "react-icons/fa";
+import { FaRegClock, FaUser, FaCalendarAlt, FaInfoCircle, FaSync } from "react-icons/fa";
 import logo from "../../public/assets/buk.png";
 
 const WaitingRoom = () => {
     const { studentId } = useParams();
     const navigate = useNavigate();
-    const { data: examData, refetch } = useFetch(`/get-student-exam/${studentId}`);
-    const { data: student } = useFetch(`/get-student/${studentId}`);
 
+    const [examData, setExamData] = useState(null);
+    const [student, setStudent] = useState(null);
     const [course, setCourse] = useState(null);
     const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
     const [isReady, setIsReady] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    const fetchCourse = async () => {
+    const fetchData = async () => {
         try {
-            if (examData?.exam?.course_id) {
-                const token = localStorage.getItem('token');
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const res = await axios.get(
-                    `${path}/get-course/${examData.exam.course_id}`,
-                    { headers }
-                );
-                setCourse(res.data);
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            const [examRes, studentRes] = await Promise.all([
+                axios.get(`${path}/get-student-exam/${studentId}`, { headers }),
+                axios.get(`${path}/get-student/${studentId}`, { headers }),
+            ]);
+
+            setExamData(examRes.data);
+            setStudent(studentRes.data);
+
+            if (examRes.data?.exam?.course_id) {
+                const courseRes = await axios.get(`${path}/get-course/${examRes.data.exam.course_id}`, { headers });
+                setCourse(courseRes.data);
             }
+
+            setLoading(false);
         } catch (error) {
-            console.error("Error fetching course:", error);
+            console.error("Error fetching data:", error);
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (examData?.exam) {
-            fetchCourse();
-        }
-    }, [examData]);
+        fetchData();
+    }, [studentId]);
 
     useEffect(() => {
         if (!examData?.exam) return;
@@ -94,23 +101,41 @@ const WaitingRoom = () => {
     }, [examData, isReady]);
 
     useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData();
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [studentId]);
+
+    useEffect(() => {
         if (isReady && examData?.exam) {
             navigate(`/exam-instructions/${studentId}`);
         }
     }, [isReady, examData, studentId, navigate]);
 
     const handleRefresh = () => {
-        refetch();
+        fetchData();
     };
 
     const timerMode = examData?.exam?.timer_mode;
     const timerStartType = examData?.exam?.timer_start_type;
     const scheduledStartTime = examData?.exam?.scheduled_start_time;
 
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center p-4">
             <div className="max-w-lg w-full">
-                {/* Logo Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center gap-3 bg-white px-6 py-3 rounded-full shadow-sm border border-gray-100">
                         <img src={logo} alt="BUK KANO Logo" className="w-10 h-10 object-contain" />
@@ -121,9 +146,7 @@ const WaitingRoom = () => {
                     </div>
                 </div>
 
-                {/* Main Card */}
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                    {/* Header */}
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-center">
                         <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                             <FaRegClock className="text-white text-2xl" />
@@ -132,7 +155,6 @@ const WaitingRoom = () => {
                         <p className="text-blue-100 mt-1">Your exam hasn't started yet</p>
                     </div>
 
-                    {/* Student Info */}
                     <div className="p-6 border-b border-gray-100">
                         <div className="flex items-center gap-4">
                             {student?.image ? (
@@ -153,7 +175,6 @@ const WaitingRoom = () => {
                         </div>
                     </div>
 
-                    {/* Exam Info */}
                     <div className="p-6 border-b border-gray-100">
                         <div className="bg-gray-50 rounded-xl p-4">
                             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Exam</p>
@@ -162,7 +183,6 @@ const WaitingRoom = () => {
                         </div>
                     </div>
 
-                    {/* Waiting Message */}
                     <div className="p-6">
                         {timerMode === 'global' && timerStartType === 'manual' ? (
                             <div className="text-center">
@@ -171,7 +191,7 @@ const WaitingRoom = () => {
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">Waiting for Technician</h3>
                                 <p className="text-sm text-gray-600 mb-6">
-                                    The technician has not started the exam yet. Please wait patiently. 
+                                    The technician has not started the exam yet. Please wait patiently.
                                     The exam timer will begin once the technician activates it.
                                 </p>
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
@@ -187,9 +207,7 @@ const WaitingRoom = () => {
                                     <FaCalendarAlt className="text-blue-600 text-3xl" />
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">Scheduled Exam</h3>
-                                <p className="text-sm text-gray-600 mb-6">
-                                    Your exam is scheduled to start at:
-                                </p>
+                                <p className="text-sm text-gray-600 mb-6">Your exam is scheduled to start at:</p>
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                                     <p className="text-lg font-bold text-blue-900">
                                         {new Date(scheduledStartTime).toLocaleString()}
@@ -224,7 +242,6 @@ const WaitingRoom = () => {
                         )}
                     </div>
 
-                    {/* Refresh Button */}
                     <div className="p-6 pt-0">
                         <button
                             onClick={handleRefresh}
@@ -236,7 +253,6 @@ const WaitingRoom = () => {
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="text-center mt-6">
                     <p className="text-xs text-gray-500">
                         If you believe this is an error, please contact your invigilator.
