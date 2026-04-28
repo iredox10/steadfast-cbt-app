@@ -42,12 +42,41 @@ const Home = () => {
             try {
                 const examRes = await axios.get(`${path}/get-student-exam/${res.data.id}`);
                 const candidate = examRes.data?.candidate;
+                const exam = examRes.data?.exam;
                 
                 // If student has time extension, allow them to go directly to exam
                 if (candidate && candidate.time_extension > 0) {
                     navigate(`/student/${res.data.id}`);
                     setLoading(false);
                     return;
+                }
+
+                // Check if exam timer is ready (for global timer modes)
+                if (exam) {
+                    const timerMode = exam.timer_mode;
+                    const timerStartType = exam.timer_start_type;
+                    const scheduledStartTime = exam.scheduled_start_time;
+                    const activatedDate = exam.activated_date;
+
+                    let isReady = true;
+
+                    if (timerMode === 'global') {
+                        if (timerStartType === 'manual' && !activatedDate) {
+                            isReady = false;
+                        } else if (timerStartType === 'scheduled' && scheduledStartTime) {
+                            const scheduled = new Date(scheduledStartTime).getTime();
+                            const now = Date.now();
+                            if (now < scheduled) {
+                                isReady = false;
+                            }
+                        }
+                    }
+
+                    if (!isReady) {
+                        navigate(`/waiting-room/${res.data.id}`);
+                        setLoading(false);
+                        return;
+                    }
                 }
             } catch (examErr) {
                 console.log('Could not fetch exam data:', examErr);

@@ -795,7 +795,7 @@ class Admin extends Controller
             'exam_id' => $exam_id,
             'exam_title' => $exam->title ?? $course->title.' Exam',
             'course_title' => $course->title,
-            'exam_date' => $exam->activated_date,
+            'exam_date' => $exam->activated_date ?? now(),
             'duration' => $exam->exam_duration,
             'total_questions' => $totalQuestions,
             'marks_per_question' => $exam->marks_per_question,

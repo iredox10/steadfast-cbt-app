@@ -78,6 +78,34 @@ const Student = () => {
     // Use liveData for the rest of the component
     const activeData = liveData || data;
 
+    // Check if exam timer is ready (for global timer modes)
+    useEffect(() => {
+        if (!activeData?.exam) return;
+
+        const timerMode = activeData.exam.timer_mode;
+        const timerStartType = activeData.exam.timer_start_type;
+        const scheduledStartTime = activeData.exam.scheduled_start_time;
+        const activatedDate = activeData.exam.activated_date;
+
+        let isReady = true;
+
+        if (timerMode === 'global') {
+            if (timerStartType === 'manual' && !activatedDate) {
+                isReady = false;
+            } else if (timerStartType === 'scheduled' && scheduledStartTime) {
+                const scheduled = new Date(scheduledStartTime).getTime();
+                const now = Date.now();
+                if (now < scheduled) {
+                    isReady = false;
+                }
+            }
+        }
+
+        if (!isReady) {
+            navigate(`/waiting-room/${studentId}`);
+        }
+    }, [activeData, studentId, navigate]);
+
     // Get current question
     const currentQuestion = activeData?.questions?.[questionIndexToShow];
 

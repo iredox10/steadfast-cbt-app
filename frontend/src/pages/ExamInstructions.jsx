@@ -4,15 +4,16 @@ import useFetch from "../hooks/useFetch";
 import axios from "axios";
 import { path } from "../../utils/path";
 import { FaBook, FaClock, FaUser, FaGraduationCap, FaCheckCircle, FaInfoCircle, FaExclamationTriangle, FaShieldAlt, FaArrowRight, FaTimes } from "react-icons/fa";
-import logo from "../../public/assets/buk.png"; // Import the logo
+import logo from "../../public/assets/buk.png";
 
 const ExamInstructions = () => {
     const { studentId } = useParams();
     const navigate = useNavigate();
-    const { data: examData } = useFetch(`/get-student-exam/${studentId}`);
+    const { data: examData, refetch } = useFetch(`/get-student-exam/${studentId}`);
     const { data: student } = useFetch(`/get-student/${studentId}`);
 
     const [course, setCourse] = useState(null);
+    const [isExamReady, setIsExamReady] = useState(true);
 
     const fetchCourse = async () => {
         try {
@@ -35,6 +36,58 @@ const ExamInstructions = () => {
             fetchCourse();
         }
     }, [examData]);
+
+    useEffect(() => {
+        if (!examData?.exam) return;
+
+        const timerMode = examData.exam.timer_mode;
+        const timerStartType = examData.exam.timer_start_type;
+        const scheduledStartTime = examData.exam.scheduled_start_time;
+        const activatedDate = examData.exam.activated_date;
+
+        if (timerMode === 'global') {
+            if (timerStartType === 'manual' && !activatedDate) {
+                setIsExamReady(false);
+            } else if (timerStartType === 'scheduled' && scheduledStartTime) {
+                const scheduled = new Date(scheduledStartTime).getTime();
+                const now = Date.now();
+                if (now < scheduled) {
+                    setIsExamReady(false);
+                } else {
+                    setIsExamReady(true);
+                }
+            } else if (activatedDate) {
+                setIsExamReady(true);
+            }
+        }
+    }, [examData]);
+
+    useEffect(() => {
+        if (!isExamReady && examData?.exam) {
+            navigate(`/waiting-room/${studentId}`);
+        }
+    }, [isExamReady, examData, studentId, navigate]);
+
+    useEffect(() => {
+        if (!examData?.exam || isExamReady) return;
+
+        const interval = setInterval(() => {
+            refetch();
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [examData, isExamReady, refetch]);
+
+    if (!isExamReady) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Checking exam status...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Convert seconds to minutes
     const durationInMinutes = examData?.exam?.exam_duration || 0;

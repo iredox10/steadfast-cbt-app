@@ -24,6 +24,7 @@ import LoggedStudent from "./pages/LoggedStudent.jsx";
 import AdminCourses from "./pages/admin/AdminCourses.jsx";
 import Dashboard from "./pages/admin/AdminDashboard.jsx";
 import ExamInstructions from "./pages/ExamInstructions.jsx";
+import WaitingRoom from "./pages/WaitingRoom.jsx";
 import Invigilator from "./pages/Invigilator.jsx";
 import InvigilatorSettings from "./pages/InvigilatorSettings.jsx";
 import NotCheckIn from "./pages/NotCheckIn.jsx";
@@ -125,6 +126,10 @@ function App() {
                     <Route
                         path="/exam-instructions/:studentId"
                         element={<ExamInstructions />}
+                    />
+                    <Route
+                        path="/waiting-room/:studentId"
+                        element={<WaitingRoom />}
                     />
 
                     {/* Protected Invigilator Routes */}
