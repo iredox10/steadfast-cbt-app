@@ -3,11 +3,32 @@ import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import { path } from "../../../utils/path";
 import Sidebar from "../../components/Sidebar";
-import { FaTachometerAlt, FaBook, FaUsers, FaChartBar, FaArrowLeft, FaFilePdf, FaFileExcel, FaSearch } from "react-icons/fa";
+import { FaTachometerAlt, FaBook, FaUsers, FaChartBar, FaArrowLeft, FaFilePdf, FaFileExcel, FaSearch, FaCheckCircle, FaClock, FaExclamationTriangle, FaPowerOff } from "react-icons/fa";
 import { format } from "date-fns";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+
+const submissionReasonLabels = {
+    manual: 'Student Submitted',
+    time_expired: 'Time Expired',
+    violations_exceeded: 'Violations Exceeded',
+    exam_terminated: 'Exam Terminated'
+};
+
+const submissionReasonIcons = {
+    manual: FaCheckCircle,
+    time_expired: FaClock,
+    violations_exceeded: FaExclamationTriangle,
+    exam_terminated: FaPowerOff
+};
+
+const submissionReasonColors = {
+    manual: 'bg-green-100 text-green-800',
+    time_expired: 'bg-orange-100 text-orange-800',
+    violations_exceeded: 'bg-red-100 text-red-800',
+    exam_terminated: 'bg-purple-100 text-purple-800'
+};
 
 const ExamResultsDetail = () => {
     const { userId, courseId, examId } = useParams();
@@ -55,6 +76,8 @@ const ExamResultsDetail = () => {
                         questions_answered: res.questions_answered,
                         correct_answers: res.correct_answers,
                         submitted_at: res.submission_time,
+                        submission_reason: res.submission_reason || 'manual',
+                        violation_count: res.violation_count || 0,
                         total_questions: archiveData.total_questions || examData.no_of_questions
                     }));
                     setResults(mappedResults);
@@ -307,6 +330,7 @@ const ExamResultsDetail = () => {
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Number</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Right/Wrong</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Reason</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
@@ -317,6 +341,10 @@ const ExamResultsDetail = () => {
                                             ? (result.score / exam.max_score) * 100
                                             : 0;
                                         const passed = percentage >= 50;
+                                        const reason = result.submission_reason || 'manual';
+                                        const ReasonIcon = submissionReasonIcons[reason] || FaCheckCircle;
+                                        const reasonLabel = submissionReasonLabels[reason] || reason;
+                                        const reasonColor = submissionReasonColors[reason] || 'bg-gray-100 text-gray-800';
 
                                         return (
                                             <tr key={index} className="hover:bg-gray-50 transition-colors duration-200">
@@ -334,6 +362,19 @@ const ExamResultsDetail = () => {
                                                     </span>
                                                 </td>
                                                 <td className="py-4 px-6 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1 ${reasonColor}`}>
+                                                            <ReasonIcon className="text-xs" />
+                                                            {reasonLabel}
+                                                        </span>
+                                                        {result.violation_count > 0 && (
+                                                            <span className="text-xs text-red-600 font-medium">
+                                                                ({result.violation_count})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6 text-sm">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${result.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
                                                         passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                                         }`}>
@@ -345,7 +386,7 @@ const ExamResultsDetail = () => {
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan="6" className="py-12 text-center text-gray-500">
+                                        <td colSpan="7" className="py-12 text-center text-gray-500">
                                             <div className="flex flex-col items-center">
                                                 <FaUsers className="text-4xl mb-2 opacity-20" />
                                                 <p className="text-lg font-medium">No results found</p>

@@ -1,13 +1,34 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
-import { FaSearch, FaChevronRight, FaArrowUp, FaArrowDown, FaFilePdf, FaFileExcel } from "react-icons/fa";
+import { FaSearch, FaChevronRight, FaArrowUp, FaArrowDown, FaFilePdf, FaFileExcel, FaUserClock, FaExclamationTriangle, FaClock, FaPowerOff, FaCheckCircle } from "react-icons/fa";
 import { path } from "../../../utils/path";
 import { format } from 'date-fns';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import AdminSidebar from "../../components/AdminSidebar";
+
+const submissionReasonLabels = {
+    manual: 'Student Submitted',
+    time_expired: 'Time Expired',
+    violations_exceeded: 'Violations Exceeded',
+    exam_terminated: 'Exam Terminated'
+};
+
+const submissionReasonIcons = {
+    manual: FaCheckCircle,
+    time_expired: FaClock,
+    violations_exceeded: FaExclamationTriangle,
+    exam_terminated: FaPowerOff
+};
+
+const submissionReasonColors = {
+    manual: 'bg-green-100 text-green-800',
+    time_expired: 'bg-orange-100 text-orange-800',
+    violations_exceeded: 'bg-red-100 text-red-800',
+    exam_terminated: 'bg-purple-100 text-purple-800'
+};
 
 const ExamArchiveDetail = () => {
     const { archiveId, userId } = useParams();
@@ -97,12 +118,13 @@ const ExamArchiveDetail = () => {
 
         autoTable(doc, {
             startY: 53,
-            head: [['Full Name', 'Candidate No.', 'Right/Wrong', 'Score', 'Time']],
+            head: [['Full Name', 'Candidate No.', 'Right/Wrong', 'Score', 'Submission Reason', 'Time']],
             body: sortedAndFilteredResults.map(result => [
                 result.full_name,
                 result.candidate_no,
                 `${result.correct_answers || 0}/${(result.questions_answered || 0) - (result.correct_answers || 0)}`,
                 result.score,
+                submissionReasonLabels[result.submission_reason] || result.submission_reason || 'N/A',
                 result.submission_time ? format(new Date(result.submission_time), 'Pp') : 'N/A'
             ]),
         });
@@ -117,6 +139,8 @@ const ExamArchiveDetail = () => {
                 'Candidate No.': result.candidate_no,
                 'Right/Wrong': `${result.correct_answers || 0}/${(result.questions_answered || 0) - (result.correct_answers || 0)}`,
                 'Score': result.score,
+                'Submission Reason': submissionReasonLabels[result.submission_reason] || result.submission_reason || 'N/A',
+                'Violations': result.violation_count || 0,
                 'Submission Time': result.submission_time ? format(new Date(result.submission_time), 'Pp') : 'N/A'
             }))
         );
@@ -216,35 +240,56 @@ const ExamArchiveDetail = () => {
                                         <SortableHeader name="candidate_no">Candidate No.</SortableHeader>
                                         <SortableHeader name="correct_answers">Right/Wrong</SortableHeader>
                                         <SortableHeader name="score">Score</SortableHeader>
+                                        <SortableHeader name="submission_reason">Submission Reason</SortableHeader>
                                         <SortableHeader name="submission_time">Submission Time</SortableHeader>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {paginatedResults.map((result, index) => (
-                                        <tr key={index}>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{result.full_name}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{result.candidate_no}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">
-                                                    {result.correct_answers !== undefined
-                                                        ? `${result.correct_answers} / ${(result.questions_answered || 0) - result.correct_answers}`
-                                                        : 'N/A'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                    {result.score}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-500">{format(new Date(result.submission_time), 'Pp')}</div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {paginatedResults.map((result, index) => {
+                                        const reason = result.submission_reason || 'manual';
+                                        const ReasonIcon = submissionReasonIcons[reason] || FaUserClock;
+                                        const reasonLabel = submissionReasonLabels[reason] || reason;
+                                        const reasonColor = submissionReasonColors[reason] || 'bg-gray-100 text-gray-800';
+
+                                        return (
+                                            <tr key={index}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">{result.full_name}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">{result.candidate_no}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">
+                                                        {result.correct_answers !== undefined
+                                                            ? `${result.correct_answers} / ${(result.questions_answered || 0) - result.correct_answers}`
+                                                            : 'N/A'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                        {result.score}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full items-center gap-1 ${reasonColor}`}>
+                                                            <ReasonIcon className="text-xs" />
+                                                            {reasonLabel}
+                                                        </span>
+                                                        {result.violation_count > 0 && (
+                                                            <span className="text-xs text-red-600 font-medium">
+                                                                ({result.violation_count} violation{result.violation_count > 1 ? 's' : ''})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-500">{result.submission_time ? format(new Date(result.submission_time), 'Pp') : 'N/A'}</div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                             <div className="flex justify-between items-center mt-4">

@@ -339,11 +339,12 @@ class InvigilatorController extends Controller
             })
                 ->with(['candidates' => fn ($q) => $q->where('exam_id', $exam_id), 'examScores' => fn ($q) => $q->where('course_id', $exam->course_id)])
                 ->get()
-                ->map(function ($student) use ($exam) {
+                ->map(function ($student) use ($exam, $exam_id) {
                     $candidate = $student->candidates->first();
                     $examScore = $student->examScores->first();
                     $questionsAnswered = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->count() : 0;
                     $correctAnswers = $candidate ? Answers::where('course_id', $exam->course_id)->where('candidate_id', $student->id)->where('is_correct', true)->count() : 0;
+                    $violationCount = ExamViolation::where('student_id', $student->id)->where('exam_id', $exam_id)->count();
 
                     return [
                         'student_id' => $student->id,
@@ -356,6 +357,8 @@ class InvigilatorController extends Controller
                         'submission_time' => $candidate ? $candidate->created_at : null,
                         'questions_answered' => $questionsAnswered,
                         'correct_answers' => $correctAnswers,
+                        'submission_reason' => $candidate ? ($candidate->submission_reason ?? 'manual') : 'manual',
+                        'violation_count' => $violationCount,
                     ];
                 })->toArray();
 

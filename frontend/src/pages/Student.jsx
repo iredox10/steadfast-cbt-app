@@ -297,7 +297,7 @@ const Student = () => {
         }
     };
 
-    const handleSubmit = async (timeUp = false) => {
+    const handleSubmit = async (submissionReason = 'manual') => {
         setIsSubmitting(true);
         try {
             // First, submit each answer individually
@@ -308,8 +308,12 @@ const Student = () => {
                 });
             }
 
-            // Then submit the exam
-            const res = await axios.get(`${path}/submit-exam/${studentId}/${activeData?.exam?.course_id}`);
+            // Then submit the exam with reason
+            const res = await axios.post(`${path}/submit-exam`, {
+                student_id: studentId,
+                course_id: activeData?.exam?.course_id,
+                submission_reason: submissionReason
+            });
 
             // Clear localStorage after successful submission
             localStorage.removeItem(localStorageKey);
@@ -404,7 +408,7 @@ const Student = () => {
                 max_violations: activeData?.exam?.max_violations ?? 3
             }}
             enabled={activeData?.exam?.enable_browser_lockdown ?? true}
-            onAutoSubmit={() => handleSubmit(true)}
+            onAutoSubmit={() => handleSubmit('violations_exceeded')}
         >
             <div className="min-h-screen bg-gray-50">
                 {/* Header */}
@@ -482,7 +486,7 @@ const Student = () => {
                                                     initialTime={activeData?.exam?.exam_duration || 0}
                                                     startTime={activeData?.candidate?.start_time}
                                                     remainingSecondsServer={activeData?.exam?.remaining_seconds}
-                                                    onTimeUp={handleSubmit}
+                                                    onTimeUp={() => handleSubmit('time_expired')}
                                                 />
                                                 <button
                                                     onClick={refreshExamData}
@@ -728,7 +732,7 @@ const Student = () => {
                                         Cancel
                                     </button>
                                     <button
-                                        onClick={() => handleSubmit(false)}
+                                        onClick={() => handleSubmit('manual')}
                                         disabled={isSubmitting}
                                         className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors duration-200 flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >

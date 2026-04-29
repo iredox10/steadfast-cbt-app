@@ -337,7 +337,7 @@ class Student extends Controller
         }
     }
 
-    public function submit_exam($student_id, $course_id)
+    public function submit_exam($student_id, $course_id, $submission_reason = 'manual')
     {
         try {
             $student = \App\Models\Student::findOrFail($student_id);
@@ -362,6 +362,7 @@ class Student extends Controller
                 $candidate->is_checked_in = false;
                 $candidate->checkout_time = now();
                 $candidate->status = 'submitted';
+                $candidate->submission_reason = $submission_reason;
                 $candidate->save();
             } else {
                 $exam = Exam::where('course_id', $course_id)
@@ -426,7 +427,7 @@ class Student extends Controller
                 $response['message'] = 'Exam submitted successfully. Your results will be released later.';
             }
 
-            \App\Models\ActivityLog::log('submission', "Student {$student->candidate_no} submitted exam", auth()->id());
+            \App\Models\ActivityLog::log('submission', "Student {$student->candidate_no} submitted exam (reason: {$submission_reason})", auth()->id());
 
             return response()->json($response, 200);
         } catch (\Exception $e) {

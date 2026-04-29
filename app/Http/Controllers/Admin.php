@@ -789,6 +789,8 @@ class Admin extends Controller
                 'submission_time' => $s->candidates->first() ? $s->candidates->first()->created_at : null,
                 'questions_answered' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id])->count(),
                 'correct_answers' => Answers::where(['course_id' => $exam->course_id, 'candidate_id' => $s->id, 'is_correct' => true])->count(),
+                'submission_reason' => $s->candidates->first() ? ($s->candidates->first()->submission_reason ?? 'manual') : 'manual',
+                'violation_count' => ExamViolation::where('student_id', $s->id)->where('exam_id', $exam_id)->count(),
             ])->toArray();
 
         ExamArchive::create([

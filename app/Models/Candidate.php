@@ -29,6 +29,7 @@ class Candidate extends Model
         'status',
         'time_extension',
         'start_time',
+        'submission_reason',
     ];
 
     protected $casts = [

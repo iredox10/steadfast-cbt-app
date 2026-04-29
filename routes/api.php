@@ -54,6 +54,7 @@ Route::get('/submit-exam/{student_id}/{course_id}', [Student::class, 'submit_exa
 Route::post('/submit-exam', function (Request $request) {
     $studentId = $request->input('student_id');
     $courseId = $request->input('course_id');
+    $submissionReason = $request->input('submission_reason', 'manual');
 
     if (! $studentId || ! $courseId) {
         return response()->json(['error' => 'Missing student_id or course_id'], 400);
@@ -62,6 +63,7 @@ Route::post('/submit-exam', function (Request $request) {
     return app()->call('App\Http\Controllers\Student@submit_exam', [
         'student_id' => $studentId,
         'course_id' => $courseId,
+        'submission_reason' => $submissionReason,
     ]);
 });
 
