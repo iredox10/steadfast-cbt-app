@@ -17,7 +17,10 @@ import {
     FaCog,
     FaPowerOff,
     FaPlay,
-    FaInfoCircle
+    FaInfoCircle,
+    FaUserCheck,
+    FaUsers,
+    FaHourglassHalf
 } from "react-icons/fa";
 import axios from "axios";
 import { path } from "../../utils/path";
@@ -278,21 +281,23 @@ const Invigilator = () => {
             student.candidate_no.toString().includes(searchTerm);
         const matchesFilter =
             filterStatus === 'all' ||
-            (filterStatus === 'pending' && !student.is_checked_in) ||
-            (filterStatus === 'checked-in' && student.is_checked_in);
+            (filterStatus === 'pending' && !student.is_checked_in && !student.is_submitted) ||
+            (filterStatus === 'checked-in' && student.is_checked_in && !student.is_submitted) ||
+            (filterStatus === 'submitted' && student.is_submitted);
         return matchesSearch && matchesFilter;
     }).sort((a, b) => {
-        const aChecked = a.is_checked_in;
-        const bChecked = b.is_checked_in;
-        if (!aChecked && bChecked) return -1;
-        if (aChecked && !bChecked) return 1;
+        if (a.is_submitted && !b.is_submitted) return 1;
+        if (!a.is_submitted && b.is_submitted) return -1;
+        if (!a.is_checked_in && b.is_checked_in) return -1;
+        if (a.is_checked_in && !b.is_checked_in) return 1;
         return a.full_name.localeCompare(b.full_name);
     });
 
     const stats = {
         total: students.length,
-        pending: students.filter(s => !s.is_checked_in).length,
-        checkedIn: students.filter(s => s.is_checked_in).length
+        pending: students.filter(s => !s.is_checked_in && !s.is_submitted).length,
+        checkedIn: students.filter(s => s.is_checked_in && !s.is_submitted).length,
+        submitted: students.filter(s => s.is_submitted).length
     };
 
     if (userLoading || loadingStudents) {
@@ -322,7 +327,7 @@ const Invigilator = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-100">
             {/* Photo Modal */}
             {showPhotoModal && selectedPhoto && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowPhotoModal(false)}>
@@ -434,7 +439,7 @@ const Invigilator = () => {
                 </div>
             )}
 
-            {/* Compact Header */}
+            {/* Top Bar */}
             <header className="bg-white border-b sticky top-0 z-40">
                 <div className="max-w-7xl mx-auto px-4 py-3">
                     <div className="flex items-center justify-between">
@@ -442,12 +447,19 @@ const Invigilator = () => {
                             <img src={logo} alt="Logo" className="h-8 w-8" />
                             <div>
                                 <h1 className="text-lg font-bold text-gray-900">
-                                    {userData?.Invigilator?.role === 'technician' ? 'Technician' : 'Invigilator'} Panel
+                                    {userData?.Invigilator?.role === 'technician' ? 'Technician Panel' : 'Invigilator Panel'}
                                 </h1>
                                 <p className="text-xs text-gray-500">{userData?.exam?.course || 'No exam'}</p>
                             </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                            <Link to="/manual/invigilator" className="flex items-center px-2 py-1.5 text-gray-600 hover:text-gray-900 text-sm">
+                                <FaBook className="mr-1 text-xs" /> Manual
+                            </Link>
+                            <Link to={`/invigilator-settings/${id}`} className="flex items-center px-2 py-1.5 text-gray-600 hover:text-gray-900 text-sm">
+                                <FaCog className="mr-1 text-xs" /> Settings
+                            </Link>
+                            <div className="w-px h-4 bg-gray-300"></div>
                             {userData?.Invigilator?.role === 'technician' && (liveExamData?.timer_mode || userData?.exam?.timer_mode) === 'global' && ((liveExamData?.timer_start_type || userData?.exam?.timer_start_type) === 'manual' || !(liveExamData?.timer_start_type || userData?.exam?.timer_start_type)) && !(liveExamData?.activated_date || userData?.exam?.activated_date) && (
                                 <button onClick={() => { setShowStartModal(true); setStartError(null); setStartSuccess(false); }} className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 animate-pulse">
                                     <FaPlay className="mr-1.5 text-xs" /> Start Timer
@@ -477,56 +489,104 @@ const Invigilator = () => {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-4">
-                {/* Status Bar */}
-                {(liveExamData?.timer_mode || userData?.exam?.timer_mode) === 'global' && (
+                {/* Compact Exam Info Bar */}
+                {userData?.exam && (
                     <div className="bg-white rounded-lg shadow-sm border mb-4 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-4">
-                                <div className="text-center">
-                                    <p className="text-xs text-gray-500">Time Left</p>
-                                    <div className="flex gap-1">
-                                        <span className="bg-gray-900 text-white px-2 py-1 rounded text-sm font-mono font-bold">{String(examCountdown.hours).padStart(2, '0')}</span>
-                                        <span className="text-gray-400 self-center">:</span>
-                                        <span className="bg-gray-900 text-white px-2 py-1 rounded text-sm font-mono font-bold">{String(examCountdown.minutes).padStart(2, '0')}</span>
-                                        <span className="text-gray-400 self-center">:</span>
-                                        <span className="bg-gray-900 text-white px-2 py-1 rounded text-sm font-mono font-bold">{String(examCountdown.seconds).padStart(2, '0')}</span>
-                                    </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Exam</p>
+                                    <p className="text-sm font-semibold text-gray-900">{userData.exam.course || 'N/A'}</p>
                                 </div>
                                 <div className="h-8 w-px bg-gray-200"></div>
-                                <div className="flex gap-3 text-sm">
-                                    <span className="text-green-600 font-medium">{submittedCount} done</span>
-                                    <span className="text-orange-600 font-medium">{stats.checkedIn - submittedCount} active</span>
-                                    <span className="text-gray-400">{stats.pending} waiting</span>
+                                <div>
+                                    <p className="text-xs text-gray-500">Duration</p>
+                                    <p className="text-sm font-semibold text-gray-900">{userData.exam.exam_duration || 'N/A'} min</p>
+                                </div>
+                                <div className="h-8 w-px bg-gray-200"></div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Timer</p>
+                                    <p className="text-sm font-semibold text-gray-900">{userData.exam.timer_mode === 'global' ? 'Global' : 'Individual'}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                                {pendingRequest && (
-                                    <span className="flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium border border-yellow-300 animate-pulse">
-                                        <FaRegClock className="mr-1" /> Termination Requested
+                            {(liveExamData?.timer_mode || userData?.exam?.timer_mode) === 'global' && (
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1 bg-gray-900 text-white px-2 py-1 rounded">
+                                        <FaRegClock className="text-xs" />
+                                        <span className="text-sm font-mono font-bold">{String(examCountdown.hours).padStart(2, '0')}:{String(examCountdown.minutes).padStart(2, '0')}:{String(examCountdown.seconds).padStart(2, '0')}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500">
+                                        {(liveExamData?.activated_date || userData?.exam?.activated_date) ? (
+                                            <span className="text-green-600">Started {new Date(liveExamData?.activated_date || userData?.exam?.activated_date).toLocaleTimeString()}</span>
+                                        ) : (
+                                            <span className="text-yellow-600">Not started</span>
+                                        )}
                                     </span>
-                                )}
-                                <span className="text-xs text-gray-500">
-                                    {(liveExamData?.activated_date || userData?.exam?.activated_date) ? (
-                                        <span className="text-green-600">Started {new Date(liveExamData?.activated_date || userData?.exam?.activated_date).toLocaleTimeString()}</span>
-                                    ) : (
-                                        <span className="text-yellow-600">Not started</span>
-                                    )}
-                                </span>
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
+
+                {/* Stats Row */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-white p-3 rounded-lg shadow-sm border">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-xs">Total</p>
+                                <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <FaUsers className="text-blue-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm border">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-xs">Pending</p>
+                                <p className="text-xl font-bold text-yellow-600">{stats.pending}</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <FaHourglassHalf className="text-yellow-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm border">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-xs">Checked In</p>
+                                <p className="text-xl font-bold text-green-600">{stats.checkedIn}</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                <FaUserCheck className="text-green-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm border">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-xs">Submitted</p>
+                                <p className="text-xl font-bold text-blue-600">{stats.submitted}</p>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <FaCheckCircle className="text-blue-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Search & Filter */}
                 <div className="flex gap-2 mb-4">
                     <div className="relative flex-1">
                         <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                        <input type="text" placeholder="Search students..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="text" placeholder="Search by name or ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="all">All ({stats.total})</option>
+                        <option value="all">All Students ({stats.total})</option>
                         <option value="pending">Pending ({stats.pending})</option>
                         <option value="checked-in">Checked In ({stats.checkedIn})</option>
+                        <option value="submitted">Submitted ({stats.submitted})</option>
                     </select>
                 </div>
 
@@ -552,7 +612,7 @@ const Invigilator = () => {
                             const isProcessing = checkingIn === student.id;
 
                             return (
-                                <div key={student.id} className={`bg-white rounded-lg shadow-sm border overflow-hidden ${isSubmitted ? 'border-blue-300' : isCheckedIn ? 'border-green-300' : 'border-gray-200'}`}>
+                                <div key={student.id} className={`bg-white rounded-lg shadow-sm border overflow-hidden transition-all ${isSubmitted ? 'border-blue-300 bg-blue-50/30' : isCheckedIn ? 'border-green-300' : 'border-gray-200'}`}>
                                     <div className="relative">
                                         {student.image ? (
                                             <img src={`${path.replace('/api', '')}/${student.image}`} alt={student.full_name} className="w-full h-32 object-cover cursor-pointer" onClick={() => { setSelectedPhoto({ image: student.image, name: student.full_name, id: student.candidate_no }); setShowPhotoModal(true); }} />
@@ -563,7 +623,7 @@ const Invigilator = () => {
                                         )}
                                         <div className="absolute top-2 right-2">
                                             {isSubmitted ? (
-                                                <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">Done</span>
+                                                <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">Submitted</span>
                                             ) : isCheckedIn ? (
                                                 <span className="bg-green-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">Ready</span>
                                             ) : (
@@ -579,6 +639,16 @@ const Invigilator = () => {
                                             <button onClick={() => handleCheckIn(student)} disabled={isProcessing} className={`w-full mt-2 py-1.5 rounded text-xs font-medium ${isProcessing ? 'bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                                                 {isProcessing ? 'Checking...' : 'Check In'}
                                             </button>
+                                        )}
+                                        {isCheckedIn && !isSubmitted && (
+                                            <div className="mt-2 text-xs text-green-600 font-medium flex items-center">
+                                                <FaCheckCircle className="mr-1" /> Ready for exam
+                                            </div>
+                                        )}
+                                        {isSubmitted && (
+                                            <div className="mt-2 text-xs text-blue-600 font-medium flex items-center">
+                                                <FaCheckCircle className="mr-1" /> Exam completed
+                                            </div>
                                         )}
                                     </div>
                                 </div>
